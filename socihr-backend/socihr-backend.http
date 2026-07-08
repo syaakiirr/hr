@@ -1,0 +1,6 @@
+@socihr_backend_HostAddress = http://localhost:5094
+
+GET {{socihr_backend_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

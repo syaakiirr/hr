@@ -1,0 +1,93 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\socihr-backend.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\socihr-backend.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\socihr-backend.csproj",
+        "projectName": "socihr-backend",
+        "projectPath": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\socihr-backend.csproj",
+        "packagesPath": "C:\\Users\\mfsbm\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\obj\\",
+        "projectStyle": "PackageReference",
+        "configFilePaths": [
+          "C:\\Users\\mfsbm\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        ],
+        "originalTargetFrameworks": [
+          "net8.0"
+        ],
+        "sources": {
+          "https://api.nuget.org/v3/index.json": {}
+        },
+        "frameworks": {
+          "net8.0": {
+            "targetAlias": "net8.0",
+            "projectReferences": {}
+          }
+        },
+        "warningProperties": {
+          "warnAsError": [
+            "NU1605"
+          ]
+        },
+        "restoreAuditProperties": {
+          "enableAudit": "true",
+          "auditLevel": "low",
+          "auditMode": "direct"
+        }
+      },
+      "frameworks": {
+        "net8.0": {
+          "targetAlias": "net8.0",
+          "dependencies": {
+            "ClosedXML": {
+              "target": "Package",
+              "version": "[0.105.0, )"
+            },
+            "Microsoft.AspNetCore.Authentication.JwtBearer": {
+              "target": "Package",
+              "version": "[8.0.4, )"
+            },
+            "Microsoft.EntityFrameworkCore.Design": {
+              "include": "Runtime, Build, Native, ContentFiles, Analyzers, BuildTransitive",
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[8.0.4, )"
+            },
+            "Npgsql.EntityFrameworkCore.PostgreSQL": {
+              "target": "Package",
+              "version": "[8.0.4, )"
+            },
+            "QuestPDF": {
+              "target": "Package",
+              "version": "[2026.6.1, )"
+            }
+          },
+          "imports": [
+            "net461",
+            "net462",
+            "net47",
+            "net471",
+            "net472",
+            "net48",
+            "net481"
+          ],
+          "assetTargetFallback": true,
+          "warn": true,
+          "frameworkReferences": {
+            "Microsoft.AspNetCore.App": {
+              "privateAssets": "none"
+            },
+            "Microsoft.NETCore.App": {
+              "privateAssets": "all"
+            }
+          },
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.422/PortableRuntimeIdentifierGraph.json"
+        }
+      }
+    }
+  }
+}

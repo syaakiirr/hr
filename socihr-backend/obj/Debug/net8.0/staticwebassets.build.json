@@ -1,0 +1,11 @@
+{
+  "Version": 1,
+  "Hash": "gYyEfvTQJDv2bUMYit7c7fZLf0r8cGR13I9EaU8l5gI=",
+  "Source": "socihr-backend",
+  "BasePath": "_content/socihr-backend",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": []
+}

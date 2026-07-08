@@ -1,0 +1,524 @@
+/* ═══════════════════════════════════════════════════════════════
+   PREMIUM UI SYSTEM - TASTESKILL.DEV & IMPECCABLE.STYLE INSPIRED
+   The BEST UI design system ever created for SociHR
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Premium Sidebar Enhancements ──────────────────────────── */
+
+aside {
+  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1) !important;
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.04), 1px 0 0 rgba(0, 0, 0, 0.02) !important;
+  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%) !important;
+}
+
+aside:hover {
+  box-shadow: 6px 0 32px rgba(99, 102, 241, 0.06), 2px 0 0 rgba(99, 102, 241, 0.08) !important;
+}
+
+/* ─── Premium Logo - Subtle Pulse (Optimized for Performance) */
+aside .login-float-icon,
+aside > div:first-child > div > div:first-child {
+  animation: premium-glow 4s ease-in-out infinite;
+  will-change: box-shadow;
+}
+
+@keyframes premium-glow {
+  0%, 100% { box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15); }
+  50% { box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.15), 0 6px 16px rgba(99, 102, 241, 0.25); }
+}
+
+/* Navigation Items - Subtle Hover (tasteskill.dev inspired) */
+aside nav a > div {
+  position: relative;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+aside nav a > div:hover {
+  background: rgba(99, 102, 241, 0.04) !important;
+}
+
+/* Active Navigation Item - Clean Shadow */
+aside nav a > div[style*="linear-gradient"] {
+  box-shadow: 
+    0 1px 3px rgba(99, 102, 241, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+}
+
+/* User Avatar - Reduced Animation */
+aside button#logout-btn + div div:first-child,
+aside > div:last-child > div:first-child > div:first-child {
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+aside button#logout-btn + div div:first-child:hover,
+aside > div:last-child > div:first-child > div:first-child:hover {
+  transform: scale(1.05);
+}
+
+/* ─── Premium Card System (Performance Optimized) ────────────────────────────────────── */
+
+.card-premium {
+  background: #ffffff;
+  border-radius: 16px;
+  border: 1px solid rgba(99, 102, 241, 0.08);
+  padding: 24px;
+  box-shadow: 
+    0 1px 3px rgba(0, 0, 0, 0.02),
+    0 4px 12px rgba(99, 102, 241, 0.04);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.card-premium::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, 
+    transparent 0%,
+    rgba(99, 102, 241, 0.3) 50%,
+    transparent 100%
+  );
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.card-premium:hover {
+  transform: translateY(-1px);
+  box-shadow: 
+    0 1px 4px rgba(0, 0, 0, 0.02),
+    0 4px 12px rgba(99, 102, 241, 0.06);
+  border-color: rgba(99, 102, 241, 0.1);
+}
+
+.card-premium:hover::before {
+  opacity: 0.6;
+}
+
+/* ─── Premium Glassmorphism Cards (SOLID - no blur) ───────────────────────────── */
+
+.glass-card {
+  background: #ffffff;
+  /* backdrop-filter: blur(12px); DISABLED FOR PERFORMANCE */
+  border-radius: 20px;
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.06);
+  padding: 28px;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  will-change: transform;
+}
+
+.glass-card:hover {
+  background: #ffffff;
+  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.1);
+  transform: translateY(-1px);
+}
+
+/* ─── Premium Page Headers ──────────────────────────────────── */
+
+.page-hd {
+  position: relative;
+  padding-bottom: 24px;
+  margin-bottom: 32px;
+}
+
+.page-hd::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
+  border-radius: 99px;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+.page-hd h1 {
+  font-size: 28px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #1e293b 0%, #3d3d50 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  letter-spacing: -0.03em;
+  margin-bottom: 8px;
+}
+
+/* ─── Premium KPI Cards with Shine Effect (Optimized) ───────────────────── */
+
+.kpi {
+  position: relative;
+  overflow: hidden;
+  will-change: transform;
+}
+
+.kpi::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  right: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    45deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.2) 50%,
+    transparent 70%
+  );
+  transform: rotate(45deg);
+  transition: opacity 0.3s ease;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.kpi:hover::after {
+  animation: shine 1.2s ease-in-out;
+}
+
+@keyframes shine {
+  0% {
+    top: -50%;
+    right: -50%;
+    opacity: 0;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    top: 150%;
+    right: 150%;
+    opacity: 0;
+  }
+}
+
+/* ─── Premium Stat Numbers with Counter Animation ───────────── */
+
+.stat-number {
+  font-variant-numeric: tabular-nums;
+  animation: countUp 0.8s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+@keyframes countUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ─── Premium Tables (Performance Optimized) ─────────────────────────────────────────── */
+
+.data-table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  background: #ffffff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 0 0 1px rgba(99, 102, 241, 0.04);
+}
+
+.data-table thead {
+  background: linear-gradient(180deg, #fafbfc 0%, #f5f5f9 100%);
+}
+
+.data-table thead th {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+  padding: 14px 16px;
+  text-align: left;
+  border-bottom: 2px solid rgba(99, 102, 241, 0.1);
+}
+
+.data-table tbody tr {
+  transition: background-color 0.15s ease, transform 0.15s ease;
+  border-bottom: 1px solid #f3f4f6;
+  will-change: transform;
+}
+
+.data-table tbody tr:hover {
+  background: rgba(99, 102, 241, 0.02);
+  transform: translateX(2px);
+}
+
+.data-table tbody td {
+  padding: 16px;
+  font-size: 14px;
+  color: #374151;
+}
+
+/* ─── Premium Badges with Glow ──────────────────────────────── */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  border: 1px solid;
+  position: relative;
+}
+
+.badge::before {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: 8px;
+  padding: 1px;
+  background: linear-gradient(135deg, currentColor, transparent);
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.badge:hover::before {
+  opacity: 0.4;
+}
+
+.badge.success {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  color: #166534;
+  border-color: #bbf7d0;
+}
+
+.badge.success:hover {
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.2);
+  transform: translateY(-1px);
+}
+
+.badge.danger {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  color: #991b1b;
+  border-color: #fecaca;
+}
+
+.badge.danger:hover {
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2);
+  transform: translateY(-1px);
+}
+
+.badge.warning {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  color: #92400e;
+  border-color: #fde68a;
+}
+
+.badge.warning:hover {
+  box-shadow: 0 4px 12px rgba(217, 119, 6, 0.2);
+  transform: translateY(-1px);
+}
+
+/* ─── Premium Form Inputs ────────────────────────────────────── */
+
+.input-premium {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 14px;
+  color: #1f2937;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  font-family: 'Geist', sans-serif;
+}
+
+.input-premium:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 
+    0 0 0 4px rgba(99, 102, 241, 0.1),
+    0 2px 8px rgba(99, 102, 241, 0.15);
+  background: #fafbfc;
+}
+
+.input-premium::placeholder {
+  color: #9ca3af;
+}
+
+/* ─── Premium Buttons with Magnetic Effect (DISABLED - causes jank) ──────────────────── */
+
+/* .btn-magnetic - REMOVED FOR PERFORMANCE */
+
+/* ─── Premium Loading States ────────────────────────────────── */
+
+.skeleton {
+  background: #f3f4f6;
+  /* animation: skeleton-loading 1.5s ease-in-out infinite; DISABLED FOR PERFORMANCE */
+  border-radius: 8px;
+}
+
+@keyframes skeleton-loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ─── Premium Tooltips ───────────────────────────────────────── */
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  padding: 8px 12px;
+  background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+  color: #ffffff;
+  font-size: 12px;
+  font-weight: 500;
+  border-radius: 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 100;
+}
+
+[data-tooltip]::after {
+  content: '';
+  position: absolute;
+  bottom: calc(100% + 2px);
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+  border-top-color: #1f2937;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* ─── Premium Scrollbar for Tables ──────────────────────────── */
+
+.scroll-premium {
+  overflow: auto;
+}
+
+.scroll-premium::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-premium::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 99px;
+}
+
+.scroll-premium::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
+  border-radius: 99px;
+  border: 2px solid #f3f4f6;
+}
+
+.scroll-premium::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #4f46e5 0%, #9333ea 100%);
+}
+
+/* ─── Premium Status Indicators ─────────────────────────────── */
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+  /* animation: pulse-dot 2s ease-in-out infinite; DISABLED FOR PERFORMANCE */
+}
+
+.status-dot.active {
+  background: #16a34a;
+  box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
+}
+
+.status-dot.inactive {
+  background: #6b7280;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(22, 163, 74, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(22, 163, 74, 0);
+  }
+}
+
+/* ─── Premium Empty States ──────────────────────────────────── */
+
+.empty-state {
+  text-align: center;
+  padding: 64px 32px;
+}
+
+.empty-state-icon {
+  width: 80px;
+  height: 80px;
+  margin: 0 auto 24px;
+  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #9ca3af;
+  /* animation: float 3s ease-in-out infinite; DISABLED FOR PERFORMANCE */
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+/* ─── Premium Notification Badges ───────────────────────────── */
+
+.notification-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 6px;
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  border-radius: 99px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4), 0 0 0 2px #ffffff;
+  animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes badge-pop {
+  0% {
+    transform: scale(0);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
