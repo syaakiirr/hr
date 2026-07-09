@@ -451,3 +451,4 @@ C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_proje
 C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\obj\Debug\net8.0\socihr-backend.pdb
 C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\obj\Debug\net8.0\socihr-backend.genruntimeconfig.cache
 C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\obj\Debug\net8.0\ref\socihr-backend.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\obj\Debug\net8.0\socihr-backend.sourcelink.json

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import {
   getSessions, getPlatforms, getCompanies, createSession, deleteSession, archiveSession,
-  getEngagements, updateEngagementStatus, bulkUpdateEngagementStatus,
+  getEngagements, updateEngagementAction, updateEngagementReason, bulkUpdateEngagementStatus,
   type MonitoringSession, type Platform, type Engagement, type Company
 } from "../services/api";
 
@@ -20,14 +20,6 @@ function parseDateOnly(dateStr: string) {
   return new Date(y, m - 1, d);
 }
 
-function StatusSymbol({ status }: { status: string }) {
-  if (status === "Completed") return <span style={{ color: "var(--green)", fontWeight: 700 }}>✓</span>;
-  return <span style={{ color: "var(--red)", fontWeight: 700 }}>✗</span>;
-}
-
-function nextStatus(current: string): string {
-  return current === "Completed" ? "Missed" : "Completed";
-}
 
 export default function MonitoringPage() {
   const navigate = useNavigate();
@@ -44,6 +36,16 @@ export default function MonitoringPage() {
   // Bulk selection state
   const [selectedEngagements, setSelectedEngagements] = useState<Set<string>>(new Set());
   const [bulkUpdating, setBulkUpdating] = useState(false);
+
+  // Filter state
+  const [filterName, setFilterName] = useState("");
+  const [filterDept, setFilterDept] = useState("");
+  const [filterCompany, setFilterCompany] = useState("");
+
+  // Reason modal state — stores all engagementIDs for the staff row so reason applies to all posts
+  const [reasonModal, setReasonModal] = useState<{ staffName: string; engagementIDs: string[]; current: string } | null>(null);
+  const [reasonInput, setReasonInput] = useState("");
+  const [savingReason, setSavingReason] = useState(false);
 
   // Create session wizard state
   const [wizardStep, setWizardStep] = useState<1 | 2 | 3>(1);
@@ -109,14 +111,53 @@ export default function MonitoringPage() {
     }
   }
 
-  async function handleTick(eng: Engagement) {
-    const newStatus = nextStatus(eng.status);
-    setEngagements((prev) => prev.map((e) => e.engagementID === eng.engagementID ? { ...e, status: newStatus } : e));
+
+  async function handleAction(eng: Engagement, action: "like" | "comment" | "share", value: boolean) {
+    // Optimistic update
+    setEngagements((prev) => prev.map((e) =>
+      e.engagementID === eng.engagementID
+        ? { ...e,
+            isLiked: action === "like" ? value : e.isLiked,
+            isCommented: action === "comment" ? value : e.isCommented,
+            isShared: action === "share" ? value : e.isShared,
+          }
+        : e
+    ));
     try {
-      await updateEngagementStatus(eng.engagementID, newStatus);
+      const res = await updateEngagementAction(eng.engagementID, action, value);
+      // Update with server's computed status
+      setEngagements((prev) => prev.map((e) =>
+        e.engagementID === eng.engagementID ? { ...e, status: res.status, isLiked: res.isLiked, isCommented: res.isCommented, isShared: res.isShared } : e
+      ));
     } catch (err) {
-      setEngagements((prev) => prev.map((e) => e.engagementID === eng.engagementID ? { ...e, status: eng.status } : e));
+      // Revert on failure
+      setEngagements((prev) => prev.map((e) =>
+        e.engagementID === eng.engagementID ? { ...e, isLiked: eng.isLiked, isCommented: eng.isCommented, isShared: eng.isShared } : e
+      ));
       console.error(err);
+    }
+  }
+
+  function openReasonModal(row: { staffName: string; engagements: Engagement[] }) {
+    const current = row.engagements.find(e => e.reason)?.reason || "";
+    setReasonModal({ staffName: row.staffName, engagementIDs: row.engagements.map(e => e.engagementID), current });
+    setReasonInput(current);
+  }
+
+  async function saveReason() {
+    if (!reasonModal) return;
+    setSavingReason(true);
+    try {
+      // Save reason to all engagements for this staff row
+      await Promise.all(reasonModal.engagementIDs.map(id => updateEngagementReason(id, reasonInput)));
+      setEngagements((prev) => prev.map((e) =>
+        reasonModal.engagementIDs.includes(e.engagementID) ? { ...e, reason: reasonInput || null } : e
+      ));
+      setReasonModal(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingReason(false);
     }
   }
 
@@ -205,7 +246,7 @@ export default function MonitoringPage() {
     }
     staffMap.get(eng.staffID)!.engagements.push(eng);
   });
-  const staffRows = Array.from(staffMap.values()).sort((a, b) => a.staffName.localeCompare(b.staffName));
+  const allStaffRows = Array.from(staffMap.values()).sort((a, b) => a.staffName.localeCompare(b.staffName));
 
   const sessionPosts = selectedSession?.posts.map((p) => ({
     postID: p.postID,
@@ -215,6 +256,20 @@ export default function MonitoringPage() {
     companyName: p.companyName || "No Company",
     postLink: p.postLink,
   })) ?? [];
+
+  // Unique departments and companies from current session
+  const sessionDepts = Array.from(new Set(allStaffRows.map(r => r.department).filter(Boolean)));
+  const sessionCompanies = Array.from(
+    new Map(engagements.filter(e => e.companyID).map(e => [e.companyID, e.companyName ?? "No Company"])).entries()
+  ).map(([id, name]) => ({ id, name }));
+
+  // Filtered rows
+  const staffRows = allStaffRows.filter(row => {
+    const nameOk = !filterName || row.staffName.toLowerCase().includes(filterName.toLowerCase());
+    const deptOk = !filterDept || row.department === filterDept;
+    const compOk = !filterCompany || row.engagements.some(e => e.companyID === filterCompany);
+    return nameOk && deptOk && compOk;
+  });
 
   // ── Wizard step label helper ──
   const stepLabels = ["Date", "Company", "Platform"];
@@ -358,14 +413,40 @@ export default function MonitoringPage() {
                   <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>
                     {selectedEngagements.size > 0
                       ? `${selectedEngagements.size} selected — Use bulk actions below`
-                      : "Click checkbox to select, or click tick button ( ✗ Missed ↔ ✓ Completed )"}
+                      : "Tick Like/Comment per platform · Add reason via 📝 button"}
                   </p>
                 </div>
-
                 <div style={{ display: "flex", gap: 8 }}>
                   <span className="badge badge-green">✓ Completed: {engagements.filter((e) => e.status === "Completed").length}</span>
                   <span className="badge badge-red">✗ Missed: {engagements.filter((e) => e.status === "Missed").length}</span>
                 </div>
+              </div>
+
+              {/* ── Filter Bar ── */}
+              <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
+                <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
+                  <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.4 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input
+                    className="input"
+                    style={{ paddingLeft: 32 }}
+                    placeholder="Search staff name..."
+                    value={filterName}
+                    onChange={(e) => setFilterName(e.target.value)}
+                  />
+                </div>
+                <select className="input" style={{ width: 160 }} value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
+                  <option value="">All Departments</option>
+                  {sessionDepts.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <select className="input" style={{ width: 180 }} value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+                  <option value="">All Companies</option>
+                  {sessionCompanies.map(c => <option key={c.id} value={c.id!}>{c.name}</option>)}
+                </select>
+                {(filterName || filterDept || filterCompany) && (
+                  <button className="btn btn-ghost btn-sm" style={{ color: "var(--text-3)" }} onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}>
+                    Clear Filters
+                  </button>
+                )}
               </div>
 
               {/* Bulk Action Bar */}
@@ -397,7 +478,7 @@ export default function MonitoringPage() {
                 <div className="loader"><div className="spin" />Loading engagement data...</div>
               ) : staffRows.length === 0 ? (
                 <div className="card" style={{ textAlign: "center", padding: 32 }}>
-                  <p style={{ color: "var(--text-3)" }}>No registered staff found.</p>
+                  <p style={{ color: "var(--text-3)" }}>{allStaffRows.length === 0 ? "No registered staff found." : "No staff match the current filters."}</p>
                 </div>
               ) : (
                 <div className="tbl-wrap" style={{ overflowX: "auto" }}>
@@ -413,23 +494,30 @@ export default function MonitoringPage() {
                         {sessionPosts.map((p) => {
                           const compIdx = companies.findIndex(c => c.companyID === p.companyID);
                           const compColor = compIdx >= 0 ? COMPANY_COLORS[compIdx % COMPANY_COLORS.length] : "var(--text-3)";
+                          const platColor = PLATFORM_COLORS[p.platformName] || "var(--accent)";
+                          const actions =
+                            p.platformName === "Facebook" ? ["Like", "Comment", "Share"] :
+                            p.platformName === "Instagram" ? ["Like", "Comment"] :
+                            p.platformName === "TikTok" ? ["Comment"] : ["Like", "Comment"];
                           return (
-                            <th key={p.postID} style={{ textAlign: "center", width: 140, padding: "8px 10px" }}>
-                              <span style={{
-                                display: "block", fontSize: 9, fontWeight: 700,
-                                color: compColor, textTransform: "uppercase", letterSpacing: "0.03em",
-                                marginBottom: 2
-                              }}>
+                            <th key={p.postID} style={{ textAlign: "center", padding: "8px 10px" }}>
+                              <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: compColor, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>
                                 {p.companyName}
                               </span>
-                              <span style={{ color: PLATFORM_COLORS[p.platformName] || "var(--accent)", fontSize: 11.5 }}>
-                                {p.platformName}
-                              </span>
+                              <span style={{ color: platColor, fontSize: 11.5, fontWeight: 600 }}>{p.platformName}</span>
+                              <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
+                                {actions.map(a => (
+                                  <span key={a} style={{ fontSize: 9, color: a === "Share" ? "var(--text-4)" : platColor, background: `${a === "Share" ? "#9ca3af" : platColor}15`, borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>
+                                    {a === "Share" ? "Share⛔" : a}
+                                  </span>
+                                ))}
+                              </div>
                             </th>
                           );
                         })}
-                        <th style={{ textAlign: "center", width: 80 }}>Total</th>
-                        <th style={{ textAlign: "center", width: 80 }}>Rate %</th>
+                        <th style={{ textAlign: "center", width: 70 }}>Total</th>
+                        <th style={{ textAlign: "center", width: 70 }}>Rate %</th>
+                        <th style={{ textAlign: "center", width: 120 }}>Reason</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -438,6 +526,8 @@ export default function MonitoringPage() {
                         const total = row.engagements.length;
                         const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
                         const allRowSelected = row.engagements.every((e) => selectedEngagements.has(e.engagementID));
+                        // Aggregate reason: take first reason found in row
+                        const rowReason = row.engagements.find(e => e.reason)?.reason;
 
                         return (
                           <tr key={row.staffID}>
@@ -460,14 +550,59 @@ export default function MonitoringPage() {
                             <td><span className="badge badge-neutral">{row.department || "—"}</span></td>
                             {sessionPosts.map((p) => {
                               const eng = row.engagements.find((e) => e.postID === p.postID);
+                              const platName = p.platformName;
+                              const platColor = PLATFORM_COLORS[platName] || "var(--accent)";
                               return (
-                                <td key={p.postID} style={{ textAlign: "center" }}>
+                                <td key={p.postID} style={{ textAlign: "center", verticalAlign: "middle" }}>
                                   {eng ? (
-                                    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
-                                      <input type="checkbox" checked={selectedEngagements.has(eng.engagementID)} onChange={() => toggleSelectEngagement(eng.engagementID)} style={{ cursor: "pointer", width: 14, height: 14 }} onClick={(e) => e.stopPropagation()} />
-                                      <button onClick={() => handleTick(eng)} className={`tick ${eng.status === "Completed" ? "done" : "miss"}`}>
-                                        <StatusSymbol status={eng.status} />
-                                      </button>
+                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                                      <input type="checkbox" checked={selectedEngagements.has(eng.engagementID)} onChange={() => toggleSelectEngagement(eng.engagementID)} style={{ cursor: "pointer", width: 13, height: 13, marginBottom: 2 }} onClick={(e) => e.stopPropagation()} />
+                                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
+                                        {/* Like */}
+                                        {(platName === "Facebook" || platName === "Instagram") && (
+                                          <button
+                                            onClick={() => handleAction(eng, "like", !eng.isLiked)}
+                                            title={eng.isLiked ? "Like ✓ (click to undo)" : "Like"}
+                                            style={{
+                                              fontSize: 10, padding: "2px 6px", borderRadius: 5, border: "none", cursor: "pointer", fontWeight: 700,
+                                              background: eng.isLiked ? "#16a34a" : "rgba(0,0,0,0.06)",
+                                              color: eng.isLiked ? "white" : "var(--text-3)",
+                                              transition: "all 0.15s"
+                                            }}>
+                                            👍
+                                          </button>
+                                        )}
+                                        {/* Comment */}
+                                        {(platName === "Facebook" || platName === "Instagram" || platName === "TikTok") && (
+                                          <button
+                                            onClick={() => handleAction(eng, "comment", !eng.isCommented)}
+                                            title={eng.isCommented ? "Comment ✓ (click to undo)" : "Comment"}
+                                            style={{
+                                              fontSize: 10, padding: "2px 6px", borderRadius: 5, border: "none", cursor: "pointer", fontWeight: 700,
+                                              background: eng.isCommented ? "#16a34a" : "rgba(0,0,0,0.06)",
+                                              color: eng.isCommented ? "white" : "var(--text-3)",
+                                              transition: "all 0.15s"
+                                            }}>
+                                            💬
+                                          </button>
+                                        )}
+                                        {/* Share — disabled for Facebook, hidden for others */}
+                                        {platName === "Facebook" && (
+                                          <button
+                                            disabled
+                                            title="Share (disabled for now)"
+                                            style={{
+                                              fontSize: 10, padding: "2px 6px", borderRadius: 5, border: "none", cursor: "not-allowed", fontWeight: 700,
+                                              background: "rgba(0,0,0,0.04)", color: "var(--text-4)", opacity: 0.5
+                                            }}>
+                                            🔁
+                                          </button>
+                                        )}
+                                      </div>
+                                      {/* Status indicator */}
+                                      <span style={{ fontSize: 9, color: eng.status === "Completed" ? "var(--green)" : platColor, fontWeight: 700 }}>
+                                        {eng.status === "Completed" ? "✓ Done" : "✗"}
+                                      </span>
                                     </div>
                                   ) : <span style={{ color: "var(--text-4)" }}>—</span>}
                                 </td>
@@ -476,6 +611,21 @@ export default function MonitoringPage() {
                             <td style={{ textAlign: "center", fontWeight: 600, fontSize: 13, color: "var(--text-1)" }}>{completed}/{total}</td>
                             <td style={{ textAlign: "center" }}>
                               <span className={`badge ${rate >= 75 ? "badge-green" : rate >= 50 ? "badge-amber" : "badge-red"}`}>{rate}%</span>
+                            </td>
+                            <td style={{ textAlign: "center" }}>
+                              <button
+                                onClick={() => openReasonModal(row)}
+                                title={rowReason ? `Reason: ${rowReason}` : "Add reason (MC, Cuti, etc.)"}
+                                style={{
+                                  fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--line)",
+                                  cursor: "pointer", fontWeight: 600, maxWidth: 110,
+                                  background: rowReason ? "rgba(99,102,241,0.08)" : "var(--bg-2)",
+                                  color: rowReason ? "var(--accent)" : "var(--text-3)",
+                                  whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                                  display: "inline-block"
+                                }}>
+                                {rowReason ? `📝 ${rowReason}` : "📝 Add"}
+                              </button>
                             </td>
                           </tr>
                         );
@@ -698,6 +848,40 @@ export default function MonitoringPage() {
                 </div>
               </form>
             )}
+          </div>
+        </div>
+      )}
+      {/* ── Reason Modal ── */}
+      {reasonModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000,
+          background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+        }} onClick={() => setReasonModal(null)}>
+          <div style={{
+            background: "var(--surface)", borderRadius: 14, padding: 24, width: 360,
+            boxShadow: "0 8px 40px rgba(0,0,0,0.25)", border: "1px solid var(--line)"
+          }} onClick={(e) => e.stopPropagation()}>
+            <p style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>📝 Reason — {reasonModal.staffName}</p>
+            <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14 }}>Enter reason (applies to all posts for this staff in the session)</p>
+            <textarea
+              className="input"
+              style={{ width: "100%", minHeight: 80, resize: "vertical", fontFamily: "inherit", fontSize: 13 }}
+              placeholder="MC, Cuti Tahunan, Urusan Rasmi..."
+              value={reasonInput}
+              onChange={(e) => setReasonInput(e.target.value)}
+              autoFocus
+            />
+            <div style={{ display: "flex", gap: 8, marginTop: 14 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => setReasonModal(null)}>Cancel</button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1 }}
+                disabled={savingReason}
+                onClick={saveReason}>
+                {savingReason ? "Saving..." : "Save Reason"}
+              </button>
+            </div>
           </div>
         </div>
       )}

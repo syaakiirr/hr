@@ -7,6 +7,10 @@ public class Engagement
     public Guid PostID { get; set; }
     public Guid StaffID { get; set; }
     public string Status { get; set; } = "Missed"; // Completed | Missed
+    public bool IsLiked { get; set; } = false;
+    public bool IsCommented { get; set; } = false;
+    public bool IsShared { get; set; } = false;
+    public string? Reason { get; set; }
     public Guid? UpdatedBy { get; set; }
     public DateTime? UpdatedAt { get; set; }
 

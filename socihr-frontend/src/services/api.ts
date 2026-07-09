@@ -165,6 +165,10 @@ export interface Engagement {
   platformName: string;
   postLink: string;
   status: string;
+  isLiked: boolean;
+  isCommented: boolean;
+  isShared: boolean;
+  reason?: string | null;
   updatedBy: string | null;
   updatedAt: string | null;
 }
@@ -181,6 +185,28 @@ export async function updateEngagementStatus(id: string, status: string): Promis
     body: JSON.stringify({ Status: status }),
   });
   return handleResponse<{ engagementID: string; status: string }>(res);
+}
+
+export async function updateEngagementAction(
+  id: string,
+  action: "like" | "comment" | "share",
+  value: boolean
+): Promise<{ engagementID: string; status: string; isLiked: boolean; isCommented: boolean; isShared: boolean }> {
+  const res = await fetch(`${BASE_URL}/engagement/${id}/action`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ Action: action, Value: value }),
+  });
+  return handleResponse<{ engagementID: string; status: string; isLiked: boolean; isCommented: boolean; isShared: boolean }>(res);
+}
+
+export async function updateEngagementReason(id: string, reason: string): Promise<{ engagementID: string; reason: string | null }> {
+  const res = await fetch(`${BASE_URL}/engagement/${id}/reason`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ Reason: reason }),
+  });
+  return handleResponse<{ engagementID: string; reason: string | null }>(res);
 }
 
 export async function bulkUpdateEngagementStatus(engagementIDs: string[], status: string): Promise<{ message: string; updatedCount: number; status: string }> {
