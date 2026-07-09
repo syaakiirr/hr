@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import {
@@ -258,6 +258,18 @@ export default function MonitoringPage() {
   // ── Wizard step label helper ──
   const stepLabels = ["Date", "Company", "Platform"];
 
+  // ── Synchronized dual-scrollbar for the engagement table ──
+  const tableScrollRef = useRef<HTMLDivElement>(null);
+  const topScrollRef = useRef<HTMLDivElement>(null);
+
+  const syncScroll = useCallback((source: "top" | "table") => {
+    if (source === "top" && topScrollRef.current && tableScrollRef.current) {
+      tableScrollRef.current.scrollLeft = topScrollRef.current.scrollLeft;
+    } else if (source === "table" && tableScrollRef.current && topScrollRef.current) {
+      topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft;
+    }
+  }, []);
+
   return (
     <Layout>
       <style>{`
@@ -425,7 +437,7 @@ export default function MonitoringPage() {
             <div className="sesh-panel-label">All Sessions</div>
             <div className="sesh-panel-count">{sessions.length}</div>
             <div style={{ flex: 1 }} />
-            <p style={{ fontSize: 11, color: "var(--text-4)", fontStyle: "italic" }}>← scroll to see more →</p>
+            <p style={{ fontSize: 12, color: "var(--text-4)", fontStyle: "italic" }}>← scroll to see more →</p>
           </div>
           <div className="sesh-panel-list">
             {loading ? (
@@ -515,7 +527,7 @@ export default function MonitoringPage() {
                   {(filterName || filterDept || filterCompany) && (
                     <button
                       className="btn btn-ghost btn-sm"
-                      style={{ fontSize: 11.5, color: "var(--text-3)", height: 32, whiteSpace: "nowrap" }}
+                      style={{ fontSize: 12, color: "var(--text-3)", height: 32, whiteSpace: "nowrap" }}
                       onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}
                     >✕ Clear</button>
                   )}
@@ -529,9 +541,9 @@ export default function MonitoringPage() {
                       dipilih
                     </span>
                     <div style={{ display: "flex", gap: 5 }}>
-                      <button onClick={() => handleBulkUpdate("Completed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--green)", color: "white", border: "none", fontSize: 11.5, height: 28 }}>✓ Done</button>
-                      <button onClick={() => handleBulkUpdate("Missed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--red)", color: "white", border: "none", fontSize: 11.5, height: 28 }}>✗ Missed</button>
-                      <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ fontSize: 11.5, height: 28 }}>Batal</button>
+                      <button onClick={() => handleBulkUpdate("Completed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--green)", color: "white", border: "none", fontSize: 12, height: 28 }}>✓ Done</button>
+                      <button onClick={() => handleBulkUpdate("Missed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--red)", color: "white", border: "none", fontSize: 12, height: 28 }}>✗ Missed</button>
+                      <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ fontSize: 12, height: 28 }}>Batal</button>
                     </div>
                   </div>
                 )}
@@ -613,7 +625,7 @@ export default function MonitoringPage() {
 
                     const thStyle: React.CSSProperties = {
                       padding: "6px 5px", textAlign: "center", fontWeight: 700,
-                      fontSize: 10.5, color: "var(--text-2)", whiteSpace: "nowrap"
+                      fontSize: 11.5, color: "var(--text-2)", whiteSpace: "nowrap"
                     };
                     const tdStyle: React.CSSProperties = {
                       padding: "6px", textAlign: "center", verticalAlign: "middle"
@@ -625,9 +637,27 @@ export default function MonitoringPage() {
                     coGroups.forEach((cg) => { cumSpan += cg.span; coEndIndices.add(cumSpan - 1); });
                     
                     return (
-                      <div style={{ overflowX: "auto", width: "100%" }}>
+                      <div style={{ width: "100%" }}>
+                        {/* Top scrollbar — synced with the table scroll container */}
+                        <div
+                          ref={topScrollRef}
+                          onScroll={() => syncScroll("top")}
+                          style={{
+                            overflowX: "scroll", overflowY: "hidden",
+                            height: 10, width: "100%",
+                            scrollbarWidth: "thin",
+                          }}
+                        >
+                          <div style={{ height: 1, minWidth: 400 + actionCols.length * 52 }} />
+                        </div>
+                        {/* Main table container */}
+                        <div
+                          ref={tableScrollRef}
+                          onScroll={() => syncScroll("table")}
+                          style={{ overflowX: "auto", width: "100%" }}
+                        >
                         <table className="simple-engage-table" style={{
-                          width: "100%", borderCollapse: "collapse", fontSize: 12,
+                          width: "100%", borderCollapse: "collapse", fontSize: 13,
                           minWidth: 400 + actionCols.length * 52
                         }}>
                           <thead>
@@ -640,13 +670,13 @@ export default function MonitoringPage() {
                                   style={{ cursor: "pointer", width: 14, height: 14 }}
                                 />
                               </th>
-                              <th rowSpan={3} style={{ ...thStyle, width: 28, fontSize: 10, color: "var(--text-4)", borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>#</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 120, fontSize: 11, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Nama Staff</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 80, fontSize: 10, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Jabatan</th>
+                              <th rowSpan={3} style={{ ...thStyle, width: 28, fontSize: 11, color: "var(--text-4)", borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>#</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 120, fontSize: 12, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Nama Staff</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 80, fontSize: 11, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Jabatan</th>
                               {coGroups.map((cg) => (
                                 <th key={cg.companyID} colSpan={cg.span} style={{
                                   padding: "5px 6px", textAlign: "center", fontWeight: 800,
-                                  fontSize: 10, letterSpacing: "0.03em", textTransform: "uppercase",
+                                  fontSize: 11, letterSpacing: "0.03em", textTransform: "uppercase",
                                   color: cg.color, background: `${cg.color}14`,
                                   borderRight: "2px solid #cbd5e1", borderBottom: "1px solid var(--line)"
                                 }}>
@@ -666,7 +696,7 @@ export default function MonitoringPage() {
                                   return (
                                     <th key={pi} colSpan={pg.span} style={{
                                       padding: "3px 4px", textAlign: "center", fontWeight: 700,
-                                      fontSize: 10, color: pg.color, background: `${pg.color}0d`,
+                                      fontSize: 11, color: pg.color, background: `${pg.color}0d`,
                                       borderRight: isCoEnd ? "2px solid #cbd5e1" : "1px solid var(--line)",
                                       borderBottom: "1px solid var(--line)"
                                     }}>
@@ -725,11 +755,11 @@ export default function MonitoringPage() {
                                       style={{ cursor: "pointer", width: 14, height: 14 }}
                                     />
                                   </td>
-                                  <td style={{ ...tdStyle, color: "var(--text-4)", fontSize: 11 }}>{idx + 1}</td>
+                                  <td style={{ ...tdStyle, color: "var(--text-4)", fontSize: 12 }}>{idx + 1}</td>
                                   <td style={{ ...tdStyle, textAlign: "left", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap" }}>
                                     {row.staffName}
                                   </td>
-                                  <td style={{ ...tdStyle, textAlign: "left", color: "var(--text-3)", fontSize: 11, whiteSpace: "nowrap" }}>
+                                  <td style={{ ...tdStyle, textAlign: "left", color: "var(--text-3)", fontSize: 12, whiteSpace: "nowrap" }}>
                                     {row.department || "—"}
                                   </td>
                                   {actionCols.map((col, ci) => {
@@ -748,7 +778,7 @@ export default function MonitoringPage() {
                                       }}>
                                         {eng ? (
                                           col.disabled ? (
-                                            <span style={{ fontSize: 10, color: "#cbd5e1" }} title="Disabled">—</span>
+                                            <span style={{ fontSize: 11, color: "#cbd5e1" }} title="Disabled">—</span>
                                           ) : (
                                             <input
                                               type="checkbox"
@@ -759,7 +789,7 @@ export default function MonitoringPage() {
                                             />
                                           )
                                         ) : (
-                                          <span style={{ color: "var(--text-4)", fontSize: 10 }}>—</span>
+                                          <span style={{ color: "var(--text-4)", fontSize: 11 }}>—</span>
                                         )}
                                       </td>
                                     );
@@ -769,7 +799,7 @@ export default function MonitoringPage() {
                                       onClick={(e) => { e.stopPropagation(); openReasonModal(row); }}
                                       title={reason || "Tambah sebab"}
                                       style={{
-                                        fontSize: 10, padding: "3px 6px", borderRadius: 6,
+                                        fontSize: 11, padding: "3px 6px", borderRadius: 6,
                                         border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
                                         cursor: "pointer", fontWeight: 700,
                                         background: reason ? "rgba(99,102,241,0.06)" : "transparent",
@@ -786,6 +816,7 @@ export default function MonitoringPage() {
                             })}
                           </tbody>
                         </table>
+                      </div>
                       </div>
                     );
                   })()
@@ -829,7 +860,7 @@ export default function MonitoringPage() {
                       }}>
                         {isDone ? "✓" : stepNum}
                       </div>
-                      <span style={{ fontSize: 10, fontWeight: 600, color: isActive ? "var(--accent)" : isDone ? "var(--green)" : "var(--text-4)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? "var(--accent)" : isDone ? "var(--green)" : "var(--text-4)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
                         {label}
                       </span>
                     </div>
@@ -854,7 +885,7 @@ export default function MonitoringPage() {
                     required
                     autoFocus
                   />
-                  <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 6, fontStyle: "italic" }}>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6, fontStyle: "italic" }}>
                     * Choose the date for this monitoring session.
                   </p>
                 </div>
@@ -878,7 +909,7 @@ export default function MonitoringPage() {
             {wizardStep === 2 && (
               <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
-                  <p style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
                     Select Companies
                   </p>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
@@ -918,7 +949,7 @@ export default function MonitoringPage() {
                       );
                     })}
                   </div>
-                  <p style={{ fontSize: 11, color: "var(--text-3)", fontStyle: "italic", marginTop: 8 }}>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", fontStyle: "italic", marginTop: 8 }}>
                     * {selectedCompanies.size} of {companies.length} companies selected. Only staff from selected companies will be included.
                   </p>
                 </div>
@@ -945,7 +976,7 @@ export default function MonitoringPage() {
             {wizardStep === 3 && (
               <form onSubmit={handleCreateSession} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
                 <div>
-                  <p style={{ fontSize: 11.5, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
                     Select Platforms
                   </p>
                   <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
@@ -981,17 +1012,17 @@ export default function MonitoringPage() {
                       );
                     })}
                   </div>
-                  <p style={{ fontSize: 11, color: "var(--text-3)", fontStyle: "italic", marginTop: 8 }}>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", fontStyle: "italic", marginTop: 8 }}>
                     * Select which platforms are active for this session.
                   </p>
                 </div>
 
                 {/* Summary */}
                 <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, padding: "10px 14px" }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: "var(--text-2)", marginBottom: 4 }}>Session Summary</p>
-                  <p style={{ fontSize: 11, color: "var(--text-3)" }}>📅 {new Date(sessionDate + "T00:00:00").toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" })}</p>
-                  <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>🏢 {selectedCompanies.size} company selected</p>
-                  <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 2 }}>📱 {selectedPlatforms.size} platform selected</p>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 4 }}>Session Summary</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)" }}>📅 {new Date(sessionDate + "T00:00:00").toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>🏢 {selectedCompanies.size} company selected</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>📱 {selectedPlatforms.size} platform selected</p>
                 </div>
 
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>

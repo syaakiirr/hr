@@ -54,8 +54,8 @@
   --shadow-accent: 0 2px 8px oklch(60% 0.18 280 / 0.25);
 
   /* Type scale (fluid) */
-  --text-xs:   11px;
-  --text-sm:   12.5px;
+  --text-xs:   12px;
+  --text-sm:   13px;
   --text-base: 14px;
   --text-md:   15px;
   --text-lg:   18px;
