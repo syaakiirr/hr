@@ -6,10 +6,52 @@ using socihr_backend.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Database
+// Database — support both URI format (postgres://...) and key=value format
+var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException(
+        "❌ 'ConnectionStrings:DefaultConnection' is not set. " +
+        "Set the environment variable 'ConnectionStrings__DefaultConnection' in Render.");
+
+// Convert postgres:// URI to Npgsql key=value format if needed
+string connectionString;
+if (rawConnectionString.StartsWith("postgres://") || rawConnectionString.StartsWith("postgresql://"))
+{
+    // Manual parse — handles passwords containing '@' (e.g. Baesyakir01@)
+    // by using the LAST '@' as the credentials/host boundary
+    var withoutScheme = rawConnectionString
+        .Replace("postgresql://", "")
+        .Replace("postgres://", "");
+
+    var lastAt     = withoutScheme.LastIndexOf('@');
+    var credentials = withoutScheme[..lastAt];          // everything before last @
+    var hostSection = withoutScheme[(lastAt + 1)..];    // everything after last @
+
+    // Split credentials on the FIRST ':' only
+    var firstColon = credentials.IndexOf(':');
+    var username   = credentials[..firstColon];
+    var password   = credentials[(firstColon + 1)..];
+
+    // Split hostSection into host:port / database
+    var slashIdx = hostSection.IndexOf('/');
+    var database = slashIdx >= 0 ? hostSection[(slashIdx + 1)..] : "postgres";
+    var hostPort = slashIdx >= 0 ? hostSection[..slashIdx] : hostSection;
+    var colonIdx = hostPort.LastIndexOf(':');
+    var host     = colonIdx >= 0 ? hostPort[..colonIdx] : hostPort;
+    var port     = colonIdx >= 0 ? hostPort[(colonIdx + 1)..] : "5432";
+
+    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+    Console.WriteLine($"✅ Converted URI → Host={host};Port={port};Database={database};Username={username}");
+}
+else
+{
+    connectionString = rawConnectionString;
+    Console.WriteLine("✅ Using key=value connection string.");
+}
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"))
+    options.UseNpgsql(connectionString)
 );
+
 
 // Controllers — dengan camelCase JSON supaya frontend TypeScript interfaces match
 builder.Services.AddControllers()
