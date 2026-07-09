@@ -55,6 +55,22 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
+// ── Startup DB connectivity check ──
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await db.Database.CanConnectAsync();
+    Console.WriteLine("✅ Database connection: OK");
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"❌ Database connection FAILED: {ex.Message}");
+    if (ex.InnerException != null)
+        Console.WriteLine($"   Inner: {ex.InnerException.Message}");
+}
+
+
 // ── SEED DATA if --seed argument is provided ──
 if (args.Contains("--seed"))
 {

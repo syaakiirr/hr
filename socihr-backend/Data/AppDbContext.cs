@@ -26,6 +26,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.StaffID).HasColumnName("StaffID");
             e.Property(x => x.FullName).HasColumnName("Fullname");
             e.Property(x => x.Department).HasColumnName("Department");
+            e.Property(x => x.Position).HasColumnName("Position");
             e.Property(x => x.Status).HasColumnName("Status");
             e.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
             e.Property(x => x.IsArchived).HasColumnName("IsArchived").HasDefaultValue(false);
