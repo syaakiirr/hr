@@ -300,9 +300,7 @@ export default function MonitoringPage() {
         .engage-empty-title { font-size: 16px; font-weight: 800; color: var(--text-2); }
         .engage-empty-sub { font-size: 13px; color: var(--text-3); max-width: 280px; line-height: 1.6; }
 
-        /* Split pane inside right area */
-        .engage-split { display: flex; gap: 16px; align-items: start; }
-        .engage-main { flex: 1 1 0%; min-width: 0; }
+        /* Matrix card inside right area */
         .engage-card { background: var(--white); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(15,23,42,0.04); }
         .engage-card-hd { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 10px; }
         .engage-card-title { font-size: 14px; font-weight: 800; color: var(--text-1); }
@@ -326,47 +324,72 @@ export default function MonitoringPage() {
         .bulk-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 16px; background: linear-gradient(90deg, #f5f3ff, #fdf4ff); border-bottom: 1px solid rgba(99,102,241,0.12); flex-wrap: wrap; gap: 8px; }
         .bulk-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; font-weight: 800; margin-right: 5px; }
 
-        /* Staff table */
-        .stbl { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-        .stbl th { padding: 9px 12px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-4); background: #fafbfc; border-bottom: 1.5px solid var(--line); white-space: nowrap; }
-        .stbl th.tc { text-align: center; }
-        .stbl td { padding: 9px 12px; vertical-align: middle; }
-        .stbl tbody tr { border-bottom: 1px solid var(--line); transition: background 0.1s; cursor: pointer; }
-        .stbl tbody tr:hover td { background: #f8fafc; }
-        .stbl tbody tr.rsel { border-left: 3px solid var(--accent); }
-        .stbl tbody tr.rsel td { background: #f5f3ff; }
-        .stbl tbody tr:last-child { border-bottom: none; }
-        .sn { font-weight: 700; font-size: 13px; color: var(--text-1); }
-        .sd { font-size: 10px; color: var(--text-3); margin-top: 1px; }
+        /* ── CSS Grid Matrix Table Styles ── */
+        .matrix-grid {
+          display: grid;
+          background: var(--white);
+          border: 1px solid var(--line);
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
+        }
 
-        /* Checklist drawer */
-        .ck-drawer { width: 350px; flex-shrink: 0; border-radius: 14px; border: 1.5px solid var(--line); background: var(--white); overflow: hidden; box-shadow: 0 4px 20px rgba(15,23,42,0.06); position: sticky; top: 20px; max-height: calc(100vh - 160px); display: flex; flex-direction: column; }
-        .ck-drawer-hd { padding: 16px 18px; background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%); color: white; flex-shrink: 0; }
-        .ck-drawer-body { flex: 1; overflow-y: auto; padding: 14px; }
-        .ck-drawer-body::-webkit-scrollbar { width: 3px; }
-        .ck-drawer-body::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
-        .ck-prog-wrap { height: 5px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden; margin-top: 9px; }
-        .ck-prog-fill { height: 100%; background: #34d399; border-radius: 4px; transition: width 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        .gh-cell {
+          background: #fafbfc;
+          border-right: 1px solid var(--line);
+          border-bottom: 1.5px solid var(--line);
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          box-sizing: border-box;
+          font-weight: 700;
+          font-size: 10px;
+          color: var(--text-2);
+        }
 
-        .cg { border: 1.5px solid var(--line); border-radius: 10px; margin-bottom: 10px; overflow: hidden; background: var(--white); }
-        .cg-hd { display: flex; align-items: center; gap: 7px; padding: 7px 11px; font-weight: 800; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--line); }
-        .cg-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-        .pr { padding: 11px 11px 9px; border-bottom: 1px solid var(--line); }
-        .pr:last-child { border-bottom: none; }
-        .pr-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 7px; }
-        .pr-badge { font-size: 10.5px; font-weight: 800; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 5px; }
-        .pr-link { font-size: 10px; font-weight: 700; text-decoration: none; padding: 2px 7px; border-radius: 5px; display: inline-flex; align-items: center; gap: 3px; transition: opacity 0.15s; }
-        .pr-link:hover { opacity: 0.7; }
-        .act-row { display: flex; gap: 5px; }
-        .act-btn { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 3px; height: 29px; font-size: 10.5px; font-weight: 700; border-radius: 7px; border: 1.5px solid var(--line); background: #f8fafc; cursor: pointer; transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1); font-family: inherit; color: var(--text-2); }
-        .act-btn:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 3px 8px rgba(0,0,0,0.08); }
-        .act-btn:active:not(:disabled) { transform: scale(0.94); }
-        .act-btn.done { color: white; border-color: transparent; box-shadow: 0 2px 8px rgba(0,0,0,0.14); }
-        .act-btn.dis { background: #f1f5f9; border: 1.5px dashed #cbd5e1; color: #94a3b8; cursor: not-allowed; opacity: 0.6; }
+        .gh-cell.sticky-col {
+          position: sticky;
+          z-index: 25;
+        }
+
+        .gh-cell.sticky-row {
+          position: sticky;
+          top: 0;
+          z-index: 20;
+        }
+
+        .gh-cell.sticky-both {
+          position: sticky;
+          top: 0;
+          z-index: 30;
+        }
+
+        .gb-cell {
+          padding: 8px;
+          border-right: 1px solid var(--line);
+          border-bottom: 1px solid var(--line);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          box-sizing: border-box;
+          background: var(--white);
+          font-size: 12px;
+        }
+
+        .gb-cell.sticky-col {
+          position: sticky;
+          z-index: 10;
+          box-shadow: 2px 0 5px rgba(0, 0, 0, 0.02);
+        }
+
+        .gb-cell.selected-row-cell {
+          background: #f5f3ff !important;
+        }
 
         @media (max-width: 1100px) { .mon-grid { grid-template-columns: 240px 1fr; } }
-        @media (max-width: 900px) { .mon-grid { grid-template-columns: 1fr; } .ck-drawer { width: 100%; position: static; max-height: none; } }
-        @media (max-width: 800px) { .engage-split { flex-direction: column; } }
+        @media (max-width: 900px) { .mon-grid { grid-template-columns: 1fr; } }
       `}</style>
 
       <div className="mon-wrap">
@@ -458,276 +481,446 @@ export default function MonitoringPage() {
                 <p className="engage-empty-sub">Click any session from the left panel to view and manage staff engagement.</p>
               </div>
             ) : (
-              <div className="engage-split">
-                {/* Staff List */}
-                <div className="engage-main">
-                  <div className="engage-card">
-                    {/* Header */}
-                    <div className="engage-card-hd">
-                      <div>
-                        <div className="engage-card-title">Engagement Matrix</div>
-                        <div className="engage-card-sub">
-                          📅 {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
-                        </div>
-                      </div>
-                      <div className="stats-row">
-                        <span className="stat-chip chip-b">
-                          <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-                          {allStaffRows.length}
-                        </span>
-                        <span className="stat-chip chip-g">✓ {engagements.filter(e => e.status === "Completed").length}</span>
-                        <span className="stat-chip chip-r">✗ {engagements.filter(e => e.status === "Missed").length}</span>
-                      </div>
+              <div className="engage-card">
+                {/* Header */}
+                <div className="engage-card-hd">
+                  <div>
+                    <div className="engage-card-title">Engagement Matrix</div>
+                    <div className="engage-card-sub">
+                      📅 {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
                     </div>
-
-                    {/* Filter Bar */}
-                    <div className="filter-bar">
-                      <div className="fi-wrap">
-                        <svg className="fi-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                        <input className="fi-inp" placeholder="Cari nama staff..." value={filterName} onChange={e => setFilterName(e.target.value)} />
-                      </div>
-                      <select className="fi-sel" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-                        <option value="">Semua Jabatan</option>
-                        {sessionDepts.map(d => <option key={d} value={d}>{d}</option>)}
-                      </select>
-                      <select className="fi-sel" value={filterCompany} onChange={e => setFilterCompany(e.target.value)}>
-                        <option value="">Semua Syarikat</option>
-                        {sessionCompanies.map(c => <option key={c.id} value={c.id!}>{c.name}</option>)}
-                      </select>
-                      {(filterName || filterDept || filterCompany) && (
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          style={{ fontSize: 11.5, color: "var(--text-3)", height: 32, whiteSpace: "nowrap" }}
-                          onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}
-                        >✕ Clear</button>
-                      )}
-                    </div>
-
-                    {/* Bulk Bar */}
-                    {selectedEngagements.size > 0 && (
-                      <div className="bulk-bar">
-                        <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)" }}>
-                          <span className="bulk-badge">{selectedEngagements.size}</span>
-                          dipilih
-                        </span>
-                        <div style={{ display: "flex", gap: 5 }}>
-                          <button onClick={() => handleBulkUpdate("Completed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--green)", color: "white", border: "none", fontSize: 11.5, height: 28 }}>✓ Done</button>
-                          <button onClick={() => handleBulkUpdate("Missed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--red)", color: "white", border: "none", fontSize: 11.5, height: 28 }}>✗ Missed</button>
-                          <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ fontSize: 11.5, height: 28 }}>Batal</button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Table */}
-                    {loadingEng ? (
-                      <div className="loader" style={{ padding: 32 }}><div className="spin" /> Loading...</div>
-                    ) : staffRows.length === 0 ? (
-                      <div style={{ padding: "32px 20px", textAlign: "center" }}>
-                        <p style={{ color: "var(--text-3)", fontSize: 13 }}>Tiada staff sepadan dengan filter.</p>
-                      </div>
-                    ) : (
-                      <div style={{ overflowX: "auto" }}>
-                        <table className="stbl">
-                          <thead>
-                            <tr>
-                              <th style={{ width: 36, textAlign: "center" }}>
-                                <input type="checkbox"
-                                  checked={selectedEngagements.size === engagements.length && engagements.length > 0}
-                                  onChange={toggleSelectAll}
-                                  style={{ cursor: "pointer", width: 13, height: 13 }}
-                                />
-                              </th>
-                              <th className="tc" style={{ width: 30 }}>#</th>
-                              <th>Nama Staff</th>
-                              <th className="tc" style={{ width: 70 }}>Ticks</th>
-                              <th className="tc" style={{ width: 62 }}>Rate</th>
-                              <th className="tc" style={{ width: 88 }}>Sebab</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {staffRows.map((row, idx) => {
-                              let totalTicks = 0, doneTicks = 0;
-                              row.engagements.forEach(eng => {
-                                if (eng.platformName === "Facebook") { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
-                                else if (eng.platformName === "Instagram") { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
-                                else if (eng.platformName === "TikTok") { totalTicks += 1; if (eng.isCommented) doneTicks++; }
-                                else { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
-                              });
-                              const rate = totalTicks > 0 ? Math.round((doneTicks / totalTicks) * 100) : 0;
-                              const isRowSel = selectedStaffID === row.staffID || (!selectedStaffID && idx === 0);
-                              const allChk = row.engagements.every(e => selectedEngagements.has(e.engagementID));
-                              const reason = row.engagements.find(e => e.reason)?.reason;
-                              const rc = rate >= 100 ? "#16a34a" : rate >= 50 ? "#d97706" : "#dc2626";
-                              const rbg = rate >= 100 ? "#f0fdf4" : rate >= 50 ? "#fffbeb" : "#fef2f2";
-
-                              return (
-                                <tr key={row.staffID} className={isRowSel ? "rsel" : ""} onClick={() => setSelectedStaffID(row.staffID)}>
-                                  <td style={{ textAlign: "center" }} onClick={e => e.stopPropagation()}>
-                                    <input type="checkbox" checked={allChk}
-                                      onChange={() => {
-                                        const ids = row.engagements.map(e => e.engagementID);
-                                        setSelectedEngagements(prev => {
-                                          const next = new Set(prev);
-                                          if (allChk) ids.forEach(id => next.delete(id));
-                                          else ids.forEach(id => next.add(id));
-                                          return next;
-                                        });
-                                      }}
-                                      style={{ cursor: "pointer", width: 13, height: 13 }}
-                                    />
-                                  </td>
-                                  <td style={{ textAlign: "center", color: "var(--text-4)", fontSize: 11 }}>{idx + 1}</td>
-                                  <td>
-                                    <div className="sn">{row.staffName}</div>
-                                    <div className="sd">{row.department || "Tiada Jabatan"}</div>
-                                  </td>
-                                  <td style={{ textAlign: "center" }}>
-                                    <span style={{ fontSize: 13, fontWeight: 800, color: rc }}>{doneTicks}</span>
-                                    <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>/{totalTicks}</span>
-                                  </td>
-                                  <td style={{ textAlign: "center" }}>
-                                    <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2.5px 7px", borderRadius: 10, background: rbg, color: rc, display: "inline-block", minWidth: 36 }}>{rate}%</span>
-                                  </td>
-                                  <td style={{ textAlign: "center" }} onClick={e => e.stopPropagation()}>
-                                    <button
-                                      onClick={() => openReasonModal(row)}
-                                      title={reason ? `Sebab: ${reason}` : "Tambah sebab"}
-                                      style={{
-                                        fontSize: 10.5, padding: "3px 7px", borderRadius: 6,
-                                        border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
-                                        cursor: "pointer", fontWeight: 700, maxWidth: 82,
-                                        background: reason ? "rgba(99,102,241,0.06)" : "transparent",
-                                        color: reason ? "var(--accent)" : "var(--text-3)",
-                                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                                        display: "block", width: "100%", textAlign: "center", fontFamily: "inherit"
-                                      }}
-                                    >
-                                      {reason ? `📝 ${reason}` : "+ Reason"}
-                                    </button>
-                                  </td>
-                                </tr>
-                              );
-                            })}
-                          </tbody>
-                        </table>
-                      </div>
-                    )}
+                  </div>
+                  <div className="stats-row">
+                    <span className="stat-chip chip-b">
+                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                      {allStaffRows.length}
+                    </span>
+                    <span className="stat-chip chip-g">✓ {engagements.filter(e => e.status === "Completed").length}</span>
+                    <span className="stat-chip chip-r">✗ {engagements.filter(e => e.status === "Missed").length}</span>
                   </div>
                 </div>
 
-                {/* Checklist Drawer */}
-                <div className="ck-drawer">
-                  {(() => {
-                    const activeRow = staffRows.find(r => r.staffID === selectedStaffID) || staffRows[0];
-                    if (!activeRow) return (
-                      <div style={{ padding: 32, textAlign: "center", color: "var(--text-3)", fontSize: 13 }}>
-                        <p>Tiada staff terpilih.</p>
-                      </div>
-                    );
+                {/* Filter Bar */}
+                <div className="filter-bar">
+                  <div className="fi-wrap">
+                    <svg className="fi-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                    <input className="fi-inp" placeholder="Cari nama staff..." value={filterName} onChange={e => setFilterName(e.target.value)} />
+                  </div>
+                  <select className="fi-sel" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
+                    <option value="">Semua Jabatan</option>
+                    {sessionDepts.map(d => <option key={d} value={d}>{d}</option>)}
+                  </select>
+                  <select className="fi-sel" value={filterCompany} onChange={e => setFilterCompany(e.target.value)}>
+                    <option value="">Semua Syarikat</option>
+                    {sessionCompanies.map(c => <option key={c.id} value={c.id!}>{c.name}</option>)}
+                  </select>
+                  {(filterName || filterDept || filterCompany) && (
+                    <button
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 11.5, color: "var(--text-3)", height: 32, whiteSpace: "nowrap" }}
+                      onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}
+                    >✕ Clear</button>
+                  )}
+                </div>
 
-                    let total = 0, done = 0;
-                    activeRow.engagements.forEach(eng => {
-                      if (eng.platformName === "Facebook") { total += 2; if (eng.isLiked) done++; if (eng.isCommented) done++; }
-                      else if (eng.platformName === "Instagram") { total += 2; if (eng.isLiked) done++; if (eng.isCommented) done++; }
-                      else if (eng.platformName === "TikTok") { total += 1; if (eng.isCommented) done++; }
-                      else { total += 2; if (eng.isLiked) done++; if (eng.isCommented) done++; }
+                {/* Bulk Bar */}
+                {selectedEngagements.size > 0 && (
+                  <div className="bulk-bar">
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)" }}>
+                      <span className="bulk-badge">{selectedEngagements.size}</span>
+                      dipilih
+                    </span>
+                    <div style={{ display: "flex", gap: 5 }}>
+                      <button onClick={() => handleBulkUpdate("Completed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--green)", color: "white", border: "none", fontSize: 11.5, height: 28 }}>✓ Done</button>
+                      <button onClick={() => handleBulkUpdate("Missed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--red)", color: "white", border: "none", fontSize: 11.5, height: 28 }}>✗ Missed</button>
+                      <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ fontSize: 11.5, height: 28 }}>Batal</button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Matrix CSS Grid Table */}
+                {loadingEng ? (
+                  <div className="loader" style={{ padding: 32 }}><div className="spin" /> Loading...</div>
+                ) : staffRows.length === 0 ? (
+                  <div style={{ padding: "32px 20px", textAlign: "center" }}>
+                    <p style={{ color: "var(--text-3)", fontSize: 13 }}>Tiada staff sepadan dengan filter.</p>
+                  </div>
+                ) : (
+                  (() => {
+                    // Compute action columns for each post in the session
+                    const sessionActionCols: {
+                      postID: string;
+                      platformName: string;
+                      companyID: string;
+                      companyName: string;
+                      actionKey: "like" | "comment" | "share";
+                      icon: string;
+                      label: string;
+                      disabled?: boolean;
+                    }[] = [];
+
+                    selectedSession.posts.forEach((p) => {
+                      const plat = p.platformName;
+                      const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] =
+                        plat === "Facebook"
+                          ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
+                        : plat === "Instagram"
+                          ? [{ key: "like", label: "Like", icon: "❤️" }, { key: "comment", label: "Komen", icon: "💬" }]
+                        : plat === "TikTok"
+                          ? [{ key: "comment", label: "Komen", icon: "💬" }]
+                          : [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }];
+
+                      acts.forEach((a) => {
+                        sessionActionCols.push({
+                          postID: p.postID,
+                          platformName: plat,
+                          companyID: p.companyID ?? "",
+                          companyName: p.companyName || "No Company",
+                          actionKey: a.key,
+                          icon: a.icon,
+                          label: a.label,
+                          disabled: a.disabled,
+                        });
+                      });
                     });
-                    const pct = total > 0 ? Math.round((done / total) * 100) : 0;
 
-                    const coMap = new Map<string, { id: string; name: string; engagements: Engagement[] }>();
-                    activeRow.engagements.forEach(eng => {
-                      const cid = eng.companyID || "none";
-                      if (!coMap.has(cid)) coMap.set(cid, { id: cid, name: eng.companyName || "No Company", engagements: [] });
-                      coMap.get(cid)!.engagements.push(eng);
+                    const totalSubActions = sessionActionCols.length;
+
+                    // 1. Company spans for Row 1
+                    const companySpans: { companyID: string; name: string; span: number; color: string }[] = [];
+                    sessionActionCols.forEach((col) => {
+                      const existing = companySpans.find((s) => s.companyID === col.companyID);
+                      if (existing) {
+                        existing.span++;
+                      } else {
+                        const compIdx = companies.findIndex((c) => c.companyID === col.companyID);
+                        const color = compIdx >= 0 ? COMPANY_COLORS[compIdx % COMPANY_COLORS.length] : "#6b7280";
+                        companySpans.push({
+                          companyID: col.companyID,
+                          name: col.companyName,
+                          span: 1,
+                          color,
+                        });
+                      }
                     });
-                    const coGroups = Array.from(coMap.values());
 
-                    return (
-                      <>
-                        <div className="ck-drawer-hd">
-                          <p style={{ fontSize: 10, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.08em", opacity: 0.8, marginBottom: 3 }}>Tugasan Staff</p>
-                          <h3 style={{ fontSize: 16, fontWeight: 800, margin: 0, letterSpacing: "-0.3px", lineHeight: 1.2 }}>{activeRow.staffName}</h3>
-                          <p style={{ fontSize: 11.5, opacity: 0.85, marginTop: 3, fontWeight: 500 }}>{activeRow.department || "Tiada Jabatan"}</p>
-                          <div style={{ marginTop: 12 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, fontWeight: 700, marginBottom: 5 }}>
-                              <span>Prestasi Sesi</span>
-                              <span>{done}/{total} — {pct}%</span>
-                            </div>
-                            <div className="ck-prog-wrap">
-                              <div className="ck-prog-fill" style={{ width: `${pct}%` }} />
-                            </div>
+                    // 2. Platform spans for Row 2
+                    const platformSpans: { postID: string; name: string; span: number; color: string }[] = [];
+                    sessionActionCols.forEach((col) => {
+                      const existing = platformSpans.find((s) => s.postID === col.postID);
+                      if (existing) {
+                        existing.span++;
+                      } else {
+                        const color = PLATFORM_COLORS[col.platformName] || "var(--accent)";
+                        platformSpans.push({
+                          postID: col.postID,
+                          name: col.platformName,
+                          span: 1,
+                          color,
+                        });
+                      }
+                    });
+
+                    let companyColIndex = 6;
+                    const companyHeaders = companySpans.map((c) => {
+                      const cell = (
+                        <div
+                          key={`comp-${c.companyID}`}
+                          className="gh-cell sticky-row"
+                          style={{
+                            gridRow: "1",
+                            gridColumn: `${companyColIndex} / span ${c.span}`,
+                            background: `${c.color}0d`,
+                            color: c.color,
+                            borderBottom: "1px solid var(--line)",
+                            top: 0
+                          }}
+                        >
+                          <div style={{
+                            fontSize: 9,
+                            fontWeight: 800,
+                            textTransform: "uppercase",
+                            letterSpacing: "0.06em",
+                            background: `${c.color}14`,
+                            padding: "2px 6px",
+                            borderRadius: 4,
+                            whiteSpace: "nowrap",
+                            textOverflow: "ellipsis",
+                            overflow: "hidden",
+                            maxWidth: "95%"
+                          }}>
+                            {c.name}
                           </div>
                         </div>
-                        <div className="ck-drawer-body">
-                          {coGroups.map((grp, gi) => {
-                            const cc = COMPANY_COLORS[gi % COMPANY_COLORS.length];
-                            return (
-                              <div key={grp.id} className="cg">
-                                <div className="cg-hd" style={{ color: cc, background: `${cc}0e` }}>
-                                  <div className="cg-dot" style={{ background: cc }} />
-                                  {grp.name}
-                                </div>
-                                <div>
-                                  {grp.engagements.map(eng => {
-                                    const pc = PLATFORM_COLORS[eng.platformName] || "var(--accent)";
-                                    const isIg = eng.platformName === "Instagram";
-                                    const acts: { key: "like" | "comment" | "share"; label: string; disabled?: boolean; icon: string }[] =
-                                      eng.platformName === "Facebook"
-                                        ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
-                                      : eng.platformName === "Instagram"
-                                        ? [{ key: "like", label: "Like", icon: "❤️" }, { key: "comment", label: "Komen", icon: "💬" }]
-                                      : eng.platformName === "TikTok"
-                                        ? [{ key: "comment", label: "Komen", icon: "💬" }]
-                                        : [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }];
+                      );
+                      companyColIndex += c.span;
+                      return cell;
+                    });
 
-                                    return (
-                                      <div key={eng.engagementID} className="pr">
-                                        <div className="pr-top">
-                                          <span className="pr-badge" style={{
-                                            background: isIg ? "linear-gradient(90deg, #f09433, #bc1888)" : `${pc}18`,
-                                            color: isIg ? "white" : pc
-                                          }}>{eng.platformName}</span>
-                                          {eng.postLink ? (
-                                            <a href={eng.postLink} target="_blank" rel="noopener noreferrer" className="pr-link" style={{ background: `${pc}12`, color: pc }}>
-                                              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-                                              Buka Post
-                                            </a>
-                                          ) : (
-                                            <span style={{ fontSize: 9.5, color: "var(--text-4)" }}>No link</span>
-                                          )}
-                                        </div>
-                                        <div className="act-row">
-                                          {acts.map(a => {
-                                            const ticked = a.key === "like" ? eng.isLiked : a.key === "comment" ? eng.isCommented : eng.isShared;
-                                            const bg = ticked ? (isIg ? "linear-gradient(135deg, #f09433, #dc2743, #bc1888)" : pc) : undefined;
-                                            return (
-                                              <button
-                                                key={a.key}
-                                                disabled={a.disabled}
-                                                onClick={() => handleAction(eng, a.key, !ticked)}
-                                                className={`act-btn ${ticked ? "done" : ""} ${a.disabled ? "dis" : ""}`}
-                                                style={ticked ? { background: bg } : undefined}
-                                                title={a.disabled ? "Coming soon" : undefined}
-                                              >
-                                                <span style={{ fontSize: 11 }}>{a.icon}</span>
-                                                <span>{a.label}</span>
-                                                {ticked && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>}
-                                              </button>
-                                            );
-                                          })}
-                                        </div>
-                                      </div>
-                                    );
-                                  })}
-                                </div>
-                              </div>
-                            );
-                          })}
+                    let platformColIndex = 6;
+                    const platformHeaders = platformSpans.map((p) => {
+                      const cell = (
+                        <div
+                          key={`plat-${p.postID}`}
+                          className="gh-cell sticky-row"
+                          style={{
+                            gridRow: "2",
+                            gridColumn: `${platformColIndex} / span ${p.span}`,
+                            background: "var(--white)",
+                            color: p.color,
+                            borderBottom: "1px solid var(--line)",
+                            top: 25
+                          }}
+                        >
+                          <span style={{ fontSize: 9.5, fontWeight: 700 }}>{p.name}</span>
                         </div>
-                      </>
+                      );
+                      platformColIndex += p.span;
+                      return cell;
+                    });
+
+                    let subColIndex = 6;
+                    const subActionHeaders = sessionActionCols.map((col, index) => {
+                      const platColor = PLATFORM_COLORS[col.platformName] || "var(--accent)";
+                      const cell = (
+                        <div
+                          key={`sub-${col.postID}-${col.actionKey}-${index}`}
+                          className="gh-cell sticky-row"
+                          style={{
+                            gridRow: "3",
+                            gridColumn: `${subColIndex}`,
+                            background: col.disabled ? "rgba(0,0,0,0.03)" : "transparent",
+                            color: col.disabled ? "var(--text-4)" : platColor,
+                            fontSize: 8,
+                            top: 50,
+                            padding: "2px 0",
+                            textTransform: "uppercase"
+                          }}
+                        >
+                          {col.actionKey === "like" ? "Like" : col.actionKey === "comment" ? "Komen" : "Share"}
+                        </div>
+                      );
+                      subColIndex++;
+                      return cell;
+                    });
+
+                    const bodyCells: React.ReactNode[] = [];
+                    staffRows.forEach((row, idx) => {
+                      let totalTicks = 0, doneTicks = 0;
+                      row.engagements.forEach(eng => {
+                        if (eng.platformName === "Facebook") { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
+                        else if (eng.platformName === "Instagram") { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
+                        else if (eng.platformName === "TikTok") { totalTicks += 1; if (eng.isCommented) doneTicks++; }
+                        else { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
+                      });
+                      const rate = totalTicks > 0 ? Math.round((doneTicks / totalTicks) * 100) : 0;
+                      const isRowSel = selectedStaffID === row.staffID || (!selectedStaffID && idx === 0);
+                      const allChk = row.engagements.every(e => selectedEngagements.has(e.engagementID));
+                      const reason = row.engagements.find(e => e.reason)?.reason;
+                      const rc = rate >= 100 ? "#16a34a" : rate >= 50 ? "#d97706" : "#dc2626";
+                      const rbg = rate >= 100 ? "#f0fdf4" : rate >= 50 ? "#fffbeb" : "#fef2f2";
+
+                      const cellClass = `gb-cell${isRowSel ? " selected-row-cell" : ""}`;
+
+                      // 1. Checkbox cell
+                      bodyCells.push(
+                        <div
+                          key={`chk-${row.staffID}`}
+                          className={`${cellClass} sticky-col`}
+                          style={{ left: 0, borderRight: "1px solid var(--line)" }}
+                          onClick={() => setSelectedStaffID(row.staffID)}
+                        >
+                          <input type="checkbox" checked={allChk}
+                            onChange={() => {
+                              const ids = row.engagements.map(e => e.engagementID);
+                              setSelectedEngagements(prev => {
+                                const next = new Set(prev);
+                                if (allChk) ids.forEach(id => next.delete(id));
+                                else ids.forEach(id => next.add(id));
+                                return next;
+                              });
+                            }}
+                            style={{ cursor: "pointer", width: 13, height: 13 }}
+                          />
+                        </div>
+                      );
+
+                      // 2. `#` index cell
+                      bodyCells.push(
+                        <div
+                          key={`idx-${row.staffID}`}
+                          className={`${cellClass} sticky-col`}
+                          style={{ left: 36, color: "var(--text-4)", fontSize: 11, borderRight: "1px solid var(--line)" }}
+                          onClick={() => setSelectedStaffID(row.staffID)}
+                        >
+                          {idx + 1}
+                        </div>
+                      );
+
+                      // 3. Staff Name cell
+                      bodyCells.push(
+                        <div
+                          key={`name-${row.staffID}`}
+                          className={`${cellClass} sticky-col`}
+                          style={{
+                            left: 66,
+                            justifyContent: "flex-start",
+                            alignItems: "flex-start",
+                            flexDirection: "column",
+                            borderRight: "2px solid var(--line-2)"
+                          }}
+                          onClick={() => setSelectedStaffID(row.staffID)}
+                        >
+                          <div className="sn" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>{row.staffName}</div>
+                          <div className="sd" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>{row.department || "Tiada Jabatan"}</div>
+                        </div>
+                      );
+
+                      // 4. Ticks ratio cell
+                      bodyCells.push(
+                        <div
+                          key={`ticks-${row.staffID}`}
+                          className={cellClass}
+                          onClick={() => setSelectedStaffID(row.staffID)}
+                        >
+                          <span style={{ fontSize: 13, fontWeight: 800, color: rc }}>{doneTicks}</span>
+                          <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>/{totalTicks}</span>
+                        </div>
+                      );
+
+                      // 5. Rate % cell
+                      bodyCells.push(
+                        <div
+                          key={`rate-${row.staffID}`}
+                          className={cellClass}
+                          onClick={() => setSelectedStaffID(row.staffID)}
+                        >
+                          <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2.5px 7px", borderRadius: 10, background: rbg, color: rc, display: "inline-block", minWidth: 36, textAlign: "center" }}>{rate}%</span>
+                        </div>
+                      );
+
+                      // 6. Sub-action cells
+                      sessionActionCols.forEach((col, cIdx) => {
+                        const eng = row.engagements.find(e => e.postID === col.postID);
+                        const isTicked = eng ? (col.actionKey === "like" ? eng.isLiked : col.actionKey === "comment" ? eng.isCommented : eng.isShared) : false;
+                        const pc = PLATFORM_COLORS[col.platformName] || "var(--accent)";
+                        const isIg = col.platformName === "Instagram";
+
+                        const btnBg = isTicked ? (isIg ? "linear-gradient(135deg, #f09433, #dc2743, #bc1888)" : pc) : "transparent";
+
+                        bodyCells.push(
+                          <div
+                            key={`action-${row.staffID}-${cIdx}`}
+                            className={cellClass}
+                            style={{ padding: "4px" }}
+                            onClick={() => setSelectedStaffID(row.staffID)}
+                          >
+                            {eng ? (
+                              col.disabled ? (
+                                <div style={{
+                                  display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                  width: 26, height: 26, borderRadius: 6,
+                                  background: "#f1f5f9", border: "1.5px dashed #cbd5e1",
+                                  color: "#94a3b8", cursor: "not-allowed"
+                                }} title="Disabled">
+                                  🔒
+                                </div>
+                              ) : (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleAction(eng, col.actionKey, !isTicked);
+                                  }}
+                                  style={{
+                                    display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                    width: 26, height: 26, borderRadius: 6,
+                                    border: isTicked ? "none" : "1.5px solid var(--line)",
+                                    background: btnBg,
+                                    color: isTicked ? "white" : "var(--text-4)",
+                                    cursor: "pointer",
+                                    transition: "all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)"
+                                  }}
+                                  title={isTicked ? `${col.label} ✓ — click to undo` : `Tick ${col.label}`}
+                                >
+                                  {isTicked ? (
+                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                  ) : (
+                                    <span style={{ fontSize: 9 }}>{col.icon}</span>
+                                  )}
+                                </button>
+                              )
+                            ) : (
+                              <span style={{ color: "var(--text-4)", fontSize: 10 }}>—</span>
+                            )}
+                          </div>
+                        );
+                      });
+
+                      // 7. Reason cell
+                      bodyCells.push(
+                        <div
+                          key={`reason-${row.staffID}`}
+                          className={cellClass}
+                          style={{ borderRight: "none" }}
+                        >
+                          <button
+                            onClick={() => openReasonModal(row)}
+                            title={reason ? `Sebab: ${reason}` : "Tambah sebab"}
+                            style={{
+                              fontSize: 10, padding: "3px 6px", borderRadius: 6,
+                              border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
+                              cursor: "pointer", fontWeight: 700, maxWidth: 82,
+                              background: reason ? "rgba(99,102,241,0.06)" : "transparent",
+                              color: reason ? "var(--accent)" : "var(--text-3)",
+                              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                              display: "block", width: "100%", textAlign: "center", fontFamily: "inherit"
+                            }}
+                          >
+                            {reason ? `📝 ${reason}` : "+ Reason"}
+                          </button>
+                        </div>
+                      );
+                    });
+
+                    return (
+                      <div style={{ overflowX: "auto", width: "100%", padding: "1px" }} className="tbl-premium-wrap">
+                        <div
+                          className="matrix-grid"
+                          style={{
+                            gridTemplateColumns: `36px 30px 160px 54px 56px repeat(${totalSubActions}, 44px) 84px`,
+                            gridTemplateRows: `25px 25px 25px`,
+                            gridAutoRows: `minmax(48px, auto)`,
+                            minWidth: `${414 + totalSubActions * 44}px`
+                          }}
+                        >
+                          {/* Row 1 Headers */}
+                          <div className="gh-cell sticky-both" style={{ gridRow: "1 / span 3", gridColumn: "1", left: 0, borderRight: "1px solid var(--line)", top: 0 }}>
+                            <input type="checkbox"
+                              checked={selectedEngagements.size === engagements.length && engagements.length > 0}
+                              onChange={toggleSelectAll}
+                              style={{ cursor: "pointer", width: 13, height: 13 }}
+                            />
+                          </div>
+                          <div className="gh-cell sticky-both" style={{ gridRow: "1 / span 3", gridColumn: "2", left: 36, color: "var(--text-4)", fontSize: 10, borderRight: "1px solid var(--line)", top: 0 }}>#</div>
+                          <div className="gh-cell sticky-both" style={{ gridRow: "1 / span 3", gridColumn: "3", left: 66, textAlign: "left", paddingLeft: 12, justifyContent: "flex-start", borderRight: "2px solid var(--line-2)", top: 0 }}>Nama Staff</div>
+                          <div className="gh-cell sticky-row" style={{ gridRow: "1 / span 3", gridColumn: "4", top: 0 }}>Ticks</div>
+                          <div className="gh-cell sticky-row" style={{ gridRow: "1 / span 3", gridColumn: "5", top: 0 }}>Rate</div>
+                          {companyHeaders}
+                          <div className="gh-cell sticky-row" style={{ gridRow: "1 / span 3", gridColumn: `${6 + totalSubActions}`, borderRight: "none", top: 0 }}>Sebab</div>
+
+                          {/* Row 2 Headers */}
+                          {platformHeaders}
+
+                          {/* Row 3 Headers */}
+                          {subActionHeaders}
+
+                          {/* Body Cells */}
+                          {bodyCells}
+                        </div>
+                      </div>
                     );
-                  })()}
-                </div>
+                  })()
+                )}
               </div>
             )}
           </div>
