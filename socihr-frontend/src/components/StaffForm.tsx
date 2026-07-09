@@ -79,7 +79,7 @@ export default function StaffForm({ staff, onSave, onClose, loading }: Props) {
               />
             </div>
 
-
+            <div>
               <label className="input-label" htmlFor="staff-dept">Department</label>
               <select
                 id="staff-dept"
