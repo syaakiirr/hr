@@ -86,6 +86,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("AllowFrontend", policy =>
     {
         policy.WithOrigins(
+                "https://soci-hr.onrender.com",
                 "https://syaakiirr.onrender.com",
                 "http://localhost:5173",
                 "http://localhost:3000"
