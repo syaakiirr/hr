@@ -262,35 +262,35 @@ export default function MonitoringPage() {
     <Layout>
       <style>{`
         /* ── Premium Monitoring Page Styles ── */
-        .mon-wrap { display: flex; flex-direction: column; gap: 20px; }
+        .mon-wrap { display: flex; flex-direction: column; gap: 16px; }
         .mon-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 4px; }
         .mon-hdr-title { font-size: 24px; font-weight: 800; color: var(--text-1); letter-spacing: -0.5px; margin: 0; line-height: 1.2; }
         .mon-hdr-sub { font-size: 13px; color: var(--text-3); margin-top: 3px; }
         .mon-hdr-title .ht { background: linear-gradient(135deg, #4f46e5, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
 
-        /* Two-col layout */
-        .mon-grid { display: grid; grid-template-columns: 272px 1fr; gap: 18px; align-items: start; }
+        /* Vertical stack layout */
+        .mon-grid { display: flex; flex-direction: column; gap: 14px; }
 
-        /* Sessions Panel */
+        /* Sessions Panel — horizontal strip at top */
         .sesh-panel { background: var(--white); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(15,23,42,0.04); }
-        .sesh-panel-hd { padding: 14px 16px 12px; border-bottom: 1px solid var(--line); background: linear-gradient(135deg, #f8faff 0%, #f3f0ff 100%); }
-        .sesh-panel-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); }
-        .sesh-panel-count { font-size: 28px; font-weight: 800; color: var(--text-1); letter-spacing: -1px; line-height: 1; margin-top: 2px; }
-        .sesh-panel-list { overflow-y: auto; max-height: calc(100vh - 260px); }
-        .sesh-panel-list::-webkit-scrollbar { width: 3px; }
+        .sesh-panel-hd { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(135deg, #f8faff 0%, #f3f0ff 100%); flex-shrink: 0; }
+        .sesh-panel-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); white-space: nowrap; }
+        .sesh-panel-count { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; line-height: 1; background: rgba(99,102,241,0.08); border-radius: 8px; padding: 2px 8px; }
+        .sesh-panel-list { display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 8px; padding: 10px 14px; scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
+        .sesh-panel-list::-webkit-scrollbar { height: 4px; }
         .sesh-panel-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
 
-        .sesh-item { display: flex; align-items: center; gap: 10px; padding: 11px 15px; border-bottom: 1px solid var(--line); cursor: pointer; transition: background 0.12s; position: relative; }
-        .sesh-item:last-child { border-bottom: none; }
-        .sesh-item:hover { background: #f8fafc; }
-        .sesh-item.active { background: linear-gradient(90deg, #f5f3ff 0%, #faf8ff 100%); }
-        .sesh-item.active::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 3px; background: linear-gradient(180deg, #6366f1, #8b5cf6); border-radius: 0 2px 2px 0; }
+        /* Session item — horizontal card chip */
+        .sesh-item { display: flex; flex-direction: column; justify-content: space-between; min-width: 150px; max-width: 180px; padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; position: relative; flex-shrink: 0; background: var(--white); gap: 5px; }
+        .sesh-item:hover { border-color: var(--accent); background: #faf8ff; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(99,102,241,0.1); }
+        .sesh-item.active { border-color: var(--accent); background: linear-gradient(135deg, #f5f3ff 0%, #faf8ff 100%); box-shadow: 0 0 0 2px rgba(99,102,241,0.18); }
+        .sesh-item.active::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 8px 8px 0 0; }
         .sesh-item-body { flex: 1; min-width: 0; }
-        .sesh-item-date { font-size: 13px; font-weight: 700; color: var(--text-1); }
-        .sesh-item-co { font-size: 10.5px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sesh-item-plats { display: flex; align-items: center; gap: 4px; margin-top: 5px; flex-wrap: wrap; }
-        .plat-pip { width: 7px; height: 7px; border-radius: 50%; }
-        .sesh-item-acts { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; flex-shrink: 0; }
+        .sesh-item-date { font-size: 12px; font-weight: 700; color: var(--text-1); white-space: nowrap; }
+        .sesh-item-co { font-size: 10px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sesh-item-plats { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+        .plat-pip { width: 6px; height: 6px; border-radius: 50%; }
+        .sesh-item-acts { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
         .sesh-item:hover .sesh-item-acts { opacity: 1; }
 
         /* Right area */
@@ -388,8 +388,7 @@ export default function MonitoringPage() {
           background: #f5f3ff !important;
         }
 
-        @media (max-width: 1100px) { .mon-grid { grid-template-columns: 240px 1fr; } }
-        @media (max-width: 900px) { .mon-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) { .sesh-item { min-width: 130px; } }
       `}</style>
 
       <div className="mon-wrap">
@@ -420,60 +419,59 @@ export default function MonitoringPage() {
           </div>
         </div>
 
-        {/* ── Main Grid ── */}
-        <div className="mon-grid">
-
-          {/* ══ Sessions Panel (Left) ══ */}
-          <div className="sesh-panel">
-            <div className="sesh-panel-hd">
-              <div className="sesh-panel-label">All Sessions</div>
-              <div className="sesh-panel-count">{sessions.length}</div>
-            </div>
-            <div className="sesh-panel-list">
-              {loading ? (
-                <div className="loader" style={{ padding: 24 }}><div className="spin" /></div>
-              ) : sessions.length === 0 ? (
-                <div style={{ padding: "28px 16px", textAlign: "center" }}>
-                  <p style={{ color: "var(--text-3)", fontSize: 13 }}>No sessions yet</p>
-                </div>
-              ) : (
-                sessions.map(s => {
-                  const isActive = selectedSession?.sessionID === s.sessionID;
-                  const uniquePlats = Array.from(new Set(s.posts.map(p => p.platformName)));
-                  const coSummary = s.companies?.map(c => c.companyName).join(", ") ?? "";
-                  return (
-                    <div key={s.sessionID} className={`sesh-item ${isActive ? "active" : ""}`} onClick={() => handleSelectSession(s)}>
-                      <div className="sesh-item-body">
-                        <div className="sesh-item-date">
-                          {parseDateOnly(s.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}
-                        </div>
-                        {coSummary && <div className="sesh-item-co" title={coSummary}>🏢 {coSummary}</div>}
-                        <div className="sesh-item-plats">
-                          {uniquePlats.map(pl => (
-                            <span key={pl} className="plat-pip" style={{ background: PLATFORM_COLORS[pl] || "var(--accent)" }} title={pl} />
-                          ))}
-                          {uniquePlats.length > 0 && (
-                            <span style={{ fontSize: 9.5, color: "var(--text-4)", fontWeight: 600 }}>{uniquePlats.join(" · ")}</span>
-                          )}
-                        </div>
+        {/* ── Sessions Strip (Top) ── */}
+        <div className="sesh-panel">
+          <div className="sesh-panel-hd">
+            <div className="sesh-panel-label">All Sessions</div>
+            <div className="sesh-panel-count">{sessions.length}</div>
+            <div style={{ flex: 1 }} />
+            <p style={{ fontSize: 11, color: "var(--text-4)", fontStyle: "italic" }}>← scroll to see more →</p>
+          </div>
+          <div className="sesh-panel-list">
+            {loading ? (
+              <div className="loader" style={{ padding: 16 }}><div className="spin" /></div>
+            ) : sessions.length === 0 ? (
+              <div style={{ padding: "12px 4px", color: "var(--text-3)", fontSize: 12, fontStyle: "italic" }}>No sessions yet</div>
+            ) : (
+              sessions.map(s => {
+                const isActive = selectedSession?.sessionID === s.sessionID;
+                const uniquePlats = Array.from(new Set(s.posts.map(p => p.platformName)));
+                const coSummary = s.companies?.map(c => c.companyName).join(", ") ?? "";
+                return (
+                  <div key={s.sessionID} className={`sesh-item ${isActive ? "active" : ""}`} onClick={() => handleSelectSession(s)}>
+                    <div className="sesh-item-body">
+                      <div className="sesh-item-date">
+                        {parseDateOnly(s.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}
                       </div>
-                      <div className="sesh-item-acts" onClick={e => e.stopPropagation()}>
-                        <button onClick={() => handleArchiveSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--text-3)", width: 24, height: 24, padding: 0 }} title="Archive">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
-                        </button>
-                        <button onClick={() => handleDeleteSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)", width: 24, height: 24, padding: 0 }} title="Delete">
-                          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-                        </button>
+                      {coSummary && <div className="sesh-item-co" title={coSummary}>🏢 {coSummary}</div>}
+                      <div className="sesh-item-plats">
+                        {uniquePlats.map(pl => (
+                          <span key={pl} className="plat-pip" style={{ background: PLATFORM_COLORS[pl] || "var(--accent)" }} title={pl} />
+                        ))}
+                        {uniquePlats.length > 0 && (
+                          <span style={{ fontSize: 9.5, color: "var(--text-4)", fontWeight: 600 }}>{uniquePlats.join(" · ")}</span>
+                        )}
                       </div>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                    <div className="sesh-item-acts" onClick={e => e.stopPropagation()}>
+                      <button onClick={() => handleArchiveSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--text-3)", width: 22, height: 22, padding: 0 }} title="Archive">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
+                      </button>
+                      <button onClick={() => handleDeleteSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)", width: 22, height: 22, padding: 0 }} title="Delete">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
+        </div>
 
-          {/* ══ Engagement Area (Right) ══ */}
-          <div className="engage-area">
+        {/* ── Main Content (Full Width) ── */}
+        <div className="mon-grid">
+          {/* ══ Engagement Area (Full Width) ══ */}
+          <div className="engage-area" style={{ width: "100%" }}>
             {!selectedSession ? (
               <div className="engage-empty">
                 <div className="engage-empty-ico">📅</div>
