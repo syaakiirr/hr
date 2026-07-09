@@ -198,17 +198,6 @@ export default function MonitoringPage() {
     }
   }
 
-  function toggleSelectEngagement(engagementID: string) {
-    setSelectedEngagements((prev) => {
-      const next = new Set(prev);
-      if (next.has(engagementID)) {
-        next.delete(engagementID);
-      } else {
-        next.add(engagementID);
-      }
-      return next;
-    });
-  }
 
   async function handleBulkUpdate(status: string) {
     if (selectedEngagements.size === 0) {
@@ -405,71 +394,64 @@ export default function MonitoringPage() {
             </div>
           ) : (
             <>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
+              {/* ── Panel Header ── */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
                 <div>
-                  <p style={{ fontSize: 14, fontWeight: 700, color: "var(--text-1)" }}>
-                    Engagement Matrix: {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" })}
+                  <p style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 2 }}>
+                    Engagement Matrix
                   </p>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>
-                    {selectedEngagements.size > 0
-                      ? `${selectedEngagements.size} selected — Use bulk actions below`
-                      : "Tick Like/Comment per platform · Add reason via 📝 button"}
+                  <p style={{ fontSize: 12, color: "var(--text-3)" }}>
+                    📅 {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-US", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
                   </p>
                 </div>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <span className="badge badge-green">✓ Completed: {engagements.filter((e) => e.status === "Completed").length}</span>
-                  <span className="badge badge-red">✗ Missed: {engagements.filter((e) => e.status === "Missed").length}</span>
+                <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 6, alignItems: "center", background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 8, padding: "5px 12px" }}>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", display: "inline-block" }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>{engagements.filter(e => e.status === "Completed").length} Done</span>
+                    <span style={{ fontSize: 12, color: "var(--text-4)" }}>·</span>
+                    <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--red)", display: "inline-block" }} />
+                    <span style={{ fontSize: 12, fontWeight: 600, color: "var(--text-2)" }}>{engagements.filter(e => e.status === "Missed").length} Missed</span>
+                  </div>
                 </div>
               </div>
 
               {/* ── Filter Bar ── */}
-              <div style={{ display: "flex", gap: 10, marginBottom: 14, flexWrap: "wrap" }}>
-                <div style={{ position: "relative", flex: 1, minWidth: 180 }}>
-                  <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.4 }} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                  <input
-                    className="input"
-                    style={{ paddingLeft: 32 }}
-                    placeholder="Search staff name..."
-                    value={filterName}
-                    onChange={(e) => setFilterName(e.target.value)}
-                  />
+              <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
+                <div style={{ position: "relative", flex: "1 1 180px", minWidth: 160 }}>
+                  <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.35 }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+                  <input className="input" style={{ paddingLeft: 30, fontSize: 13 }} placeholder="Cari nama staff..." value={filterName} onChange={(e) => setFilterName(e.target.value)} />
                 </div>
-                <select className="input" style={{ width: 160 }} value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
-                  <option value="">All Departments</option>
+                <select className="input" style={{ flex: "0 0 auto", minWidth: 140, fontSize: 13 }} value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
+                  <option value="">Semua Jabatan</option>
                   {sessionDepts.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-                <select className="input" style={{ width: 180 }} value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
-                  <option value="">All Companies</option>
+                <select className="input" style={{ flex: "0 0 auto", minWidth: 155, fontSize: 13 }} value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+                  <option value="">Semua Syarikat</option>
                   {sessionCompanies.map(c => <option key={c.id} value={c.id!}>{c.name}</option>)}
                 </select>
                 {(filterName || filterDept || filterCompany) && (
-                  <button className="btn btn-ghost btn-sm" style={{ color: "var(--text-3)" }} onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}>
-                    Clear Filters
+                  <button className="btn btn-ghost btn-sm" style={{ color: "var(--text-3)", fontSize: 12 }} onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}>
+                    ✕ Clear
                   </button>
                 )}
               </div>
 
-              {/* Bulk Action Bar */}
+              {/* ── Bulk Action Bar ── */}
               {selectedEngagements.size > 0 && (
                 <div style={{
-                  marginBottom: 16, padding: 16,
-                  background: "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(214, 41, 118, 0.08) 100%)",
-                  border: "1px solid rgba(99, 102, 241, 0.2)", borderRadius: 8,
-                  display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12,
+                  marginBottom: 14, padding: "10px 14px",
+                  background: "linear-gradient(90deg, rgba(99,102,241,0.07), rgba(214,41,118,0.05))",
+                  border: "1px solid rgba(99,102,241,0.18)", borderRadius: 8,
+                  display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 10,
                 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                    <div style={{ background: "var(--accent)", color: "white", width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: 700, fontSize: 14 }}>
-                      {selectedEngagements.size}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>Bulk Actions</p>
-                      <p style={{ fontSize: 11, color: "var(--text-3)" }}>{selectedEngagements.size} engagement{selectedEngagements.size > 1 ? 's' : ''} selected</p>
-                    </div>
-                  </div>
-                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                    <button onClick={() => handleBulkUpdate("Completed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--green)", color: "white", border: "none" }}>✓ Mark Completed</button>
-                    <button onClick={() => handleBulkUpdate("Missed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--red)", color: "white", border: "none" }}>✗ Mark Missed</button>
-                    <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ color: "var(--text-3)" }}>Clear Selection</button>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>
+                    <span style={{ background: "var(--accent)", color: "white", borderRadius: "50%", width: 22, height: 22, display: "inline-flex", alignItems: "center", justifyContent: "center", fontSize: 11, fontWeight: 700, marginRight: 8 }}>{selectedEngagements.size}</span>
+                    engagement dipilih
+                  </span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => handleBulkUpdate("Completed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--green)", color: "white", border: "none", fontSize: 12 }}>✓ Completed</button>
+                    <button onClick={() => handleBulkUpdate("Missed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--red)", color: "white", border: "none", fontSize: 12 }}>✗ Missed</button>
+                    <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ fontSize: 12 }}>Clear</button>
                   </div>
                 </div>
               )}
@@ -478,153 +460,238 @@ export default function MonitoringPage() {
                 <div className="loader"><div className="spin" />Loading engagement data...</div>
               ) : staffRows.length === 0 ? (
                 <div className="card" style={{ textAlign: "center", padding: 32 }}>
-                  <p style={{ color: "var(--text-3)" }}>{allStaffRows.length === 0 ? "No registered staff found." : "No staff match the current filters."}</p>
+                  <p style={{ color: "var(--text-3)" }}>{allStaffRows.length === 0 ? "Tiada staff dijumpai." : "Tiada staff sepadan dengan filter semasa."}</p>
                 </div>
               ) : (
-                <div className="tbl-wrap" style={{ overflowX: "auto" }}>
-                  <table className="tbl">
+                <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid var(--line)" }}>
+                  <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
-                      <tr>
-                        <th style={{ width: 40, textAlign: "center" }}>
-                          <input type="checkbox" checked={selectedEngagements.size === engagements.length && engagements.length > 0} onChange={toggleSelectAll} style={{ cursor: "pointer", width: 16, height: 16 }} title="Select all" />
+                      <tr style={{ background: "var(--bg-2)", borderBottom: "2px solid var(--line)" }}>
+                        {/* Checkbox col */}
+                        <th style={{ width: 36, padding: "10px 8px", textAlign: "center", borderRight: "1px solid var(--line)" }}>
+                          <input type="checkbox"
+                            checked={selectedEngagements.size === engagements.length && engagements.length > 0}
+                            onChange={toggleSelectAll}
+                            style={{ cursor: "pointer", width: 14, height: 14 }}
+                          />
                         </th>
-                        <th style={{ width: 50 }}>#</th>
-                        <th>Staff Name</th>
-                        <th>Department</th>
+                        {/* # col */}
+                        <th style={{ width: 38, padding: "10px 6px", textAlign: "center", color: "var(--text-3)", fontSize: 11, fontWeight: 600, borderRight: "1px solid var(--line)" }}>#</th>
+                        {/* Staff name */}
+                        <th style={{ padding: "10px 14px", textAlign: "left", color: "var(--text-2)", fontWeight: 700, minWidth: 140, borderRight: "1px solid var(--line)" }}>Nama</th>
+                        {/* Dept */}
+                        <th style={{ padding: "10px 12px", textAlign: "left", color: "var(--text-2)", fontWeight: 700, minWidth: 110, borderRight: "1px solid var(--line)" }}>Jabatan</th>
+
+                        {/* Post columns — each split into sub-action columns */}
                         {sessionPosts.map((p) => {
                           const compIdx = companies.findIndex(c => c.companyID === p.companyID);
-                          const compColor = compIdx >= 0 ? COMPANY_COLORS[compIdx % COMPANY_COLORS.length] : "var(--text-3)";
+                          const compColor = compIdx >= 0 ? COMPANY_COLORS[compIdx % COMPANY_COLORS.length] : "#6b7280";
                           const platColor = PLATFORM_COLORS[p.platformName] || "var(--accent)";
-                          const actions =
-                            p.platformName === "Facebook" ? ["Like", "Comment", "Share"] :
-                            p.platformName === "Instagram" ? ["Like", "Comment"] :
-                            p.platformName === "TikTok" ? ["Comment"] : ["Like", "Comment"];
+                          const actions: { key: "like"|"comment"|"share"; label: string; disabled?: boolean }[] =
+                            p.platformName === "Facebook"
+                              ? [{ key: "like", label: "Like" }, { key: "comment", label: "Comment" }, { key: "share", label: "Share", disabled: true }]
+                            : p.platformName === "Instagram"
+                              ? [{ key: "like", label: "Like" }, { key: "comment", label: "Comment" }]
+                            : p.platformName === "TikTok"
+                              ? [{ key: "comment", label: "Comment" }]
+                              : [{ key: "like", label: "Like" }, { key: "comment", label: "Comment" }];
+
                           return (
-                            <th key={p.postID} style={{ textAlign: "center", padding: "8px 10px" }}>
-                              <span style={{ display: "block", fontSize: 9, fontWeight: 700, color: compColor, textTransform: "uppercase", letterSpacing: "0.03em", marginBottom: 2 }}>
-                                {p.companyName}
-                              </span>
-                              <span style={{ color: platColor, fontSize: 11.5, fontWeight: 600 }}>{p.platformName}</span>
-                              <div style={{ display: "flex", justifyContent: "center", gap: 4, marginTop: 4 }}>
-                                {actions.map(a => (
-                                  <span key={a} style={{ fontSize: 9, color: a === "Share" ? "var(--text-4)" : platColor, background: `${a === "Share" ? "#9ca3af" : platColor}15`, borderRadius: 4, padding: "1px 5px", fontWeight: 600 }}>
-                                    {a === "Share" ? "Share⛔" : a}
-                                  </span>
+                            <th
+                              key={p.postID}
+                              colSpan={actions.length}
+                              style={{ padding: "0", textAlign: "center", borderRight: "1px solid var(--line)", borderLeft: "1px solid var(--line)" }}
+                            >
+                              {/* Company label */}
+                              <div style={{ background: `${compColor}18`, borderBottom: "1px solid var(--line)", padding: "4px 8px" }}>
+                                <span style={{ fontSize: 9, fontWeight: 800, color: compColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                                  {p.companyName}
+                                </span>
+                              </div>
+                              {/* Platform label */}
+                              <div style={{ padding: "4px 8px 2px", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, borderBottom: "1px solid var(--line)" }}>
+                                <span style={{ fontSize: 11, fontWeight: 700, color: platColor }}>{p.platformName}</span>
+                              </div>
+                              {/* Sub-action labels */}
+                              <div style={{ display: "flex" }}>
+                                {actions.map((a, ai) => (
+                                  <div key={a.key} style={{
+                                    flex: 1, padding: "4px 6px", fontSize: 10, fontWeight: 600,
+                                    color: a.disabled ? "var(--text-4)" : platColor,
+                                    background: a.disabled ? "rgba(0,0,0,0.02)" : `${platColor}09`,
+                                    borderRight: ai < actions.length - 1 ? "1px solid var(--line)" : "none",
+                                    whiteSpace: "nowrap", textAlign: "center"
+                                  }}>
+                                    {a.label}{a.disabled ? " 🔒" : ""}
+                                  </div>
                                 ))}
                               </div>
                             </th>
                           );
                         })}
-                        <th style={{ textAlign: "center", width: 70 }}>Total</th>
-                        <th style={{ textAlign: "center", width: 70 }}>Rate %</th>
-                        <th style={{ textAlign: "center", width: 120 }}>Reason</th>
+
+                        {/* Summary cols */}
+                        <th style={{ width: 56, padding: "10px 8px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11, borderLeft: "1px solid var(--line)" }}>Tick</th>
+                        <th style={{ width: 60, padding: "10px 8px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11 }}>Rate</th>
+                        <th style={{ width: 110, padding: "10px 10px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11 }}>Reason</th>
                       </tr>
                     </thead>
                     <tbody>
                       {staffRows.map((row, idx) => {
-                        const completed = row.engagements.filter((e) => e.status === "Completed").length;
-                        const total = row.engagements.length;
-                        const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
-                        const allRowSelected = row.engagements.every((e) => selectedEngagements.has(e.engagementID));
-                        // Aggregate reason: take first reason found in row
+                        // Count all sub-actions as individual ticks
+                        let totalTicks = 0;
+                        let doneTicks = 0;
+                        row.engagements.forEach(eng => {
+                          const platName = eng.platformName;
+                          if (platName === "Facebook") {
+                            totalTicks += 2; // Like + Comment (share disabled)
+                            if (eng.isLiked) doneTicks++;
+                            if (eng.isCommented) doneTicks++;
+                          } else if (platName === "Instagram") {
+                            totalTicks += 2;
+                            if (eng.isLiked) doneTicks++;
+                            if (eng.isCommented) doneTicks++;
+                          } else if (platName === "TikTok") {
+                            totalTicks += 1;
+                            if (eng.isCommented) doneTicks++;
+                          } else {
+                            totalTicks += 2;
+                            if (eng.isLiked) doneTicks++;
+                            if (eng.isCommented) doneTicks++;
+                          }
+                        });
+                        const rate = totalTicks > 0 ? Math.round((doneTicks / totalTicks) * 100) : 0;
+                        const allRowSelected = row.engagements.every(e => selectedEngagements.has(e.engagementID));
                         const rowReason = row.engagements.find(e => e.reason)?.reason;
+                        const rateColor = rate >= 100 ? "var(--green)" : rate >= 50 ? "#f59e0b" : "var(--red)";
 
                         return (
-                          <tr key={row.staffID}>
-                            <td style={{ textAlign: "center" }}>
+                          <tr key={row.staffID} style={{ borderBottom: "1px solid var(--line)", transition: "background 0.1s" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-2)")}
+                            onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
+                          >
+                            {/* Checkbox */}
+                            <td style={{ padding: "8px", textAlign: "center", borderRight: "1px solid var(--line)" }}>
                               <input type="checkbox" checked={allRowSelected}
                                 onChange={() => {
-                                  const rowEngagementIds = row.engagements.map((e) => e.engagementID);
-                                  setSelectedEngagements((prev) => {
+                                  const ids = row.engagements.map(e => e.engagementID);
+                                  setSelectedEngagements(prev => {
                                     const next = new Set(prev);
-                                    if (allRowSelected) { rowEngagementIds.forEach((id) => next.delete(id)); }
-                                    else { rowEngagementIds.forEach((id) => next.add(id)); }
+                                    if (allRowSelected) ids.forEach(id => next.delete(id));
+                                    else ids.forEach(id => next.add(id));
                                     return next;
                                   });
                                 }}
-                                style={{ cursor: "pointer", width: 16, height: 16 }} title="Select row"
+                                style={{ cursor: "pointer", width: 14, height: 14 }}
                               />
                             </td>
-                            <td style={{ color: "var(--text-4)" }}>{idx + 1}</td>
-                            <td style={{ fontWeight: 600, color: "var(--text-1)" }}>{row.staffName}</td>
-                            <td><span className="badge badge-neutral">{row.department || "—"}</span></td>
+                            {/* # */}
+                            <td style={{ padding: "8px 6px", textAlign: "center", color: "var(--text-4)", fontSize: 12, borderRight: "1px solid var(--line)" }}>{idx + 1}</td>
+                            {/* Name */}
+                            <td style={{ padding: "8px 14px", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", borderRight: "1px solid var(--line)" }}>{row.staffName}</td>
+                            {/* Dept */}
+                            <td style={{ padding: "8px 12px", borderRight: "1px solid var(--line)" }}>
+                              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 4, padding: "2px 7px" }}>
+                                {row.department || "—"}
+                              </span>
+                            </td>
+
+                            {/* Per-post sub-action cells */}
                             {sessionPosts.map((p) => {
-                              const eng = row.engagements.find((e) => e.postID === p.postID);
+                              const eng = row.engagements.find(e => e.postID === p.postID);
                               const platName = p.platformName;
                               const platColor = PLATFORM_COLORS[platName] || "var(--accent)";
+                              const actions: { key: "like"|"comment"|"share"; label: string; disabled?: boolean }[] =
+                                platName === "Facebook"
+                                  ? [{ key: "like", label: "Like" }, { key: "comment", label: "Comment" }, { key: "share", label: "Share", disabled: true }]
+                                : platName === "Instagram"
+                                  ? [{ key: "like", label: "Like" }, { key: "comment", label: "Comment" }]
+                                : platName === "TikTok"
+                                  ? [{ key: "comment", label: "Comment" }]
+                                  : [{ key: "like", label: "Like" }, { key: "comment", label: "Comment" }];
+
                               return (
-                                <td key={p.postID} style={{ textAlign: "center", verticalAlign: "middle" }}>
-                                  {eng ? (
-                                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                                      <input type="checkbox" checked={selectedEngagements.has(eng.engagementID)} onChange={() => toggleSelectEngagement(eng.engagementID)} style={{ cursor: "pointer", width: 13, height: 13, marginBottom: 2 }} onClick={(e) => e.stopPropagation()} />
-                                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", justifyContent: "center" }}>
-                                        {/* Like */}
-                                        {(platName === "Facebook" || platName === "Instagram") && (
-                                          <button
-                                            onClick={() => handleAction(eng, "like", !eng.isLiked)}
-                                            title={eng.isLiked ? "Like ✓ (click to undo)" : "Like"}
-                                            style={{
-                                              fontSize: 10, padding: "2px 6px", borderRadius: 5, border: "none", cursor: "pointer", fontWeight: 700,
-                                              background: eng.isLiked ? "#16a34a" : "rgba(0,0,0,0.06)",
-                                              color: eng.isLiked ? "white" : "var(--text-3)",
-                                              transition: "all 0.15s"
-                                            }}>
-                                            👍
-                                          </button>
+                                <>
+                                  {/* Per-action sub-cells */}
+                                  {actions.map((a, ai) => {
+                                    const isTicked = eng
+                                      ? (a.key === "like" ? eng.isLiked : a.key === "comment" ? eng.isCommented : eng.isShared)
+                                      : false;
+                                    return (
+                                      <td key={`${p.postID}-${a.key}`} style={{
+                                        padding: "8px 4px", textAlign: "center", verticalAlign: "middle",
+                                        borderRight: ai < actions.length - 1 ? "1px dashed var(--line)" : "1px solid var(--line)",
+                                        background: isTicked ? `${platColor}09` : "transparent",
+                                      }}>
+                                        {eng ? (
+                                          a.disabled ? (
+                                            <div style={{
+                                              display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                              width: 30, height: 26, borderRadius: 6,
+                                              background: "rgba(0,0,0,0.04)", border: "1.5px dashed #d1d5db",
+                                              cursor: "not-allowed"
+                                            }} title="Share dimatikan buat masa ini">
+                                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            </div>
+                                          ) : (
+                                            <button
+                                              onClick={() => handleAction(eng, a.key, !isTicked)}
+                                              title={isTicked ? `${a.label} ✓ — klik untuk batal` : `Tick ${a.label}`}
+                                              style={{
+                                                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
+                                                width: 30, height: 26, borderRadius: 6, cursor: "pointer",
+                                                border: isTicked ? `1.5px solid ${platColor}` : "1.5px solid var(--line)",
+                                                background: isTicked ? platColor : "var(--surface)",
+                                                color: isTicked ? "white" : "var(--text-4)",
+                                                fontWeight: 700, fontSize: 13,
+                                                transition: "all 0.15s ease",
+                                                boxShadow: isTicked ? `0 1px 6px ${platColor}50` : "none",
+                                              }}>
+                                              {isTicked
+                                                ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                                : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                              }
+                                            </button>
+                                          )
+                                        ) : (
+                                          <span style={{ color: "var(--text-4)", fontSize: 13 }}>—</span>
                                         )}
-                                        {/* Comment */}
-                                        {(platName === "Facebook" || platName === "Instagram" || platName === "TikTok") && (
-                                          <button
-                                            onClick={() => handleAction(eng, "comment", !eng.isCommented)}
-                                            title={eng.isCommented ? "Comment ✓ (click to undo)" : "Comment"}
-                                            style={{
-                                              fontSize: 10, padding: "2px 6px", borderRadius: 5, border: "none", cursor: "pointer", fontWeight: 700,
-                                              background: eng.isCommented ? "#16a34a" : "rgba(0,0,0,0.06)",
-                                              color: eng.isCommented ? "white" : "var(--text-3)",
-                                              transition: "all 0.15s"
-                                            }}>
-                                            💬
-                                          </button>
-                                        )}
-                                        {/* Share — disabled for Facebook, hidden for others */}
-                                        {platName === "Facebook" && (
-                                          <button
-                                            disabled
-                                            title="Share (disabled for now)"
-                                            style={{
-                                              fontSize: 10, padding: "2px 6px", borderRadius: 5, border: "none", cursor: "not-allowed", fontWeight: 700,
-                                              background: "rgba(0,0,0,0.04)", color: "var(--text-4)", opacity: 0.5
-                                            }}>
-                                            🔁
-                                          </button>
-                                        )}
-                                      </div>
-                                      {/* Status indicator */}
-                                      <span style={{ fontSize: 9, color: eng.status === "Completed" ? "var(--green)" : platColor, fontWeight: 700 }}>
-                                        {eng.status === "Completed" ? "✓ Done" : "✗"}
-                                      </span>
-                                    </div>
-                                  ) : <span style={{ color: "var(--text-4)" }}>—</span>}
-                                </td>
+                                      </td>
+                                    );
+                                  })}
+                                </>
                               );
                             })}
-                            <td style={{ textAlign: "center", fontWeight: 600, fontSize: 13, color: "var(--text-1)" }}>{completed}/{total}</td>
-                            <td style={{ textAlign: "center" }}>
-                              <span className={`badge ${rate >= 75 ? "badge-green" : rate >= 50 ? "badge-amber" : "badge-red"}`}>{rate}%</span>
+
+                            {/* Total ticks */}
+                            <td style={{ padding: "8px", textAlign: "center", borderLeft: "1px solid var(--line)", whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: 12, fontWeight: 700, color: rateColor }}>{doneTicks}</span>
+                              <span style={{ fontSize: 11, color: "var(--text-4)" }}>/{totalTicks}</span>
                             </td>
-                            <td style={{ textAlign: "center" }}>
+                            {/* Rate */}
+                            <td style={{ padding: "8px", textAlign: "center" }}>
+                              <span style={{
+                                fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 12,
+                                background: rate >= 100 ? "#dcfce7" : rate >= 50 ? "#fef3c7" : "#fee2e2",
+                                color: rateColor
+                              }}>{rate}%</span>
+                            </td>
+                            {/* Reason */}
+                            <td style={{ padding: "8px 8px", textAlign: "center" }}>
                               <button
                                 onClick={() => openReasonModal(row)}
-                                title={rowReason ? `Reason: ${rowReason}` : "Add reason (MC, Cuti, etc.)"}
+                                title={rowReason ? `Reason: ${rowReason}` : "Tambah reason (MC, Cuti, dll.)"}
                                 style={{
-                                  fontSize: 11, padding: "3px 8px", borderRadius: 6, border: "1px solid var(--line)",
-                                  cursor: "pointer", fontWeight: 600, maxWidth: 110,
-                                  background: rowReason ? "rgba(99,102,241,0.08)" : "var(--bg-2)",
+                                  fontSize: 11, padding: "4px 9px", borderRadius: 6,
+                                  border: rowReason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
+                                  cursor: "pointer", fontWeight: 600, maxWidth: 100,
+                                  background: rowReason ? "rgba(99,102,241,0.07)" : "transparent",
                                   color: rowReason ? "var(--accent)" : "var(--text-3)",
                                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                                  display: "inline-block"
+                                  display: "block", width: "100%", textAlign: "center",
+                                  transition: "all 0.15s"
                                 }}>
-                                {rowReason ? `📝 ${rowReason}` : "📝 Add"}
+                                {rowReason ? `📝 ${rowReason}` : "+ Reason"}
                               </button>
                             </td>
                           </tr>
