@@ -138,31 +138,11 @@ public class DashboardController : ControllerBase
         return Ok(data);
     }
 
-    // GET /api/dashboard/staff-ranking?limit=13&order=top
+    // GET /api/dashboard/staff-ranking?limit=13&order=top&from=2026-01-01&to=2026-12-31
     [HttpGet("staff-ranking")]
-    public async Task<IActionResult> GetStaffRanking([FromQuery] int limit = 13, [FromQuery] string order = "top")
+    public async Task<IActionResult> GetStaffRanking([FromQuery] int limit = 13, [FromQuery] string order = "top", [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null)
     {
-        var data = await _db.Engagements
-            .Include(e => e.Staff)
-            .GroupBy(e => new { e.StaffID, e.Staff!.FullName, e.Staff.Department })
-            .Select(g => new
-            {
-                g.Key.StaffID,
-                g.Key.FullName,
-                g.Key.Department,
-                Completed = g.Count(e => e.Status == "Completed"),
-                Total = g.Count(e => e.Status == "Completed" || e.Status == "Missed"),
-                CompletionRate = g.Count(e => e.Status == "Completed" || e.Status == "Missed") > 0
-                    ? Math.Round((double)g.Count(e => e.Status == "Completed") / g.Count(e => e.Status == "Completed" || e.Status == "Missed") * 100, 1)
-                    : 0
-            })
-            .ToListAsync();
-
-        if (order == "bottom")
-            data = data.OrderBy(d => d.CompletionRate).Take(limit).ToList();
-        else
-            data = data.OrderByDescending(d => d.CompletionRate).Take(limit).ToList();
-
+        var data = await GetStaffRankingData(order, limit, from, to);
         return Ok(data);
     }
 
@@ -243,12 +223,20 @@ public class DashboardController : ControllerBase
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
 
-            // Get current dashboard data
+            // Parse optional date range for staff ranking consistency
+            DateTime? snapshotFrom = null;
+            DateTime? snapshotTo = null;
+            if (!string.IsNullOrEmpty(req.FromDate) && DateTime.TryParse(req.FromDate, out var parsedFrom))
+                snapshotFrom = parsedFrom;
+            if (!string.IsNullOrEmpty(req.ToDate) && DateTime.TryParse(req.ToDate, out var parsedTo))
+                snapshotTo = parsedTo;
+
+            // Get current dashboard data — all filtered by the same date range for consistency
             var kpiData = await GetKpiData(req.FromDate, req.ToDate);
             var monthlyData = await GetMonthlyData(DateTime.UtcNow.Year);
             var platformData = await GetPlatformData();
-            var topStaff = await GetStaffRankingData("top", 13);
-            var bottomStaff = await GetStaffRankingData("bottom", 13);
+            var topStaff = await GetStaffRankingData("top", 10, snapshotFrom, snapshotTo);
+            var bottomStaff = await GetStaffRankingData("bottom", 10, snapshotFrom, snapshotTo);
 
             var dashboardState = new
             {
@@ -449,10 +437,24 @@ public class DashboardController : ControllerBase
         return data;
     }
 
-    private async Task<object> GetStaffRankingData(string order, int limit)
+    private async Task<object> GetStaffRankingData(string order, int limit, DateTime? from = null, DateTime? to = null)
     {
-        var data = await _db.Engagements
+        var query = _db.Engagements
             .Include(e => e.Staff)
+            .AsQueryable();
+
+        if (from.HasValue)
+        {
+            var fromDate = DateOnly.FromDateTime(from.Value);
+            query = query.Where(e => e.Session!.SessionDate >= fromDate);
+        }
+        if (to.HasValue)
+        {
+            var toDate = DateOnly.FromDateTime(to.Value);
+            query = query.Where(e => e.Session!.SessionDate <= toDate);
+        }
+
+        var data = await query
             .GroupBy(e => new { e.StaffID, e.Staff!.FullName, e.Staff.Department })
             .Select(g => new
             {
@@ -468,9 +470,9 @@ public class DashboardController : ControllerBase
             .ToListAsync();
 
         if (order == "bottom")
-            return data.OrderBy(d => d.CompletionRate).Take(limit).ToList();
+            return data.OrderBy(d => d.CompletionRate).ThenBy(d => d.Completed).ThenBy(d => d.FullName).Take(limit).ToList();
         else
-            return data.OrderByDescending(d => d.CompletionRate).Take(limit).ToList();
+            return data.OrderByDescending(d => d.CompletionRate).ThenByDescending(d => d.Completed).ThenBy(d => d.FullName).Take(limit).ToList();
     }
 }
 

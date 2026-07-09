@@ -258,8 +258,13 @@ export async function getCompanyPerformance() {
   return handleResponse<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>(res);
 }
 
-export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 13) {
-  const res = await fetch(`${BASE_URL}/dashboard/staff-ranking?order=${order}&limit=${limit}`, { headers: authHeaders() });
+export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 10, from?: string, to?: string) {
+  const q = new URLSearchParams();
+  q.set("order", order);
+  q.set("limit", String(limit));
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const res = await fetch(`${BASE_URL}/dashboard/staff-ranking?${q}`, { headers: authHeaders() });
   return handleResponse<{ staffID: string; fullName: string; department: string; completed: number; total: number; completionRate: number }[]>(res);
 }
 

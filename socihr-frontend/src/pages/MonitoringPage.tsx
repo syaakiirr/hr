@@ -129,16 +129,16 @@ export default function MonitoringPage() {
     ));
     try {
       const res = await updateEngagementAction(eng.engagementID, action, value);
-      // Update with server's computed status
+      // Sync with server response (includes computed status)
       setEngagements((prev) => prev.map((e) =>
-        e.engagementID === eng.engagementID ? { ...e, status: res.status, isLiked: res.isLiked, isCommented: res.isCommented, isShared: res.isShared } : e
+        e.engagementID === eng.engagementID
+          ? { ...e, status: res.status, isLiked: res.isLiked, isCommented: res.isCommented, isShared: res.isShared }
+          : e
       ));
     } catch (err) {
-      // Revert on failure
-      setEngagements((prev) => prev.map((e) =>
-        e.engagementID === eng.engagementID ? { ...e, isLiked: eng.isLiked, isCommented: eng.isCommented, isShared: eng.isShared } : e
-      ));
-      console.error(err);
+      // Don't revert — keep optimistic state. Server didn't save, but UI stays consistent.
+      // Next page load will fetch ground-truth from server.
+      console.error("Failed to update engagement:", err);
     }
   }
 

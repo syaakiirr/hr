@@ -105,8 +105,8 @@ export default function DashboardPage() {
       getMonthlyTrend(new Date().getFullYear()),
       getWeeklyTrend(),
       getPlatformComparison(),
-      getStaffRanking("top", 10),
-      getStaffRanking("bottom", 10),
+      getStaffRanking("top", 10, from, to),
+      getStaffRanking("bottom", 10, from, to),
       getCompanyPerformance(),
     ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData]) => {
       setKpi(kpiData);
