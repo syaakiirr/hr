@@ -552,7 +552,16 @@ export default function MonitoringPage() {
                       label: string; icon: string; disabled?: boolean;
                     }[] = [];
 
-                    selectedSession.posts.forEach((p) => {
+                    // Sort posts: group by company, then by platform order (FB → IG → TT)
+                    const platformOrder: Record<string, number> = { Facebook: 0, Instagram: 1, TikTok: 2 };
+                    const sortedPosts = [...selectedSession.posts].sort((a, b) => {
+                      const coA = (a.companyName || "").toLowerCase();
+                      const coB = (b.companyName || "").toLowerCase();
+                      if (coA !== coB) return coA.localeCompare(coB);
+                      return (platformOrder[a.platformName] ?? 99) - (platformOrder[b.platformName] ?? 99);
+                    });
+
+                    sortedPosts.forEach((p) => {
                       const plat = p.platformName;
                       const coID = p.companyID ?? "";
                       const coName = p.companyName || "No Company";
@@ -619,34 +628,34 @@ export default function MonitoringPage() {
                           <thead>
                             {/* Row 1 — Company */}
                             <tr style={{ background: "#f1f5f9" }}>
-                              <th rowSpan={3} style={{ ...thStyle, width: 36, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>
+                              <th rowSpan={3} style={{ ...thStyle, width: 34, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>
                                 <input type="checkbox"
                                   checked={selectedEngagements.size === engagements.length && engagements.length > 0}
                                   onChange={toggleSelectAll}
                                   style={{ cursor: "pointer", width: 14, height: 14 }}
                                 />
                               </th>
-                              <th rowSpan={3} style={{ ...thStyle, width: 30, fontSize: 10, color: "var(--text-4)", borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>#</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 130, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Nama Staff</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 90, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Jabatan</th>
+                              <th rowSpan={3} style={{ ...thStyle, width: 28, fontSize: 10, color: "var(--text-4)", borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>#</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 120, fontSize: 11, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Nama Staff</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 80, fontSize: 10, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Jabatan</th>
                               {coGroups.map((cg) => (
                                 <th key={cg.companyID} colSpan={cg.span} style={{
-                                  padding: "5px 4px", textAlign: "center", fontWeight: 800,
-                                  fontSize: 9.5, letterSpacing: "0.04em", textTransform: "uppercase",
-                                  color: cg.color, background: `${cg.color}12`,
+                                  padding: "5px 6px", textAlign: "center", fontWeight: 800,
+                                  fontSize: 10, letterSpacing: "0.03em", textTransform: "uppercase",
+                                  color: cg.color, background: `${cg.color}14`,
                                   borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)"
                                 }}>
                                   {cg.name}
                                 </th>
                               ))}
-                              <th rowSpan={3} style={{ ...thStyle, width: 72, borderBottom: "2px solid var(--line)" }}>Sebab</th>
+                              <th rowSpan={3} style={{ ...thStyle, width: 68, borderBottom: "2px solid var(--line)" }}>Sebab</th>
                             </tr>
                             {/* Row 2 — Platform */}
-                            <tr style={{ background: "#f8fafc" }}>
+                            <tr style={{ background: "#f5f6f8" }}>
                               {platGroups.map((pg, pi) => (
                                 <th key={pi} colSpan={pg.span} style={{
-                                  padding: "4px", textAlign: "center", fontWeight: 700,
-                                  fontSize: 10, color: pg.color,
+                                  padding: "3px 4px", textAlign: "center", fontWeight: 700,
+                                  fontSize: 10, color: pg.color, background: `${pg.color}0d`,
                                   borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)"
                                 }}>
                                   {pg.platformName === "Facebook" ? "Facebook" : pg.platformName === "Instagram" ? "Instagram" : pg.platformName === "TikTok" ? "TikTok" : pg.platformName}
@@ -654,17 +663,17 @@ export default function MonitoringPage() {
                               ))}
                             </tr>
                             {/* Row 3 — Action */}
-                            <tr style={{ background: "#fcfcfd", borderBottom: "2px solid var(--line)" }}>
+                            <tr style={{ background: "#fafbfc", borderBottom: "2px solid var(--line)" }}>
                               {actionCols.map((col, ci) => {
                                 const platColor = PLATFORM_COLORS[col.platformName] || "var(--accent)";
                                 return (
                                   <th key={ci} style={{
-                                    ...thStyle, fontSize: 9.5, width: 48,
+                                    ...thStyle, fontSize: 9.5, width: 46,
                                     color: col.disabled ? "var(--text-4)" : platColor,
-                                    opacity: col.disabled ? 0.4 : 1,
+                                    opacity: col.disabled ? 0.35 : 1,
                                     borderRight: "1px solid var(--line)"
                                   }}>
-                                    {col.label}
+                                    {col.icon} {col.label}
                                   </th>
                                 );
                               })}
