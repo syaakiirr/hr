@@ -13,4 +13,8 @@ public class Staff
     public bool IsArchived { get; set; } = false;
     public Guid? ArchivedBy { get; set; }
     public DateTime? ArchivedAt { get; set; }
+
+    // Company
+    public Guid? CompanyID { get; set; }
+    public Company? Company { get; set; }
 }

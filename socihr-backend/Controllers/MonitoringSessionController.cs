@@ -34,6 +34,12 @@ public class MonitoringSessionController : ControllerBase
             .Where(p => sessionIds.Contains(p.SessionID))
             .ToListAsync();
 
+        // Load companies for each session
+        var sessionCompanies = await _db.SessionCompanies
+            .Include(sc => sc.Company)
+            .Where(sc => sessionIds.Contains(sc.SessionID))
+            .ToListAsync();
+
         var result = sessions.Select(s => new
         {
             s.SessionID,
@@ -51,6 +57,13 @@ public class MonitoringSessionController : ControllerBase
                     p.PlatformID,
                     PlatformName = p.Platform!.PlatformName,
                     p.PostLink
+                }),
+            Companies = sessionCompanies
+                .Where(sc => sc.SessionID == s.SessionID)
+                .Select(sc => new
+                {
+                    sc.CompanyID,
+                    CompanyName = sc.Company!.CompanyName
                 })
         });
 
@@ -68,6 +81,11 @@ public class MonitoringSessionController : ControllerBase
             .Where(p => p.SessionID == id)
             .ToListAsync();
 
+        var companies = await _db.SessionCompanies
+            .Include(sc => sc.Company)
+            .Where(sc => sc.SessionID == id)
+            .ToListAsync();
+
         return Ok(new
         {
             session.SessionID,
@@ -80,6 +98,11 @@ public class MonitoringSessionController : ControllerBase
                 p.PlatformID,
                 PlatformName = p.Platform!.PlatformName,
                 p.PostLink
+            }),
+            Companies = companies.Select(sc => new
+            {
+                sc.CompanyID,
+                CompanyName = sc.Company!.CompanyName
             })
         });
     }
@@ -112,10 +135,33 @@ public class MonitoringSessionController : ControllerBase
             _db.SessionPosts.Add(post);
         }
 
+        // Create SessionCompany records for each selected company
+        if (req.CompanyIDs != null && req.CompanyIDs.Count > 0)
+        {
+            foreach (var companyId in req.CompanyIDs)
+            {
+                _db.SessionCompanies.Add(new SessionCompany
+                {
+                    SessionCompanyID = Guid.NewGuid(),
+                    SessionID = session.SessionID,
+                    CompanyID = companyId
+                });
+            }
+        }
+
         await _db.SaveChangesAsync();
 
-        // Now generate Engagement records for all active staff x all posts
-        var activeStaff = await _db.Staff.Where(s => s.Status == "Active").ToListAsync();
+        // Generate Engagement records:
+        // If companies are selected → only staff from those companies
+        // If no companies selected → all active staff (backward compat)
+        IQueryable<Staff> staffQuery = _db.Staff.Where(s => s.Status == "Active" && !s.IsArchived);
+        
+        if (req.CompanyIDs != null && req.CompanyIDs.Count > 0)
+        {
+            staffQuery = staffQuery.Where(s => s.CompanyID != null && req.CompanyIDs.Contains(s.CompanyID.Value));
+        }
+
+        var activeStaff = await staffQuery.ToListAsync();
         var createdPosts = await _db.SessionPosts.Where(p => p.SessionID == session.SessionID).ToListAsync();
 
         foreach (var staff in activeStaff)
@@ -170,7 +216,13 @@ public class MonitoringSessionController : ControllerBase
                 .ToListAsync();
             _db.SessionPosts.RemoveRange(posts);
 
-            // 5. Finally, delete the MonitoringSession itself
+            // 5. Delete all SessionCompany records for this session
+            var sessionCompanies = await _db.SessionCompanies
+                .Where(sc => sc.SessionID == id)
+                .ToListAsync();
+            _db.SessionCompanies.RemoveRange(sessionCompanies);
+
+            // 6. Finally, delete the MonitoringSession itself
             _db.MonitoringSessions.Remove(session);
 
             await _db.SaveChangesAsync();
@@ -254,6 +306,11 @@ public class MonitoringSessionController : ControllerBase
                 .Where(p => sessionIds.Contains(p.SessionID))
                 .ToListAsync();
 
+            var sessionCompanies = await _db.SessionCompanies
+                .Include(sc => sc.Company)
+                .Where(sc => sessionIds.Contains(sc.SessionID))
+                .ToListAsync();
+
             var result = sessions.Select(s => new
             {
                 s.SessionID,
@@ -271,6 +328,13 @@ public class MonitoringSessionController : ControllerBase
                         p.PlatformID,
                         PlatformName = p.Platform!.PlatformName,
                         p.PostLink
+                    }),
+                Companies = sessionCompanies
+                    .Where(sc => sc.SessionID == s.SessionID)
+                    .Select(sc => new
+                    {
+                        sc.CompanyID,
+                        CompanyName = sc.Company!.CompanyName
                     })
             });
 
@@ -284,4 +348,5 @@ public class MonitoringSessionController : ControllerBase
 }
 
 public record PostRequest(Guid PlatformID, string PostLink);
-public record CreateSessionRequest(DateOnly SessionDate, List<PostRequest> Posts);
+public record CreateSessionRequest(DateOnly SessionDate, List<PostRequest> Posts, List<Guid>? CompanyIDs);
+

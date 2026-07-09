@@ -8,6 +8,7 @@ import {
   getDashboardKpi,
   getMonthlyTrend,
   getPlatformComparison,
+  getCompanyPerformance,
   getStaffRanking,
   getWeeklyTrend,
   createSnapshot,
@@ -85,6 +86,7 @@ export default function DashboardPage() {
   const [platforms, setPlatforms] = useState<{ platform: string; completed: number; missed: number; total: number }[]>([]);
   const [topStaff, setTopStaff] = useState<{ staffID: string; fullName: string; department: string; completed: number; total: number; completionRate: number }[]>([]);
   const [bottomStaff, setBottomStaff] = useState<{ staffID: string; fullName: string; department: string; completed: number; total: number; completionRate: number }[]>([]);
+  const [companyPerf, setCompanyPerf] = useState<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Snapshot modal state
@@ -105,13 +107,15 @@ export default function DashboardPage() {
       getPlatformComparison(),
       getStaffRanking("top", 10),
       getStaffRanking("bottom", 10),
-    ]).then(([kpiData, monthData, weekData, platData, topData, botData]) => {
+      getCompanyPerformance(),
+    ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData]) => {
       setKpi(kpiData);
       setMonthly(monthData);
       setWeekly(weekData);
       setPlatforms(platData);
       setTopStaff(topData);
       setBottomStaff(botData);
+      setCompanyPerf(compData);
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, [filter]);
@@ -361,6 +365,51 @@ export default function DashboardPage() {
     }],
   }), [bottomStaff]);
 
+  // Company performance chart - memoized
+  const companyColors = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b"];
+  const companyOption = useMemo(() => ({
+    ...lightChartTheme,
+    animation: true,
+    animationDuration: 400,
+    animationEasing: "cubicOut",
+    tooltip: { trigger: "axis" as const, ...customTooltip },
+    grid: { left: 16, right: 40, bottom: 0, top: 10, containLabel: true },
+    xAxis: {
+      type: "value" as const,
+      max: 100,
+      axisLabel: { color: "#7b7b96", formatter: "{value}%" },
+      splitLine: { lineStyle: { color: "#f1f1f6" } }
+    },
+    yAxis: {
+      type: "category" as const,
+      data: companyPerf.map((c) => c.company),
+      axisLabel: { color: "#3d3d50", fontWeight: "bold" },
+      axisLine: { lineStyle: { color: "#e4e4ed" } }
+    },
+    series: [{
+      type: "bar" as const,
+      barMaxWidth: 20,
+      showBackground: true,
+      backgroundStyle: { color: "rgba(15, 23, 42, 0.03)", borderRadius: [0, 4, 4, 0] },
+      data: companyPerf.map((c, i) => ({
+        value: c.rate,
+        itemStyle: {
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: companyColors[i % companyColors.length] + "80" },
+            { offset: 1, color: companyColors[i % companyColors.length] }
+          ]),
+          borderRadius: [0, 4, 4, 0]
+        }
+      })),
+      label: {
+        show: true, position: "right" as const,
+        color: "#3d3d50", fontSize: 11,
+        formatter: (p: { value: number }) => `${p.value}%`,
+        fontWeight: "bold"
+      },
+    }],
+  }), [companyPerf]);
+
   return (
     <>
       <Layout>
@@ -455,6 +504,33 @@ export default function DashboardPage() {
             })}
           </div>
 
+          {/* Company Performance Quick Badges */}
+          {companyPerf.length > 0 && (
+            <div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
+              {companyPerf.map((c, i) => (
+                <div key={c.companyID} style={{
+                  background: "var(--white)",
+                  border: `1px solid ${companyColors[i % companyColors.length]}30`,
+                  borderRadius: 8, padding: "8px 14px",
+                  display: "flex", alignItems: "center", gap: 8,
+                  fontSize: 13, fontWeight: 500, color: "var(--text-2)",
+                  boxShadow: "var(--shadow-xs)"
+                }}>
+                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: companyColors[i % companyColors.length] }} />
+                  <strong style={{ color: companyColors[i % companyColors.length] }}>{c.company}</strong>
+                  <span style={{
+                    padding: "2px 7px", borderRadius: 5, fontSize: 11, fontWeight: 700,
+                    background: c.rate >= 75 ? "var(--green-soft)" : c.rate >= 50 ? "var(--amber-soft)" : "var(--red-soft)",
+                    color: c.rate >= 75 ? "var(--green)" : c.rate >= 50 ? "var(--amber)" : "var(--red)",
+                  }}>
+                    {c.rate}%
+                  </span>
+                  <span style={{ color: "var(--text-4)", fontSize: 11 }}>✓{c.completed} ✗{c.missed}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           {/* Row 1 Charts */}
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div className="chart-wrap">
@@ -546,6 +622,53 @@ export default function DashboardPage() {
 
           {/* Engagement Metrics Component */}
           <EngagementMetrics />
+
+          {/* Company Performance Chart */}
+          {companyPerf.length > 0 && (
+            <div className="chart-wrap" style={{ marginTop: 16 }}>
+              <p className="chart-label" style={{ color: "#6366f1" }}>🏢 Company Performance by Tick (Completion Rate %)</p>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
+                <ReactECharts
+                  option={companyOption}
+                  style={{ height: 200 }}
+                  opts={{ renderer: 'canvas' }}
+                  notMerge={true}
+                  lazyUpdate={true}
+                />
+                {/* Company breakdown table */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  {companyPerf.map((c, i) => (
+                    <div key={c.companyID} style={{
+                      display: "flex", alignItems: "center", gap: 10,
+                      padding: "10px 14px", borderRadius: 8,
+                      background: "var(--surface-2)",
+                      border: `1px solid ${companyColors[i % companyColors.length]}20`,
+                    }}>
+                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: companyColors[i % companyColors.length], flexShrink: 0 }} />
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.company}</p>
+                        <div style={{ display: "flex", gap: 8, marginTop: 3 }}>
+                          <span style={{ fontSize: 10, color: "var(--green)", fontWeight: 600 }}>✓ {c.completed}</span>
+                          <span style={{ fontSize: 10, color: "var(--red)", fontWeight: 600 }}>✗ {c.missed}</span>
+                          <span style={{ fontSize: 10, color: "var(--text-4)" }}>of {c.total}</span>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: "right" }}>
+                        <span style={{
+                          display: "inline-block", padding: "3px 8px", borderRadius: 6,
+                          fontSize: 12, fontWeight: 800,
+                          background: c.rate >= 75 ? "var(--green-soft)" : c.rate >= 50 ? "var(--amber-soft)" : "var(--red-soft)",
+                          color: c.rate >= 75 ? "var(--green)" : c.rate >= 50 ? "var(--amber)" : "var(--red)",
+                        }}>
+                          {c.rate}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           </div>
         ) : null}
 

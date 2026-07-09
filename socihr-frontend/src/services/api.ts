@@ -38,6 +38,8 @@ export interface Staff {
   position?: string;
   status: string;
   createdAt: string;
+  companyID?: string;
+  company?: { companyID: string; companyName: string } | null;
 }
 
 export async function getStaffList(params?: { search?: string; department?: string; status?: string }): Promise<Staff[]> {
@@ -49,12 +51,12 @@ export async function getStaffList(params?: { search?: string; department?: stri
   return handleResponse<Staff[]>(res);
 }
 
-export async function createStaff(data: { fullName: string; department?: string; position?: string }): Promise<Staff> {
+export async function createStaff(data: { fullName: string; department?: string; position?: string; companyID?: string }): Promise<Staff> {
   const res = await fetch(`${BASE_URL}/staff`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<Staff>(res);
 }
 
-export async function updateStaff(id: string, data: { fullName: string; department?: string; position?: string }): Promise<Staff> {
+export async function updateStaff(id: string, data: { fullName: string; department?: string; position?: string; companyID?: string }): Promise<Staff> {
   const res = await fetch(`${BASE_URL}/staff/${id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<Staff>(res);
 }
@@ -96,6 +98,27 @@ export async function getPlatforms(): Promise<Platform[]> {
   return handleResponse<Platform[]>(res);
 }
 
+// ─── Company ────────────────────────────────────────
+export interface Company {
+  companyID: string;
+  companyName: string;
+}
+
+export async function getCompanies(): Promise<Company[]> {
+  const res = await fetch(`${BASE_URL}/company`, { headers: authHeaders() });
+  return handleResponse<Company[]>(res);
+}
+
+export async function createCompany(name: string): Promise<Company> {
+  const res = await fetch(`${BASE_URL}/company`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ CompanyName: name })
+  });
+  return handleResponse<Company>(res);
+}
+
+
 // ─── Monitoring Session ──────────────────────────────
 export interface SessionPost {
   postID: string;
@@ -110,6 +133,7 @@ export interface MonitoringSession {
   createdBy: string;
   createdAt: string;
   posts: SessionPost[];
+  companies: { companyID: string; companyName: string }[];
 }
 
 export async function getSessions(): Promise<MonitoringSession[]> {
@@ -117,7 +141,7 @@ export async function getSessions(): Promise<MonitoringSession[]> {
   return handleResponse<MonitoringSession[]>(res);
 }
 
-export async function createSession(data: { sessionDate: string; posts: { platformID: string; postLink: string }[] }): Promise<{ sessionID: string }> {
+export async function createSession(data: { sessionDate: string; posts: { platformID: string; postLink: string }[]; companyIDs?: string[] }): Promise<{ sessionID: string }> {
   const res = await fetch(`${BASE_URL}/monitoringsession`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<{ sessionID: string }>(res);
 }
@@ -135,6 +159,8 @@ export interface Engagement {
   staffID: string;
   staffName: string;
   department: string;
+  companyID?: string;
+  companyName?: string;
   platformID: string;
   platformName: string;
   postLink: string;
@@ -199,6 +225,11 @@ export async function getWeeklyTrend() {
 export async function getPlatformComparison() {
   const res = await fetch(`${BASE_URL}/dashboard/platform-comparison`, { headers: authHeaders() });
   return handleResponse<{ platform: string; completed: number; missed: number; total: number }[]>(res);
+}
+
+export async function getCompanyPerformance() {
+  const res = await fetch(`${BASE_URL}/dashboard/company-performance`, { headers: authHeaders() });
+  return handleResponse<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>(res);
 }
 
 export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 13) {

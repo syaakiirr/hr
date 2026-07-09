@@ -15,6 +15,8 @@ public class AppDbContext : DbContext
     public DbSet<Engagement> Engagements { get; set; }
     public DbSet<AuditTrail> AuditTrails { get; set; }
     public DbSet<DashboardSnapshot> DashboardSnapshots { get; set; }
+    public DbSet<Company> Companies { get; set; }
+    public DbSet<SessionCompany> SessionCompanies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,6 +34,8 @@ public class AppDbContext : DbContext
             e.Property(x => x.IsArchived).HasColumnName("IsArchived").HasDefaultValue(false);
             e.Property(x => x.ArchivedBy).HasColumnName("ArchivedBy");
             e.Property(x => x.ArchivedAt).HasColumnName("ArchivedAt");
+            e.Property(x => x.CompanyID).HasColumnName("CompanyID");
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyID).OnDelete(DeleteBehavior.SetNull);
         });
 
         // ── Users ──
@@ -123,6 +127,28 @@ public class AppDbContext : DbContext
             e.Property(x => x.CreatedBy).HasColumnName("CreatedBy");
             e.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
             e.Property(x => x.Notes).HasColumnName("Notes");
+        });
+
+        // ── Company ──
+        modelBuilder.Entity<Company>(e =>
+        {
+            e.ToTable("Company");
+            e.HasKey(x => x.CompanyID);
+            e.Property(x => x.CompanyID).HasColumnName("CompanyID");
+            e.Property(x => x.CompanyName).HasColumnName("CompanyName");
+            e.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
+        });
+
+        // ── SessionCompany ──
+        modelBuilder.Entity<SessionCompany>(e =>
+        {
+            e.ToTable("SessionCompany");
+            e.HasKey(x => x.SessionCompanyID);
+            e.Property(x => x.SessionCompanyID).HasColumnName("SessionCompanyID");
+            e.Property(x => x.SessionID).HasColumnName("SessionID");
+            e.Property(x => x.CompanyID).HasColumnName("CompanyID");
+            e.HasOne(x => x.Session).WithMany().HasForeignKey(x => x.SessionID).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyID).OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

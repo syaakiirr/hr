@@ -190,6 +190,46 @@ public class DashboardController : ControllerBase
         return Ok(data);
     }
 
+    // GET /api/dashboard/company-performance
+    [HttpGet("company-performance")]
+    public async Task<IActionResult> GetCompanyPerformance()
+    {
+        // Get all companies
+        var companies = await _db.Companies
+            .OrderBy(c => c.CompanyName)
+            .ToListAsync();
+
+        // Get all engagements grouped by staff's company
+        var engagements = await _db.Engagements
+            .Include(e => e.Staff)
+            .Where(e => e.Staff!.CompanyID != null)
+            .ToListAsync();
+
+        var result = companies.Select(company =>
+        {
+            var companyEngagements = engagements
+                .Where(e => e.Staff!.CompanyID == company.CompanyID)
+                .ToList();
+
+            var completed = companyEngagements.Count(e => e.Status == "Completed");
+            var missed = companyEngagements.Count(e => e.Status == "Missed");
+            var total = completed + missed;
+            var rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
+
+            return new
+            {
+                company.CompanyID,
+                Company = company.CompanyName,
+                Completed = completed,
+                Missed = missed,
+                Total = total,
+                Rate = rate
+            };
+        }).ToList();
+
+        return Ok(result);
+    }
+
     // ═══════════════════════════════════════════════════════════════
     // DASHBOARD SNAPSHOT ENDPOINTS
     // ═══════════════════════════════════════════════════════════════

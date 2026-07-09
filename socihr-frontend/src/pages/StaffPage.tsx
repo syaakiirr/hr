@@ -56,7 +56,7 @@ export default function StaffPage() {
   const activeCount = staffList.filter((s) => s.status === "Active").length;
   const inactiveCount = staffList.filter((s) => s.status === "Inactive").length;
 
-  async function handleSave(data: { fullName: string; department: string; position: string }) {
+  async function handleSave(data: { fullName: string; department: string; position: string; companyID?: string }) {
     setSaving(true);
     try {
       if (editingStaff) await updateStaff(editingStaff.staffID, data);
@@ -209,6 +209,7 @@ export default function StaffPage() {
               <tr>
                 <th style={{ width: 60 }}>#</th>
                 <th>Full Name</th>
+                <th>Company</th>
                 <th>Department</th>
                 <th>Position</th>
                 <th>Status</th>
@@ -225,6 +226,21 @@ export default function StaffPage() {
                       <Avatar name={staff.fullName} />
                       <span style={{ fontWeight: 600, color: "var(--text-1)" }}>{staff.fullName}</span>
                     </div>
+                  </td>
+                  <td>
+                    {staff.company ? (
+                      <span className="badge" style={{
+                        background: "rgba(99, 102, 241, 0.1)",
+                        color: "#4f46e5",
+                        border: "1px solid rgba(99, 102, 241, 0.2)",
+                        fontWeight: 700,
+                        fontSize: 11
+                      }}>
+                        {staff.company.companyName}
+                      </span>
+                    ) : (
+                      <span style={{ color: "var(--text-4)" }}>—</span>
+                    )}
                   </td>
                   <td>
                     {staff.department ? (

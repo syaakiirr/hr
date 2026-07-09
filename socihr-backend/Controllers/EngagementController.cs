@@ -20,6 +20,7 @@ public class EngagementController : ControllerBase
     {
         var engagements = await _db.Engagements
             .Include(e => e.Staff)
+                .ThenInclude(s => s!.Company)
             .Include(e => e.Post)
                 .ThenInclude(p => p!.Platform)
             .Where(e => e.SessionID == sessionId)
@@ -33,6 +34,8 @@ public class EngagementController : ControllerBase
             e.StaffID,
             StaffName = e.Staff!.FullName,
             Department = e.Staff.Department,
+            CompanyID = e.Staff.CompanyID,
+            CompanyName = e.Staff.Company != null ? e.Staff.Company.CompanyName : "No Company",
             PlatformID = e.Post!.PlatformID,
             PlatformName = e.Post.Platform!.PlatformName,
             PostLink = e.Post.PostLink,
