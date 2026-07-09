@@ -536,7 +536,7 @@ export default function MonitoringPage() {
                   </div>
                 )}
 
-                {/* ── Simplified Engagement Table ── */}
+                {/* ── Engagement Table ── */}
                 {loadingEng ? (
                   <div className="loader" style={{ padding: 32 }}><div className="spin" /> Loading...</div>
                 ) : staffRows.length === 0 ? (
@@ -545,31 +545,50 @@ export default function MonitoringPage() {
                   </div>
                 ) : (
                   (() => {
-                    // Build flat column list — one column per post+action
+                    // Build column list with company info — one column per post+action
                     const actionCols: {
-                      postID: string; platformName: string;
+                      postID: string; platformName: string; companyID: string; companyName: string;
                       actionKey: "like" | "comment" | "share";
                       label: string; icon: string; disabled?: boolean;
                     }[] = [];
 
                     selectedSession.posts.forEach((p) => {
                       const plat = p.platformName;
+                      const coID = p.companyID ?? "";
+                      const coName = p.companyName || "No Company";
                       const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] =
                         plat === "Facebook"
-                          ? [{ key: "like", label: "FB Like", icon: "👍" }, { key: "comment", label: "FB Komen", icon: "💬" }, { key: "share", label: "FB Share", icon: "🔁", disabled: true }]
+                          ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
                         : plat === "Instagram"
-                          ? [{ key: "like", label: "IG Like", icon: "❤️" }, { key: "comment", label: "IG Komen", icon: "💬" }]
+                          ? [{ key: "like", label: "Like", icon: "❤️" }, { key: "comment", label: "Komen", icon: "💬" }]
                         : plat === "TikTok"
-                          ? [{ key: "comment", label: "TT Komen", icon: "💬" }]
+                          ? [{ key: "comment", label: "Komen", icon: "💬" }]
                           : [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }];
 
                       acts.forEach((a) =>
-                        actionCols.push({ ...a, postID: p.postID, platformName: plat, actionKey: a.key, label: a.label, icon: a.icon, disabled: a.disabled })
+                        actionCols.push({ ...a, postID: p.postID, platformName: plat, companyID: coID, companyName: coName, actionKey: a.key, label: a.label, icon: a.icon, disabled: a.disabled })
                       );
                     });
 
+                    // Group columns by company for the top header row
+                    const coGroups: { companyID: string; name: string; color: string; span: number }[] = [];
+                    actionCols.forEach((col) => {
+                      const last = coGroups[coGroups.length - 1];
+                      if (last && last.companyID === col.companyID) {
+                        last.span++;
+                      } else {
+                        const idx = companies.findIndex(c => c.companyID === col.companyID);
+                        coGroups.push({
+                          companyID: col.companyID,
+                          name: col.companyName,
+                          color: idx >= 0 ? COMPANY_COLORS[idx % COMPANY_COLORS.length] : "#6b7280",
+                          span: 1
+                        });
+                      }
+                    });
+
                     const thStyle: React.CSSProperties = {
-                      padding: "8px 6px", textAlign: "center", fontWeight: 700,
+                      padding: "7px 6px", textAlign: "center", fontWeight: 700,
                       fontSize: 10.5, color: "var(--text-2)", whiteSpace: "nowrap"
                     };
                     const tdStyle: React.CSSProperties = {
@@ -583,27 +602,48 @@ export default function MonitoringPage() {
                           minWidth: 400 + actionCols.length * 52
                         }}>
                           <thead>
-                            <tr style={{ background: "#f8fafc", borderBottom: "2px solid var(--line)" }}>
-                              <th style={thStyle}>
+                            {/* Row 1 — Company groups */}
+                            <tr style={{ background: "#f1f5f9", borderBottom: "1px solid var(--line)" }}>
+                              <th rowSpan={2} style={{ ...thStyle, width: 36, borderRight: "1px solid var(--line)" }}>
                                 <input type="checkbox"
                                   checked={selectedEngagements.size === engagements.length && engagements.length > 0}
                                   onChange={toggleSelectAll}
                                   style={{ cursor: "pointer", width: 14, height: 14 }}
                                 />
                               </th>
-                              <th style={{ ...thStyle, width: 32, fontSize: 10, color: "var(--text-4)" }}>#</th>
-                              <th style={{ ...thStyle, textAlign: "left", minWidth: 140 }}>Nama Staff</th>
-                              <th style={{ ...thStyle, textAlign: "left", minWidth: 100 }}>Jabatan</th>
-                              {actionCols.map((col, ci) => (
-                                <th key={ci} style={{
-                                  ...thStyle, fontSize: 9.5, width: 48,
-                                  color: col.disabled ? "var(--text-4)" : (PLATFORM_COLORS[col.platformName] || "var(--text-1)"),
-                                  opacity: col.disabled ? 0.4 : 1
+                              <th rowSpan={2} style={{ ...thStyle, width: 32, fontSize: 10, color: "var(--text-4)", borderRight: "1px solid var(--line)" }}>#</th>
+                              <th rowSpan={2} style={{ ...thStyle, textAlign: "left", minWidth: 140, borderRight: "1px solid var(--line)" }}>Nama Staff</th>
+                              <th rowSpan={2} style={{ ...thStyle, textAlign: "left", minWidth: 100, borderRight: "2px solid var(--line-2)" }}>Jabatan</th>
+                              {coGroups.map((cg) => (
+                                <th key={cg.companyID} colSpan={cg.span} style={{
+                                  padding: "6px 4px", textAlign: "center", fontWeight: 800,
+                                  fontSize: 9.5, letterSpacing: "0.04em", textTransform: "uppercase",
+                                  color: cg.color, background: `${cg.color}0d`,
+                                  borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)"
                                 }}>
-                                  {col.label}
+                                  {cg.name}
                                 </th>
                               ))}
-                              <th style={{ ...thStyle, width: 72 }}>Sebab</th>
+                              <th rowSpan={2} style={{ ...thStyle, width: 72 }}>Sebab</th>
+                            </tr>
+                            {/* Row 2 — Platform + Action columns */}
+                            <tr style={{ background: "#f8fafc", borderBottom: "2px solid var(--line)" }}>
+                              {actionCols.map((col, ci) => {
+                                const platColor = PLATFORM_COLORS[col.platformName] || "var(--accent)";
+                                return (
+                                  <th key={ci} style={{
+                                    ...thStyle, fontSize: 9, width: 48,
+                                    color: col.disabled ? "var(--text-4)" : platColor,
+                                    opacity: col.disabled ? 0.4 : 1,
+                                    borderRight: "1px solid var(--line)"
+                                  }}>
+                                    <span style={{ fontSize: 8.5, opacity: 0.7, display: "block", lineHeight: 1 }}>
+                                      {col.platformName === "Facebook" ? "FB" : col.platformName === "Instagram" ? "IG" : col.platformName === "TikTok" ? "TT" : col.platformName}
+                                    </span>
+                                    <span style={{ lineHeight: 1 }}>{col.label}</span>
+                                  </th>
+                                );
+                              })}
                             </tr>
                           </thead>
                           <tbody>
