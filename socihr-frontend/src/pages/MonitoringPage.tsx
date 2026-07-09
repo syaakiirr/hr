@@ -250,13 +250,13 @@ export default function MonitoringPage() {
                     padding: "10px 12px", borderRadius: 8,
                     background: selectedSession?.sessionID === s.sessionID 
                       ? "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(214, 41, 118, 0.08) 100%)" 
-                      : "rgba(255, 255, 255, 0.15)",
-                    border: `1px solid ${selectedSession?.sessionID === s.sessionID ? "rgba(99, 102, 241, 0.2)" : "rgba(255, 255, 255, 0.3)"}`,
-                    cursor: "pointer", transition: "all 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+                      : "var(--white)",
+                    border: `1px solid ${selectedSession?.sessionID === s.sessionID ? "var(--accent)" : "var(--line)"}`,
+                    cursor: "pointer", transition: "all 0.2s ease",
                     boxShadow: selectedSession?.sessionID === s.sessionID 
-                      ? "0 4px 12px rgba(99, 102, 241, 0.04)" 
+                      ? "var(--shadow-sm)" 
                       : "none",
-                    transform: selectedSession?.sessionID === s.sessionID ? "translateX(4px)" : "none",
+                    paddingLeft: selectedSession?.sessionID === s.sessionID ? "16px" : "12px",
                   }}
                 >
                   <div style={{ minWidth: 0 }}>

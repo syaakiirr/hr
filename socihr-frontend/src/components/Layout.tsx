@@ -108,11 +108,11 @@ export default function Layout({ children }: { children: ReactNode }) {
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              transition={{ duration: 0.18, ease: [0.25, 0.1, 0.25, 1] }}
-              style={{ padding: "28px 32px", maxWidth: 1320, margin: "0 auto", position: "relative", zIndex: 1, willChange: "opacity, transform" }}
+              transition={{ duration: 0.15, ease: "easeOut" }}
+              style={{ padding: "28px 32px", maxWidth: 1320, margin: "0 auto", position: "relative", zIndex: 1 }}
             >
               {children}
             </motion.div>
