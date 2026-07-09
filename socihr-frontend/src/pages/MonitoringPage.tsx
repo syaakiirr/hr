@@ -237,38 +237,39 @@ export default function MonitoringPage() {
             <div className="loader"><div className="spin" /></div>
           ) : sessions.length === 0 ? (
             <div className="card" style={{ textAlign: "center", padding: "30px 16px" }}>
-              <p style={{ color: "var(--text-4)", fontSize: 13 }}>No session records found</p>
+              <p style={{ color: "var(--text-3)", fontSize: 13, fontWeight: 500 }}>No session records found</p>
             </div>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-              {sessions.map((s) => (
+              {sessions.map((s) => {
+                const isSelected = selectedSession?.sessionID === s.sessionID;
+                return (
                 <div
                   key={s.sessionID}
                   onClick={() => handleSelectSession(s)}
                   style={{
                     display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "10px 12px", borderRadius: 8,
-                    background: selectedSession?.sessionID === s.sessionID 
-                      ? "linear-gradient(135deg, rgba(99, 102, 241, 0.08) 0%, rgba(214, 41, 118, 0.08) 100%)" 
-                      : "var(--white)",
-                    border: `1px solid ${selectedSession?.sessionID === s.sessionID ? "var(--accent)" : "var(--line)"}`,
-                    cursor: "pointer", transition: "all 0.2s ease",
-                    boxShadow: selectedSession?.sessionID === s.sessionID 
-                      ? "var(--shadow-sm)" 
-                      : "none",
-                    paddingLeft: selectedSession?.sessionID === s.sessionID ? "16px" : "12px",
+                    padding: "11px 12px", borderRadius: 8,
+                    background: isSelected
+                      ? "#eef2ff"
+                      : "#ffffff",
+                    border: `1.5px solid ${isSelected ? "#4f46e5" : "#e2e8f0"}`,
+                    cursor: "pointer",
+                    transition: "border-color 0.15s ease, background 0.15s ease",
+                    boxShadow: isSelected ? "0 1px 4px rgba(79,70,229,0.12)" : "0 1px 2px rgba(15,23,42,0.04)",
                   }}
                 >
                   <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>
+                    <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>
                       {parseDateOnly(s.sessionDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
                     </p>
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
+                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 5 }}>
                       {s.posts.map((p) => (
                         <span key={p.postID} style={{
-                          fontSize: 9.5, padding: "1px 5px", borderRadius: 4,
-                          background: "var(--surface-2)", color: "var(--text-3)",
-                          border: "1px solid var(--line)"
+                          fontSize: 11, padding: "2px 7px", borderRadius: 4,
+                          background: "#f1f5f9", color: "#334155",
+                          border: "1px solid #cbd5e1", fontWeight: 600,
+                          letterSpacing: "0.01em",
                         }}>
                           {p.platformName}
                         </span>
@@ -298,7 +299,8 @@ export default function MonitoringPage() {
                     </button>
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
