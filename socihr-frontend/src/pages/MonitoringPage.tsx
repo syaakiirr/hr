@@ -587,8 +587,23 @@ export default function MonitoringPage() {
                       }
                     });
 
+                    // Group columns by platform for the middle header row
+                    const platGroups: { platformName: string; color: string; span: number }[] = [];
+                    actionCols.forEach((col) => {
+                      const last = platGroups[platGroups.length - 1];
+                      if (last && last.platformName === col.platformName) {
+                        last.span++;
+                      } else {
+                        platGroups.push({
+                          platformName: col.platformName,
+                          color: PLATFORM_COLORS[col.platformName] || "var(--accent)",
+                          span: 1
+                        });
+                      }
+                    });
+
                     const thStyle: React.CSSProperties = {
-                      padding: "7px 6px", textAlign: "center", fontWeight: 700,
+                      padding: "6px 5px", textAlign: "center", fontWeight: 700,
                       fontSize: 10.5, color: "var(--text-2)", whiteSpace: "nowrap"
                     };
                     const tdStyle: React.CSSProperties = {
@@ -602,45 +617,54 @@ export default function MonitoringPage() {
                           minWidth: 400 + actionCols.length * 52
                         }}>
                           <thead>
-                            {/* Row 1 — Company groups */}
-                            <tr style={{ background: "#f1f5f9", borderBottom: "1px solid var(--line)" }}>
-                              <th rowSpan={2} style={{ ...thStyle, width: 36, borderRight: "1px solid var(--line)" }}>
+                            {/* Row 1 — Company */}
+                            <tr style={{ background: "#f1f5f9" }}>
+                              <th rowSpan={3} style={{ ...thStyle, width: 36, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>
                                 <input type="checkbox"
                                   checked={selectedEngagements.size === engagements.length && engagements.length > 0}
                                   onChange={toggleSelectAll}
                                   style={{ cursor: "pointer", width: 14, height: 14 }}
                                 />
                               </th>
-                              <th rowSpan={2} style={{ ...thStyle, width: 32, fontSize: 10, color: "var(--text-4)", borderRight: "1px solid var(--line)" }}>#</th>
-                              <th rowSpan={2} style={{ ...thStyle, textAlign: "left", minWidth: 140, borderRight: "1px solid var(--line)" }}>Nama Staff</th>
-                              <th rowSpan={2} style={{ ...thStyle, textAlign: "left", minWidth: 100, borderRight: "2px solid var(--line-2)" }}>Jabatan</th>
+                              <th rowSpan={3} style={{ ...thStyle, width: 30, fontSize: 10, color: "var(--text-4)", borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>#</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 130, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Nama Staff</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 90, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Jabatan</th>
                               {coGroups.map((cg) => (
                                 <th key={cg.companyID} colSpan={cg.span} style={{
-                                  padding: "6px 4px", textAlign: "center", fontWeight: 800,
+                                  padding: "5px 4px", textAlign: "center", fontWeight: 800,
                                   fontSize: 9.5, letterSpacing: "0.04em", textTransform: "uppercase",
-                                  color: cg.color, background: `${cg.color}0d`,
+                                  color: cg.color, background: `${cg.color}12`,
                                   borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)"
                                 }}>
                                   {cg.name}
                                 </th>
                               ))}
-                              <th rowSpan={2} style={{ ...thStyle, width: 72 }}>Sebab</th>
+                              <th rowSpan={3} style={{ ...thStyle, width: 72, borderBottom: "2px solid var(--line)" }}>Sebab</th>
                             </tr>
-                            {/* Row 2 — Platform + Action columns */}
-                            <tr style={{ background: "#f8fafc", borderBottom: "2px solid var(--line)" }}>
+                            {/* Row 2 — Platform */}
+                            <tr style={{ background: "#f8fafc" }}>
+                              {platGroups.map((pg, pi) => (
+                                <th key={pi} colSpan={pg.span} style={{
+                                  padding: "4px", textAlign: "center", fontWeight: 700,
+                                  fontSize: 10, color: pg.color,
+                                  borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)"
+                                }}>
+                                  {pg.platformName === "Facebook" ? "Facebook" : pg.platformName === "Instagram" ? "Instagram" : pg.platformName === "TikTok" ? "TikTok" : pg.platformName}
+                                </th>
+                              ))}
+                            </tr>
+                            {/* Row 3 — Action */}
+                            <tr style={{ background: "#fcfcfd", borderBottom: "2px solid var(--line)" }}>
                               {actionCols.map((col, ci) => {
                                 const platColor = PLATFORM_COLORS[col.platformName] || "var(--accent)";
                                 return (
                                   <th key={ci} style={{
-                                    ...thStyle, fontSize: 9, width: 48,
+                                    ...thStyle, fontSize: 9.5, width: 48,
                                     color: col.disabled ? "var(--text-4)" : platColor,
                                     opacity: col.disabled ? 0.4 : 1,
                                     borderRight: "1px solid var(--line)"
                                   }}>
-                                    <span style={{ fontSize: 8.5, opacity: 0.7, display: "block", lineHeight: 1 }}>
-                                      {col.platformName === "Facebook" ? "FB" : col.platformName === "Instagram" ? "IG" : col.platformName === "TikTok" ? "TT" : col.platformName}
-                                    </span>
-                                    <span style={{ lineHeight: 1 }}>{col.label}</span>
+                                    {col.label}
                                   </th>
                                 );
                               })}
