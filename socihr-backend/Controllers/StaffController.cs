@@ -18,7 +18,7 @@ public class StaffController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? department, [FromQuery] string? status, [FromQuery] bool includeArchived = false)
     {
-        var query = _db.Staff.Include(s => s.Company).AsQueryable();
+        var query = _db.Staff.AsQueryable();
         
         // Filter archived by default
         if (!includeArchived)
@@ -37,7 +37,7 @@ public class StaffController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var staff = await _db.Staff.Include(s => s.Company).FirstOrDefaultAsync(s => s.StaffID == id);
+        var staff = await _db.Staff.FindAsync(id);
         if (staff == null) return NotFound(new { message = "Staff tidak dijumpai." });
         return Ok(staff);
     }
@@ -51,7 +51,6 @@ public class StaffController : ControllerBase
             FullName = req.FullName,
             Department = req.Department,
             Position = req.Position,
-            CompanyID = req.CompanyID,
             Status = "Active",
             CreatedAt = DateTime.UtcNow
         };
@@ -68,7 +67,6 @@ public class StaffController : ControllerBase
         staff.FullName = req.FullName;
         staff.Department = req.Department;
         staff.Position = req.Position;
-        staff.CompanyID = req.CompanyID;
         await _db.SaveChangesAsync();
         return Ok(staff);
     }
@@ -195,4 +193,4 @@ public class StaffController : ControllerBase
     }
 }
 
-public record StaffRequest(string FullName, string? Department, string? Position, Guid? CompanyID);
+public record StaffRequest(string FullName, string? Department, string? Position);

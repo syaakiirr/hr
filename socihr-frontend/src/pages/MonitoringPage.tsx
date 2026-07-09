@@ -193,14 +193,13 @@ export default function MonitoringPage() {
   }
 
   // Group engagements by staff
-  const staffMap = new Map<string, { staffID: string; staffName: string; department: string; companyName: string; engagements: Engagement[] }>();
+  const staffMap = new Map<string, { staffID: string; staffName: string; department: string; engagements: Engagement[] }>();
   engagements.forEach((eng) => {
     if (!staffMap.has(eng.staffID)) {
       staffMap.set(eng.staffID, {
         staffID: eng.staffID,
         staffName: eng.staffName,
         department: eng.department,
-        companyName: eng.companyName || "No Company",
         engagements: []
       });
     }
@@ -208,9 +207,12 @@ export default function MonitoringPage() {
   });
   const staffRows = Array.from(staffMap.values()).sort((a, b) => a.staffName.localeCompare(b.staffName));
 
-  const sessionPlatforms = selectedSession?.posts.map((p) => ({
+  const sessionPosts = selectedSession?.posts.map((p) => ({
+    postID: p.postID,
     platformID: p.platformID,
     platformName: p.platformName,
+    companyID: p.companyID,
+    companyName: p.companyName || "No Company",
     postLink: p.postLink,
   })) ?? [];
 
@@ -407,13 +409,25 @@ export default function MonitoringPage() {
                         </th>
                         <th style={{ width: 50 }}>#</th>
                         <th>Staff Name</th>
-                        <th>Company</th>
                         <th>Department</th>
-                        {sessionPlatforms.map((p) => (
-                          <th key={p.platformID} style={{ textAlign: "center", width: 120, color: PLATFORM_COLORS[p.platformName] || "var(--accent)" }}>
-                            {p.platformName}
-                          </th>
-                        ))}
+                        {sessionPosts.map((p) => {
+                          const compIdx = companies.findIndex(c => c.companyID === p.companyID);
+                          const compColor = compIdx >= 0 ? COMPANY_COLORS[compIdx % COMPANY_COLORS.length] : "var(--text-3)";
+                          return (
+                            <th key={p.postID} style={{ textAlign: "center", width: 140, padding: "8px 10px" }}>
+                              <span style={{
+                                display: "block", fontSize: 9, fontWeight: 700,
+                                color: compColor, textTransform: "uppercase", letterSpacing: "0.03em",
+                                marginBottom: 2
+                              }}>
+                                {p.companyName}
+                              </span>
+                              <span style={{ color: PLATFORM_COLORS[p.platformName] || "var(--accent)", fontSize: 11.5 }}>
+                                {p.platformName}
+                              </span>
+                            </th>
+                          );
+                        })}
                         <th style={{ textAlign: "center", width: 80 }}>Total</th>
                         <th style={{ textAlign: "center", width: 80 }}>Rate %</th>
                       </tr>
@@ -424,9 +438,6 @@ export default function MonitoringPage() {
                         const total = row.engagements.length;
                         const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
                         const allRowSelected = row.engagements.every((e) => selectedEngagements.has(e.engagementID));
-
-                        const compIdx = companies.findIndex(c => c.companyName === row.companyName);
-                        const compColor = compIdx >= 0 ? COMPANY_COLORS[compIdx % COMPANY_COLORS.length] : "var(--text-3)";
 
                         return (
                           <tr key={row.staffID}>
@@ -446,26 +457,11 @@ export default function MonitoringPage() {
                             </td>
                             <td style={{ color: "var(--text-4)" }}>{idx + 1}</td>
                             <td style={{ fontWeight: 600, color: "var(--text-1)" }}>{row.staffName}</td>
-                            <td>
-                              {row.companyName !== "No Company" ? (
-                                <span className="badge" style={{
-                                  background: `${compColor}15`,
-                                  color: compColor,
-                                  border: `1px solid ${compColor}35`,
-                                  fontWeight: 700,
-                                  fontSize: 11
-                                }}>
-                                  {row.companyName}
-                                </span>
-                              ) : (
-                                <span style={{ color: "var(--text-4)" }}>—</span>
-                              )}
-                            </td>
                             <td><span className="badge badge-neutral">{row.department || "—"}</span></td>
-                            {sessionPlatforms.map((p) => {
-                              const eng = row.engagements.find((e) => e.platformID === p.platformID);
+                            {sessionPosts.map((p) => {
+                              const eng = row.engagements.find((e) => e.postID === p.postID);
                               return (
-                                <td key={p.platformID} style={{ textAlign: "center" }}>
+                                <td key={p.postID} style={{ textAlign: "center" }}>
                                   {eng ? (
                                     <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>
                                       <input type="checkbox" checked={selectedEngagements.has(eng.engagementID)} onChange={() => toggleSelectEngagement(eng.engagementID)} style={{ cursor: "pointer", width: 14, height: 14 }} onClick={(e) => e.stopPropagation()} />

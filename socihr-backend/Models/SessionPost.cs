@@ -7,7 +7,10 @@ public class SessionPost
     public Guid PlatformID { get; set; }
     public string PostLink { get; set; } = "";
 
+    public Guid? CompanyID { get; set; }
+
     // Navigation
     public MonitoringSession? Session { get; set; }
     public Platform? Platform { get; set; }
+    public Company? Company { get; set; }
 }

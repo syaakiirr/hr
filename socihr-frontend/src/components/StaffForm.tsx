@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { Staff, Company } from "../services/api";
-import { getCompanies } from "../services/api";
+import type { Staff } from "../services/api";
 
 const DEPARTMENTS = [
   "AGEING", "ACCOUNT AND FINANCE","HUMAN RESOURCE","PAYMENT","ACCOUNT (LEMBAH KLANG)","ACCOUNT (TERENGENTNU)","ACCOUNT (TERENGGANU)",
@@ -9,7 +8,7 @@ const DEPARTMENTS = [
 
 interface Props {
   staff: Staff | null;
-  onSave: (data: { fullName: string; department: string; position: string; companyID?: string }) => void;
+  onSave: (data: { fullName: string; department: string; position: string }) => void;
   onClose: () => void;
   loading: boolean;
 }
@@ -18,30 +17,22 @@ export default function StaffForm({ staff, onSave, onClose, loading }: Props) {
   const [fullName, setFullName] = useState("");
   const [department, setDepartment] = useState("");
   const [position, setPosition] = useState("");
-  const [companyID, setCompanyID] = useState("");
-  const [companies, setCompanies] = useState<Company[]>([]);
-
-  useEffect(() => {
-    getCompanies().then(setCompanies).catch(console.error);
-  }, []);
 
   useEffect(() => {
     if (staff) {
       setFullName(staff.fullName);
       setDepartment(staff.department || "");
       setPosition(staff.position || "");
-      setCompanyID(staff.companyID || "");
     } else {
       setFullName("");
       setDepartment("");
       setPosition("");
-      setCompanyID("");
     }
   }, [staff]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSave({ fullName, department, position, companyID: companyID || undefined });
+    onSave({ fullName, department, position });
   }
 
   return (
@@ -88,22 +79,7 @@ export default function StaffForm({ staff, onSave, onClose, loading }: Props) {
               />
             </div>
 
-            <div>
-              <label className="input-label" htmlFor="staff-company">Company</label>
-              <select
-                id="staff-company"
-                className="input"
-                value={companyID}
-                onChange={(e) => setCompanyID(e.target.value)}
-              >
-                <option value="">-- Select Company --</option>
-                {companies.map((c) => (
-                  <option key={c.companyID} value={c.companyID}>{c.companyName}</option>
-                ))}
-              </select>
-            </div>
 
-            <div>
               <label className="input-label" htmlFor="staff-dept">Department</label>
               <select
                 id="staff-dept"

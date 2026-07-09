@@ -14,7 +14,4 @@ public class Staff
     public Guid? ArchivedBy { get; set; }
     public DateTime? ArchivedAt { get; set; }
 
-    // Company
-    public Guid? CompanyID { get; set; }
-    public Company? Company { get; set; }
 }

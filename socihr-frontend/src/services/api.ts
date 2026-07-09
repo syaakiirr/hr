@@ -38,8 +38,6 @@ export interface Staff {
   position?: string;
   status: string;
   createdAt: string;
-  companyID?: string;
-  company?: { companyID: string; companyName: string } | null;
 }
 
 export async function getStaffList(params?: { search?: string; department?: string; status?: string }): Promise<Staff[]> {
@@ -51,12 +49,12 @@ export async function getStaffList(params?: { search?: string; department?: stri
   return handleResponse<Staff[]>(res);
 }
 
-export async function createStaff(data: { fullName: string; department?: string; position?: string; companyID?: string }): Promise<Staff> {
+export async function createStaff(data: { fullName: string; department?: string; position?: string }): Promise<Staff> {
   const res = await fetch(`${BASE_URL}/staff`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<Staff>(res);
 }
 
-export async function updateStaff(id: string, data: { fullName: string; department?: string; position?: string; companyID?: string }): Promise<Staff> {
+export async function updateStaff(id: string, data: { fullName: string; department?: string; position?: string }): Promise<Staff> {
   const res = await fetch(`${BASE_URL}/staff/${id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<Staff>(res);
 }
@@ -125,6 +123,8 @@ export interface SessionPost {
   platformID: string;
   platformName: string;
   postLink: string;
+  companyID?: string;
+  companyName?: string;
 }
 
 export interface MonitoringSession {
