@@ -536,7 +536,7 @@ export default function MonitoringPage() {
                   </div>
                 )}
 
-                {/* Matrix CSS Grid Table */}
+                {/* ── Simplified Engagement Table ── */}
                 {loadingEng ? (
                   <div className="loader" style={{ padding: 32 }}><div className="spin" /> Loading...</div>
                 ) : staffRows.length === 0 ? (
@@ -545,376 +545,170 @@ export default function MonitoringPage() {
                   </div>
                 ) : (
                   (() => {
-                    // Compute action columns for each post in the session
-                    const sessionActionCols: {
-                      postID: string;
-                      platformName: string;
-                      companyID: string;
-                      companyName: string;
+                    // Build flat column list — one column per post+action
+                    const actionCols: {
+                      postID: string; platformName: string;
                       actionKey: "like" | "comment" | "share";
-                      icon: string;
-                      label: string;
-                      disabled?: boolean;
+                      label: string; icon: string; disabled?: boolean;
                     }[] = [];
 
                     selectedSession.posts.forEach((p) => {
                       const plat = p.platformName;
                       const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] =
                         plat === "Facebook"
-                          ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
+                          ? [{ key: "like", label: "FB Like", icon: "👍" }, { key: "comment", label: "FB Komen", icon: "💬" }, { key: "share", label: "FB Share", icon: "🔁", disabled: true }]
                         : plat === "Instagram"
-                          ? [{ key: "like", label: "Like", icon: "❤️" }, { key: "comment", label: "Komen", icon: "💬" }]
+                          ? [{ key: "like", label: "IG Like", icon: "❤️" }, { key: "comment", label: "IG Komen", icon: "💬" }]
                         : plat === "TikTok"
-                          ? [{ key: "comment", label: "Komen", icon: "💬" }]
+                          ? [{ key: "comment", label: "TT Komen", icon: "💬" }]
                           : [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }];
 
-                      acts.forEach((a) => {
-                        sessionActionCols.push({
-                          postID: p.postID,
-                          platformName: plat,
-                          companyID: p.companyID ?? "",
-                          companyName: p.companyName || "No Company",
-                          actionKey: a.key,
-                          icon: a.icon,
-                          label: a.label,
-                          disabled: a.disabled,
-                        });
-                      });
-                    });
-
-                    const totalSubActions = sessionActionCols.length;
-
-                    // 1. Company spans for Row 1
-                    const companySpans: { companyID: string; name: string; span: number; color: string }[] = [];
-                    sessionActionCols.forEach((col) => {
-                      const existing = companySpans.find((s) => s.companyID === col.companyID);
-                      if (existing) {
-                        existing.span++;
-                      } else {
-                        const compIdx = companies.findIndex((c) => c.companyID === col.companyID);
-                        const color = compIdx >= 0 ? COMPANY_COLORS[compIdx % COMPANY_COLORS.length] : "#6b7280";
-                        companySpans.push({
-                          companyID: col.companyID,
-                          name: col.companyName,
-                          span: 1,
-                          color,
-                        });
-                      }
-                    });
-
-                    // 2. Platform spans for Row 2
-                    const platformSpans: { postID: string; name: string; span: number; color: string }[] = [];
-                    sessionActionCols.forEach((col) => {
-                      const existing = platformSpans.find((s) => s.postID === col.postID);
-                      if (existing) {
-                        existing.span++;
-                      } else {
-                        const color = PLATFORM_COLORS[col.platformName] || "var(--accent)";
-                        platformSpans.push({
-                          postID: col.postID,
-                          name: col.platformName,
-                          span: 1,
-                          color,
-                        });
-                      }
-                    });
-
-                    let companyColIndex = 6;
-                    const companyHeaders = companySpans.map((c) => {
-                      const cell = (
-                        <div
-                          key={`comp-${c.companyID}`}
-                          className="gh-cell sticky-row"
-                          style={{
-                            gridRow: "1",
-                            gridColumn: `${companyColIndex} / span ${c.span}`,
-                            background: `${c.color}0d`,
-                            color: c.color,
-                            borderBottom: "1px solid var(--line)",
-                            top: 0
-                          }}
-                        >
-                          <div style={{
-                            fontSize: 9,
-                            fontWeight: 800,
-                            textTransform: "uppercase",
-                            letterSpacing: "0.06em",
-                            background: `${c.color}14`,
-                            padding: "2px 6px",
-                            borderRadius: 4,
-                            whiteSpace: "nowrap",
-                            textOverflow: "ellipsis",
-                            overflow: "hidden",
-                            maxWidth: "95%"
-                          }}>
-                            {c.name}
-                          </div>
-                        </div>
-                      );
-                      companyColIndex += c.span;
-                      return cell;
-                    });
-
-                    let platformColIndex = 6;
-                    const platformHeaders = platformSpans.map((p) => {
-                      const cell = (
-                        <div
-                          key={`plat-${p.postID}`}
-                          className="gh-cell sticky-row"
-                          style={{
-                            gridRow: "2",
-                            gridColumn: `${platformColIndex} / span ${p.span}`,
-                            background: "var(--white)",
-                            color: p.color,
-                            borderBottom: "1px solid var(--line)",
-                            top: 25
-                          }}
-                        >
-                          <span style={{ fontSize: 9.5, fontWeight: 700 }}>{p.name}</span>
-                        </div>
-                      );
-                      platformColIndex += p.span;
-                      return cell;
-                    });
-
-                    let subColIndex = 6;
-                    const subActionHeaders = sessionActionCols.map((col, index) => {
-                      const platColor = PLATFORM_COLORS[col.platformName] || "var(--accent)";
-                      const cell = (
-                        <div
-                          key={`sub-${col.postID}-${col.actionKey}-${index}`}
-                          className="gh-cell sticky-row"
-                          style={{
-                            gridRow: "3",
-                            gridColumn: `${subColIndex}`,
-                            background: col.disabled ? "rgba(0,0,0,0.03)" : "transparent",
-                            color: col.disabled ? "var(--text-4)" : platColor,
-                            fontSize: 8,
-                            top: 50,
-                            padding: "2px 0",
-                            textTransform: "uppercase"
-                          }}
-                        >
-                          {col.actionKey === "like" ? "Like" : col.actionKey === "comment" ? "Komen" : "Share"}
-                        </div>
-                      );
-                      subColIndex++;
-                      return cell;
-                    });
-
-                    const bodyCells: React.ReactNode[] = [];
-                    staffRows.forEach((row, idx) => {
-                      let totalTicks = 0, doneTicks = 0;
-                      row.engagements.forEach(eng => {
-                        if (eng.platformName === "Facebook") { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
-                        else if (eng.platformName === "Instagram") { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
-                        else if (eng.platformName === "TikTok") { totalTicks += 1; if (eng.isCommented) doneTicks++; }
-                        else { totalTicks += 2; if (eng.isLiked) doneTicks++; if (eng.isCommented) doneTicks++; }
-                      });
-                      const rate = totalTicks > 0 ? Math.round((doneTicks / totalTicks) * 100) : 0;
-                      const isRowSel = selectedStaffID === row.staffID || (!selectedStaffID && idx === 0);
-                      const allChk = row.engagements.every(e => selectedEngagements.has(e.engagementID));
-                      const reason = row.engagements.find(e => e.reason)?.reason;
-                      const rc = rate >= 100 ? "#16a34a" : rate >= 50 ? "#d97706" : "#dc2626";
-                      const rbg = rate >= 100 ? "#f0fdf4" : rate >= 50 ? "#fffbeb" : "#fef2f2";
-
-                      const cellClass = `gb-cell${isRowSel ? " selected-row-cell" : ""}`;
-
-                      // 1. Checkbox cell
-                      bodyCells.push(
-                        <div
-                          key={`chk-${row.staffID}`}
-                          className={`${cellClass} sticky-col`}
-                          style={{ left: 0, borderRight: "1px solid var(--line)" }}
-                          onClick={() => setSelectedStaffID(row.staffID)}
-                        >
-                          <input type="checkbox" checked={allChk}
-                            onChange={() => {
-                              const ids = row.engagements.map(e => e.engagementID);
-                              setSelectedEngagements(prev => {
-                                const next = new Set(prev);
-                                if (allChk) ids.forEach(id => next.delete(id));
-                                else ids.forEach(id => next.add(id));
-                                return next;
-                              });
-                            }}
-                            style={{ cursor: "pointer", width: 13, height: 13 }}
-                          />
-                        </div>
-                      );
-
-                      // 2. `#` index cell
-                      bodyCells.push(
-                        <div
-                          key={`idx-${row.staffID}`}
-                          className={`${cellClass} sticky-col`}
-                          style={{ left: 36, color: "var(--text-4)", fontSize: 11, borderRight: "1px solid var(--line)" }}
-                          onClick={() => setSelectedStaffID(row.staffID)}
-                        >
-                          {idx + 1}
-                        </div>
-                      );
-
-                      // 3. Staff Name cell
-                      bodyCells.push(
-                        <div
-                          key={`name-${row.staffID}`}
-                          className={`${cellClass} sticky-col`}
-                          style={{
-                            left: 66,
-                            justifyContent: "flex-start",
-                            alignItems: "flex-start",
-                            flexDirection: "column",
-                            borderRight: "2px solid var(--line-2)"
-                          }}
-                          onClick={() => setSelectedStaffID(row.staffID)}
-                        >
-                          <div className="sn" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>{row.staffName}</div>
-                          <div className="sd" style={{ whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", width: "100%" }}>{row.department || "Tiada Jabatan"}</div>
-                        </div>
-                      );
-
-                      // 4. Ticks ratio cell
-                      bodyCells.push(
-                        <div
-                          key={`ticks-${row.staffID}`}
-                          className={cellClass}
-                          onClick={() => setSelectedStaffID(row.staffID)}
-                        >
-                          <span style={{ fontSize: 13, fontWeight: 800, color: rc }}>{doneTicks}</span>
-                          <span style={{ fontSize: 10.5, color: "var(--text-4)", fontWeight: 600 }}>/{totalTicks}</span>
-                        </div>
-                      );
-
-                      // 5. Rate % cell
-                      bodyCells.push(
-                        <div
-                          key={`rate-${row.staffID}`}
-                          className={cellClass}
-                          onClick={() => setSelectedStaffID(row.staffID)}
-                        >
-                          <span style={{ fontSize: 10.5, fontWeight: 800, padding: "2.5px 7px", borderRadius: 10, background: rbg, color: rc, display: "inline-block", minWidth: 36, textAlign: "center" }}>{rate}%</span>
-                        </div>
-                      );
-
-                      // 6. Sub-action cells
-                      sessionActionCols.forEach((col, cIdx) => {
-                        const eng = row.engagements.find(e => e.postID === col.postID);
-                        const isTicked = eng ? (col.actionKey === "like" ? eng.isLiked : col.actionKey === "comment" ? eng.isCommented : eng.isShared) : false;
-                        const pc = PLATFORM_COLORS[col.platformName] || "var(--accent)";
-                        const isIg = col.platformName === "Instagram";
-
-                        const btnBg = isTicked ? (isIg ? "linear-gradient(135deg, #f09433, #dc2743, #bc1888)" : pc) : "transparent";
-
-                        bodyCells.push(
-                          <div
-                            key={`action-${row.staffID}-${cIdx}`}
-                            className={cellClass}
-                            style={{ padding: "4px" }}
-                            onClick={() => setSelectedStaffID(row.staffID)}
-                          >
-                            {eng ? (
-                              col.disabled ? (
-                                <div style={{
-                                  display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                  width: 26, height: 26, borderRadius: 6,
-                                  background: "#f1f5f9", border: "1.5px dashed #cbd5e1",
-                                  color: "#94a3b8", cursor: "not-allowed"
-                                }} title="Disabled">
-                                  🔒
-                                </div>
-                              ) : (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleAction(eng, col.actionKey, !isTicked);
-                                  }}
-                                  style={{
-                                    display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                    width: 26, height: 26, borderRadius: 6,
-                                    border: isTicked ? "none" : "1.5px solid var(--line)",
-                                    background: btnBg,
-                                    color: isTicked ? "white" : "var(--text-4)",
-                                    cursor: "pointer",
-                                    transition: "all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1)"
-                                  }}
-                                  title={isTicked ? `${col.label} ✓ — click to undo` : `Tick ${col.label}`}
-                                >
-                                  {isTicked ? (
-                                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                  ) : (
-                                    <span style={{ fontSize: 9 }}>{col.icon}</span>
-                                  )}
-                                </button>
-                              )
-                            ) : (
-                              <span style={{ color: "var(--text-4)", fontSize: 10 }}>—</span>
-                            )}
-                          </div>
-                        );
-                      });
-
-                      // 7. Reason cell
-                      bodyCells.push(
-                        <div
-                          key={`reason-${row.staffID}`}
-                          className={cellClass}
-                          style={{ borderRight: "none" }}
-                        >
-                          <button
-                            onClick={() => openReasonModal(row)}
-                            title={reason ? `Sebab: ${reason}` : "Tambah sebab"}
-                            style={{
-                              fontSize: 10, padding: "3px 6px", borderRadius: 6,
-                              border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
-                              cursor: "pointer", fontWeight: 700, maxWidth: 82,
-                              background: reason ? "rgba(99,102,241,0.06)" : "transparent",
-                              color: reason ? "var(--accent)" : "var(--text-3)",
-                              whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                              display: "block", width: "100%", textAlign: "center", fontFamily: "inherit"
-                            }}
-                          >
-                            {reason ? `📝 ${reason}` : "+ Reason"}
-                          </button>
-                        </div>
+                      acts.forEach((a) =>
+                        actionCols.push({ ...a, postID: p.postID, platformName: plat, actionKey: a.key, label: a.label, icon: a.icon, disabled: a.disabled })
                       );
                     });
+
+                    const thStyle: React.CSSProperties = {
+                      padding: "8px 6px", textAlign: "center", fontWeight: 700,
+                      fontSize: 10.5, color: "var(--text-2)", whiteSpace: "nowrap"
+                    };
+                    const tdStyle: React.CSSProperties = {
+                      padding: "6px", textAlign: "center", verticalAlign: "middle"
+                    };
 
                     return (
-                      <div style={{ overflowX: "auto", width: "100%", padding: "1px" }} className="tbl-premium-wrap">
-                        <div
-                          className="matrix-grid"
-                          style={{
-                            gridTemplateColumns: `36px 30px 160px 54px 56px repeat(${totalSubActions}, 44px) 84px`,
-                            gridTemplateRows: `25px 25px 25px`,
-                            gridAutoRows: `minmax(48px, auto)`,
-                            minWidth: `${414 + totalSubActions * 44}px`
-                          }}
-                        >
-                          {/* Row 1 Headers */}
-                          <div className="gh-cell sticky-both" style={{ gridRow: "1 / span 3", gridColumn: "1", left: 0, borderRight: "1px solid var(--line)", top: 0 }}>
-                            <input type="checkbox"
-                              checked={selectedEngagements.size === engagements.length && engagements.length > 0}
-                              onChange={toggleSelectAll}
-                              style={{ cursor: "pointer", width: 13, height: 13 }}
-                            />
-                          </div>
-                          <div className="gh-cell sticky-both" style={{ gridRow: "1 / span 3", gridColumn: "2", left: 36, color: "var(--text-4)", fontSize: 10, borderRight: "1px solid var(--line)", top: 0 }}>#</div>
-                          <div className="gh-cell sticky-both" style={{ gridRow: "1 / span 3", gridColumn: "3", left: 66, textAlign: "left", paddingLeft: 12, justifyContent: "flex-start", borderRight: "2px solid var(--line-2)", top: 0 }}>Nama Staff</div>
-                          <div className="gh-cell sticky-row" style={{ gridRow: "1 / span 3", gridColumn: "4", top: 0 }}>Ticks</div>
-                          <div className="gh-cell sticky-row" style={{ gridRow: "1 / span 3", gridColumn: "5", top: 0 }}>Rate</div>
-                          {companyHeaders}
-                          <div className="gh-cell sticky-row" style={{ gridRow: "1 / span 3", gridColumn: `${6 + totalSubActions}`, borderRight: "none", top: 0 }}>Sebab</div>
+                      <div style={{ overflowX: "auto", width: "100%" }}>
+                        <table className="simple-engage-table" style={{
+                          width: "100%", borderCollapse: "collapse", fontSize: 12,
+                          minWidth: 400 + actionCols.length * 52
+                        }}>
+                          <thead>
+                            <tr style={{ background: "#f8fafc", borderBottom: "2px solid var(--line)" }}>
+                              <th style={thStyle}>
+                                <input type="checkbox"
+                                  checked={selectedEngagements.size === engagements.length && engagements.length > 0}
+                                  onChange={toggleSelectAll}
+                                  style={{ cursor: "pointer", width: 14, height: 14 }}
+                                />
+                              </th>
+                              <th style={{ ...thStyle, width: 32, fontSize: 10, color: "var(--text-4)" }}>#</th>
+                              <th style={{ ...thStyle, textAlign: "left", minWidth: 140 }}>Nama Staff</th>
+                              <th style={{ ...thStyle, textAlign: "left", minWidth: 100 }}>Jabatan</th>
+                              {actionCols.map((col, ci) => (
+                                <th key={ci} style={{
+                                  ...thStyle, fontSize: 9.5, width: 48,
+                                  color: col.disabled ? "var(--text-4)" : (PLATFORM_COLORS[col.platformName] || "var(--text-1)"),
+                                  opacity: col.disabled ? 0.4 : 1
+                                }}>
+                                  {col.label}
+                                </th>
+                              ))}
+                              <th style={{ ...thStyle, width: 72 }}>Sebab</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {staffRows.map((row, idx) => {
+                              const allChk = row.engagements.length > 0 && row.engagements.every(e => selectedEngagements.has(e.engagementID));
+                              const reason = row.engagements.find(e => e.reason)?.reason;
+                              const isRowSel = selectedStaffID === row.staffID;
 
-                          {/* Row 2 Headers */}
-                          {platformHeaders}
+                              return (
+                                <tr
+                                  key={row.staffID}
+                                  onClick={() => setSelectedStaffID(row.staffID)}
+                                  style={{
+                                    background: isRowSel ? "#f5f3ff" : idx % 2 === 0 ? "var(--white)" : "#fafbfc",
+                                    borderBottom: "1px solid var(--line)",
+                                    cursor: "pointer",
+                                    transition: "background 0.1s"
+                                  }}
+                                >
+                                  <td style={tdStyle}>
+                                    <input type="checkbox" checked={allChk}
+                                      onChange={() => {
+                                        const ids = row.engagements.map(e => e.engagementID);
+                                        setSelectedEngagements(prev => {
+                                          const next = new Set(prev);
+                                          if (allChk) ids.forEach(id => next.delete(id));
+                                          else ids.forEach(id => next.add(id));
+                                          return next;
+                                        });
+                                      }}
+                                      style={{ cursor: "pointer", width: 14, height: 14 }}
+                                    />
+                                  </td>
+                                  <td style={{ ...tdStyle, color: "var(--text-4)", fontSize: 11 }}>{idx + 1}</td>
+                                  <td style={{ ...tdStyle, textAlign: "left", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap" }}>
+                                    {row.staffName}
+                                  </td>
+                                  <td style={{ ...tdStyle, textAlign: "left", color: "var(--text-3)", fontSize: 11, whiteSpace: "nowrap" }}>
+                                    {row.department || "—"}
+                                  </td>
+                                  {actionCols.map((col, ci) => {
+                                    const eng = row.engagements.find(e => e.postID === col.postID);
+                                    const isTicked = eng
+                                      ? (col.actionKey === "like" ? eng.isLiked : col.actionKey === "comment" ? eng.isCommented : eng.isShared)
+                                      : false;
+                                    const pc = PLATFORM_COLORS[col.platformName] || "var(--accent)";
+                                    const isIg = col.platformName === "Instagram";
+                                    const btnBg = isTicked
+                                      ? (isIg ? "linear-gradient(135deg, #f09433, #dc2743, #bc1888)" : pc)
+                                      : "transparent";
 
-                          {/* Row 3 Headers */}
-                          {subActionHeaders}
-
-                          {/* Body Cells */}
-                          {bodyCells}
-                        </div>
+                                    return (
+                                      <td key={ci} style={tdStyle}>
+                                        {eng ? (
+                                          col.disabled ? (
+                                            <span style={{ fontSize: 11, color: "#94a3b8" }} title="Disabled">—</span>
+                                          ) : (
+                                            <button
+                                              onClick={(e) => { e.stopPropagation(); handleAction(eng, col.actionKey, !isTicked); }}
+                                              style={{
+                                                display: "inline-flex", alignItems: "center", justifyContent: "center",
+                                                width: 28, height: 28, borderRadius: 6,
+                                                border: isTicked ? "none" : "1.5px solid var(--line)",
+                                                background: btnBg,
+                                                color: isTicked ? "white" : "var(--text-4)",
+                                                cursor: "pointer", fontSize: 11,
+                                                transition: "all 0.15s ease"
+                                              }}
+                                              title={isTicked ? `${col.label} ✓ — click to undo` : `Tick ${col.label}`}
+                                            >
+                                              {isTicked ? (
+                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                                                  <polyline points="20 6 9 17 4 12" />
+                                                </svg>
+                                              ) : col.icon}
+                                            </button>
+                                          )
+                                        ) : (
+                                          <span style={{ color: "var(--text-4)", fontSize: 10 }}>—</span>
+                                        )}
+                                      </td>
+                                    );
+                                  })}
+                                  <td style={tdStyle}>
+                                    <button
+                                      onClick={(e) => { e.stopPropagation(); openReasonModal(row); }}
+                                      title={reason || "Tambah sebab"}
+                                      style={{
+                                        fontSize: 10, padding: "3px 6px", borderRadius: 6,
+                                        border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
+                                        cursor: "pointer", fontWeight: 700,
+                                        background: reason ? "rgba(99,102,241,0.06)" : "transparent",
+                                        color: reason ? "var(--accent)" : "var(--text-3)",
+                                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                                        maxWidth: 70, fontFamily: "inherit"
+                                      }}
+                                    >
+                                      {reason ? `📝 ${reason}` : "+ Reason"}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
                       </div>
                     );
                   })()
