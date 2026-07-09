@@ -265,6 +265,101 @@ export default function MonitoringPage() {
 
   return (
     <Layout>
+      <style>{`
+        /* Premium Layout Stylings */
+        .session-card-premium {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 14px;
+          border-radius: 10px;
+          background: var(--white);
+          border: 1.5px solid var(--line);
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+        }
+        .session-card-premium:hover {
+          transform: translateY(-1.5px);
+          border-color: var(--accent-light, #818cf8);
+          box-shadow: 0 4px 12px rgba(99, 102, 241, 0.05);
+        }
+        .session-card-premium.active {
+          background: linear-gradient(145deg, #f5f3ff, #ffffff);
+          border-color: var(--accent);
+          box-shadow: 0 4px 14px rgba(79, 70, 229, 0.08);
+        }
+        .session-card-premium.active::before {
+          content: '';
+          position: absolute;
+          left: 0; top: 0; bottom: 0;
+          width: 4.5px;
+          background: var(--accent);
+          border-top-left-radius: 10px;
+          border-bottom-left-radius: 10px;
+        }
+        
+        .tick-btn-premium {
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          width: 32px;
+          height: 28px;
+          border-radius: 6px;
+          border: 1.5px solid var(--line);
+          background: var(--white);
+          cursor: pointer;
+          transition: all 0.15s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+        .tick-btn-premium:hover:not(:disabled) {
+          transform: scale(1.1);
+          border-color: currentColor;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+        }
+        .tick-btn-premium:active:not(:disabled) {
+          transform: scale(0.92);
+        }
+        .tick-btn-premium.ticked {
+          color: white !important;
+          border-color: transparent !important;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .tbl-premium-wrap::-webkit-scrollbar {
+          height: 6px;
+          width: 6px;
+        }
+        .tbl-premium-wrap::-webkit-scrollbar-track {
+          background: var(--bg-2, #f8fafc);
+        }
+        .tbl-premium-wrap::-webkit-scrollbar-thumb {
+          background: #cbd5e1;
+          border-radius: 10px;
+        }
+        .tbl-premium-wrap::-webkit-scrollbar-thumb:hover {
+          background: #94a3b8;
+        }
+        
+        .filter-row-container {
+          display: flex;
+          gap: 10px;
+          margin-bottom: 16px;
+          flex-wrap: nowrap;
+          align-items: center;
+          background: var(--white);
+          border: 1px solid var(--line);
+          padding: 8px 12px;
+          border-radius: 10px;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        @media (max-width: 900px) {
+          .filter-row-container {
+            flex-wrap: wrap;
+          }
+        }
+      `}</style>
+
       <div>
         <div className="page-hd">
           <div>
@@ -296,7 +391,7 @@ export default function MonitoringPage() {
       <div style={{ display: "grid", gridTemplateColumns: "300px 1fr", gap: 20, alignItems: "start" }}>
         {/* Sessions list panel */}
         <div>
-          <p className="section-label" style={{ paddingLeft: 0 }}>All Sessions ({sessions.length})</p>
+          <p className="section-label" style={{ paddingLeft: 0, marginBottom: 8, fontWeight: 700, color: "var(--text-2)" }}>All Sessions ({sessions.length})</p>
           {loading ? (
             <div className="loader"><div className="spin" /></div>
           ) : sessions.length === 0 ? (
@@ -304,80 +399,70 @@ export default function MonitoringPage() {
               <p style={{ color: "var(--text-3)", fontSize: 13, fontWeight: 500 }}>No session records found</p>
             </div>
           ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
               {sessions.map((s) => {
                 const isSelected = selectedSession?.sessionID === s.sessionID;
+                const uniquePlats = Array.from(new Set(s.posts.map(p => p.platformName)));
+                
                 return (
-                <div
-                  key={s.sessionID}
-                  onClick={() => handleSelectSession(s)}
-                  style={{
-                    display: "flex", alignItems: "center", justifyContent: "space-between",
-                    padding: "11px 12px", borderRadius: 8,
-                    background: isSelected ? "#eef2ff" : "#ffffff",
-                    border: `1.5px solid ${isSelected ? "#4f46e5" : "#e2e8f0"}`,
-                    cursor: "pointer",
-                    transition: "border-color 0.15s ease, background 0.15s ease",
-                    boxShadow: isSelected ? "0 1px 4px rgba(79,70,229,0.12)" : "0 1px 2px rgba(15,23,42,0.04)",
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <p style={{ fontSize: 13, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>
-                      {parseDateOnly(s.sessionDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
-                    </p>
-                    {/* Show companies */}
-                    {s.companies && s.companies.length > 0 && (
-                      <div style={{ display: "flex", gap: 3, flexWrap: "wrap", marginTop: 4 }}>
-                        {s.companies.map((c, ci) => (
-                          <span key={c.companyID} style={{
-                            fontSize: 10, padding: "1px 6px", borderRadius: 3,
-                            background: `${COMPANY_COLORS[ci % COMPANY_COLORS.length]}18`,
-                            color: COMPANY_COLORS[ci % COMPANY_COLORS.length],
-                            border: `1px solid ${COMPANY_COLORS[ci % COMPANY_COLORS.length]}40`,
-                            fontWeight: 700,
-                          }}>
-                            {c.companyName}
-                          </span>
-                        ))}
+                  <div
+                    key={s.sessionID}
+                    onClick={() => handleSelectSession(s)}
+                    className={`session-card-premium ${isSelected ? 'active' : ''}`}
+                  >
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <p style={{ fontSize: 13.5, fontWeight: 700, color: "#0f172a", lineHeight: 1.3 }}>
+                        {parseDateOnly(s.sessionDate).toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" })}
+                      </p>
+                      
+                      {/* Show companies text summary instead of heavy badges */}
+                      {s.companies && s.companies.length > 0 && (
+                        <p style={{ fontSize: 11, color: "var(--text-3)", marginTop: 4, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }} title={s.companies.map(c => c.companyName).join(", ")}>
+                          🏢 {s.companies.map(c => c.companyName).join(", ")}
+                        </p>
+                      )}
+                      
+                      {/* Unique platforms badges */}
+                      <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 6 }}>
+                        {uniquePlats.map((plat) => {
+                          const clr = PLATFORM_COLORS[plat] || "var(--accent)";
+                          return (
+                            <span key={plat} style={{
+                              fontSize: 9.5, padding: "1.5px 6px", borderRadius: 4,
+                              background: `${clr}12`, color: clr,
+                              border: `1px solid ${clr}25`, fontWeight: 700,
+                              letterSpacing: "0.01em",
+                            }}>
+                              {plat}
+                            </span>
+                          );
+                        })}
                       </div>
-                    )}
-                    {/* Show platforms */}
-                    <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginTop: 4 }}>
-                      {s.posts.map((p) => (
-                        <span key={p.postID} style={{
-                          fontSize: 11, padding: "2px 7px", borderRadius: 4,
-                          background: "#f1f5f9", color: "#334155",
-                          border: "1px solid #cbd5e1", fontWeight: 600,
-                          letterSpacing: "0.01em",
-                        }}>
-                          {p.platformName}
-                        </span>
-                      ))}
+                    </div>
+                    
+                    <div style={{ display: "flex", gap: 2, marginLeft: 8 }} onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleArchiveSession(s.sessionID)}
+                        className="btn btn-ghost btn-icon btn-sm"
+                        style={{ color: "var(--text-3)", opacity: 0.65 }}
+                        title="Archive session"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDeleteSession(s.sessionID)}
+                        className="btn btn-ghost btn-icon btn-sm"
+                        style={{ color: "var(--red)", opacity: 0.6 }}
+                        title="Delete session"
+                      >
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                        </svg>
+                      </button>
                     </div>
                   </div>
-                  <div style={{ display: "flex", gap: 2 }}>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleArchiveSession(s.sessionID); }}
-                      className="btn btn-ghost btn-icon btn-sm"
-                      style={{ color: "var(--text-3)", opacity: 0.65 }}
-                      title="Archive session"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" />
-                      </svg>
-                    </button>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); handleDeleteSession(s.sessionID); }}
-                      className="btn btn-ghost btn-icon btn-sm"
-                      style={{ color: "var(--red)", opacity: 0.6 }}
-                      title="Delete session"
-                    >
-                      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                        <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
                 );
               })}
             </div>
@@ -416,22 +501,22 @@ export default function MonitoringPage() {
               </div>
 
               {/* ── Filter Bar ── */}
-              <div style={{ display: "flex", gap: 8, marginBottom: 14, flexWrap: "wrap", alignItems: "center" }}>
-                <div style={{ position: "relative", flex: "1 1 180px", minWidth: 160 }}>
+              <div className="filter-row-container">
+                <div className="filter-input-wrapper">
                   <svg style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", pointerEvents: "none", opacity: 0.35 }} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                  <input className="input" style={{ paddingLeft: 30, fontSize: 13 }} placeholder="Cari nama staff..." value={filterName} onChange={(e) => setFilterName(e.target.value)} />
+                  <input className="input" style={{ paddingLeft: 30, fontSize: 13, height: 34 }} placeholder="Cari nama staff..." value={filterName} onChange={(e) => setFilterName(e.target.value)} />
                 </div>
-                <select className="input" style={{ flex: "0 0 auto", minWidth: 140, fontSize: 13 }} value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
+                <select className="input filter-select" style={{ height: 34, fontSize: 13, width: "150px" }} value={filterDept} onChange={(e) => setFilterDept(e.target.value)}>
                   <option value="">Semua Jabatan</option>
                   {sessionDepts.map(d => <option key={d} value={d}>{d}</option>)}
                 </select>
-                <select className="input" style={{ flex: "0 0 auto", minWidth: 155, fontSize: 13 }} value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
+                <select className="input filter-select" style={{ height: 34, fontSize: 13, width: "165px" }} value={filterCompany} onChange={(e) => setFilterCompany(e.target.value)}>
                   <option value="">Semua Syarikat</option>
                   {sessionCompanies.map(c => <option key={c.id} value={c.id!}>{c.name}</option>)}
                 </select>
                 {(filterName || filterDept || filterCompany) && (
-                  <button className="btn btn-ghost btn-sm" style={{ color: "var(--text-3)", fontSize: 12 }} onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}>
-                    ✕ Clear
+                  <button className="btn btn-ghost btn-sm" style={{ color: "var(--text-3)", fontSize: 12, marginLeft: "auto" }} onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}>
+                    ✕ Clear Filter
                   </button>
                 )}
               </div>
@@ -460,15 +545,15 @@ export default function MonitoringPage() {
                 <div className="loader"><div className="spin" />Loading engagement data...</div>
               ) : staffRows.length === 0 ? (
                 <div className="card" style={{ textAlign: "center", padding: 32 }}>
-                  <p style={{ color: "var(--text-3)" }}>{allStaffRows.length === 0 ? "Tiada staff dijumpai." : "Tiada staff sepadan dengan filter semasa."}</p>
+                  <p style={{ color: "var(--text-3)", fontSize: 13 }}>{allStaffRows.length === 0 ? "Tiada staff dijumpai." : "Tiada staff sepadan dengan filter semasa."}</p>
                 </div>
               ) : (
-                <div style={{ overflowX: "auto", borderRadius: 10, border: "1px solid var(--line)" }}>
+                <div className="tbl-premium-wrap" style={{ overflowX: "auto", borderRadius: 10, border: "1px solid var(--line)", background: "var(--white)" }}>
                   <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
                     <thead>
-                      <tr style={{ background: "var(--bg-2)", borderBottom: "2px solid var(--line)" }}>
+                      <tr style={{ background: "var(--bg-2, #f8fafc)", borderBottom: "2.5px solid var(--line)" }}>
                         {/* Checkbox col */}
-                        <th style={{ width: 36, padding: "10px 8px", textAlign: "center", borderRight: "1px solid var(--line)" }}>
+                        <th style={{ width: 36, padding: "12px 8px", textAlign: "center", borderRight: "1px solid var(--line)" }}>
                           <input type="checkbox"
                             checked={selectedEngagements.size === engagements.length && engagements.length > 0}
                             onChange={toggleSelectAll}
@@ -476,11 +561,11 @@ export default function MonitoringPage() {
                           />
                         </th>
                         {/* # col */}
-                        <th style={{ width: 38, padding: "10px 6px", textAlign: "center", color: "var(--text-3)", fontSize: 11, fontWeight: 600, borderRight: "1px solid var(--line)" }}>#</th>
+                        <th style={{ width: 34, padding: "12px 6px", textAlign: "center", color: "var(--text-3)", fontSize: 11, fontWeight: 700, borderRight: "1px solid var(--line)" }}>#</th>
                         {/* Staff name */}
-                        <th style={{ padding: "10px 14px", textAlign: "left", color: "var(--text-2)", fontWeight: 700, minWidth: 140, borderRight: "1px solid var(--line)" }}>Nama</th>
+                        <th style={{ padding: "12px 14px", textAlign: "left", color: "var(--text-2)", fontWeight: 700, minWidth: 160, borderRight: "1px solid var(--line)" }}>Nama Staff</th>
                         {/* Dept */}
-                        <th style={{ padding: "10px 12px", textAlign: "left", color: "var(--text-2)", fontWeight: 700, minWidth: 110, borderRight: "1px solid var(--line)" }}>Jabatan</th>
+                        <th style={{ padding: "12px 12px", textAlign: "left", color: "var(--text-2)", fontWeight: 700, minWidth: 100, borderRight: "1px solid var(--line)" }}>Jabatan</th>
 
                         {/* Post columns — each split into sub-action columns */}
                         {sessionPosts.map((p) => {
@@ -500,29 +585,29 @@ export default function MonitoringPage() {
                             <th
                               key={p.postID}
                               colSpan={actions.length}
-                              style={{ padding: "0", textAlign: "center", borderRight: "1px solid var(--line)", borderLeft: "1px solid var(--line)" }}
+                              style={{ padding: "0", textAlign: "center", borderRight: "1.5px solid var(--line)", borderLeft: "1.5px solid var(--line)", verticalAlign: "top" }}
                             >
-                              {/* Company label */}
-                              <div style={{ background: `${compColor}18`, borderBottom: "1px solid var(--line)", padding: "4px 8px" }}>
-                                <span style={{ fontSize: 9, fontWeight: 800, color: compColor, textTransform: "uppercase", letterSpacing: "0.06em" }}>
+                              {/* Company label (glassmorphism look) */}
+                              <div style={{ background: `${compColor}08`, borderBottom: "1px solid var(--line)", padding: "5px 6px" }}>
+                                <span style={{ fontSize: 9, fontWeight: 800, color: compColor, textTransform: "uppercase", letterSpacing: "0.06em", display: "inline-block", background: `${compColor}14`, padding: "1.5px 6px", borderRadius: 4 }}>
                                   {p.companyName}
                                 </span>
                               </div>
                               {/* Platform label */}
-                              <div style={{ padding: "4px 8px 2px", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, borderBottom: "1px solid var(--line)" }}>
+                              <div style={{ padding: "5px 6px", display: "flex", alignItems: "center", justifyContent: "center", gap: 5, borderBottom: "1px solid var(--line)", background: "var(--white)" }}>
                                 <span style={{ fontSize: 11, fontWeight: 700, color: platColor }}>{p.platformName}</span>
                               </div>
                               {/* Sub-action labels */}
-                              <div style={{ display: "flex" }}>
+                              <div style={{ display: "flex", background: "var(--bg-2)" }}>
                                 {actions.map((a, ai) => (
                                   <div key={a.key} style={{
-                                    flex: 1, padding: "4px 6px", fontSize: 10, fontWeight: 600,
+                                    flex: 1, padding: "4px 2px", fontSize: 9, fontWeight: 700,
                                     color: a.disabled ? "var(--text-4)" : platColor,
-                                    background: a.disabled ? "rgba(0,0,0,0.02)" : `${platColor}09`,
+                                    background: a.disabled ? "rgba(0,0,0,0.03)" : "transparent",
                                     borderRight: ai < actions.length - 1 ? "1px solid var(--line)" : "none",
-                                    whiteSpace: "nowrap", textAlign: "center"
+                                    whiteSpace: "nowrap", textAlign: "center", textTransform: "uppercase", letterSpacing: "0.02em"
                                   }}>
-                                    {a.label}{a.disabled ? " 🔒" : ""}
+                                    {a.key === "like" ? "👍 Like" : a.key === "comment" ? "💬 Comm" : "🔁 Share"}
                                   </div>
                                 ))}
                               </div>
@@ -531,9 +616,9 @@ export default function MonitoringPage() {
                         })}
 
                         {/* Summary cols */}
-                        <th style={{ width: 56, padding: "10px 8px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11, borderLeft: "1px solid var(--line)" }}>Tick</th>
-                        <th style={{ width: 60, padding: "10px 8px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11 }}>Rate</th>
-                        <th style={{ width: 110, padding: "10px 10px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11 }}>Reason</th>
+                        <th style={{ width: 62, padding: "12px 6px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11, borderLeft: "1px solid var(--line)" }}>Tick</th>
+                        <th style={{ width: 66, padding: "12px 6px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11 }}>Rate</th>
+                        <th style={{ width: 115, padding: "12px 8px", textAlign: "center", color: "var(--text-2)", fontWeight: 700, fontSize: 11 }}>Reason</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -563,15 +648,15 @@ export default function MonitoringPage() {
                         const rate = totalTicks > 0 ? Math.round((doneTicks / totalTicks) * 100) : 0;
                         const allRowSelected = row.engagements.every(e => selectedEngagements.has(e.engagementID));
                         const rowReason = row.engagements.find(e => e.reason)?.reason;
-                        const rateColor = rate >= 100 ? "var(--green)" : rate >= 50 ? "#f59e0b" : "var(--red)";
+                        const rateColor = rate >= 100 ? "var(--green)" : rate >= 50 ? "#d97706" : "var(--red)";
 
                         return (
-                          <tr key={row.staffID} style={{ borderBottom: "1px solid var(--line)", transition: "background 0.1s" }}
-                            onMouseEnter={e => (e.currentTarget.style.background = "var(--bg-2)")}
+                          <tr key={row.staffID} style={{ borderBottom: "1px solid var(--line)", transition: "background 0.15s" }}
+                            onMouseEnter={e => (e.currentTarget.style.background = "#f8fafc")}
                             onMouseLeave={e => (e.currentTarget.style.background = "transparent")}
                           >
                             {/* Checkbox */}
-                            <td style={{ padding: "8px", textAlign: "center", borderRight: "1px solid var(--line)" }}>
+                            <td style={{ padding: "10px 8px", textAlign: "center", borderRight: "1px solid var(--line)" }}>
                               <input type="checkbox" checked={allRowSelected}
                                 onChange={() => {
                                   const ids = row.engagements.map(e => e.engagementID);
@@ -586,12 +671,12 @@ export default function MonitoringPage() {
                               />
                             </td>
                             {/* # */}
-                            <td style={{ padding: "8px 6px", textAlign: "center", color: "var(--text-4)", fontSize: 12, borderRight: "1px solid var(--line)" }}>{idx + 1}</td>
+                            <td style={{ padding: "10px 6px", textAlign: "center", color: "var(--text-4)", fontSize: 12, borderRight: "1px solid var(--line)" }}>{idx + 1}</td>
                             {/* Name */}
-                            <td style={{ padding: "8px 14px", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", borderRight: "1px solid var(--line)" }}>{row.staffName}</td>
+                            <td style={{ padding: "10px 14px", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", borderRight: "1px solid var(--line)", fontSize: 12.5 }}>{row.staffName}</td>
                             {/* Dept */}
-                            <td style={{ padding: "8px 12px", borderRight: "1px solid var(--line)" }}>
-                              <span style={{ fontSize: 11, fontWeight: 600, color: "var(--text-3)", background: "var(--bg-2)", border: "1px solid var(--line)", borderRadius: 4, padding: "2px 7px" }}>
+                            <td style={{ padding: "10px 12px", borderRight: "1px solid var(--line)" }}>
+                              <span style={{ fontSize: 11, fontWeight: 700, color: "var(--text-3)", background: "#f1f5f9", border: "1px solid #e2e8f0", borderRadius: 5, padding: "2.5px 8px" }}>
                                 {row.department || "—"}
                               </span>
                             </td>
@@ -619,38 +704,30 @@ export default function MonitoringPage() {
                                       : false;
                                     return (
                                       <td key={`${p.postID}-${a.key}`} style={{
-                                        padding: "8px 4px", textAlign: "center", verticalAlign: "middle",
-                                        borderRight: ai < actions.length - 1 ? "1px dashed var(--line)" : "1px solid var(--line)",
-                                        background: isTicked ? `${platColor}09` : "transparent",
+                                        padding: "8px 3px", textAlign: "center", verticalAlign: "middle", width: 46, minWidth: 46,
+                                        borderRight: ai < actions.length - 1 ? "1px dashed var(--line)" : "1.5px solid var(--line)",
+                                        background: isTicked ? `${platColor}05` : "transparent",
                                       }}>
                                         {eng ? (
                                           a.disabled ? (
-                                            <div style={{
-                                              display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                              width: 30, height: 26, borderRadius: 6,
-                                              background: "rgba(0,0,0,0.04)", border: "1.5px dashed #d1d5db",
-                                              cursor: "not-allowed"
-                                            }} title="Share dimatikan buat masa ini">
-                                              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="#d1d5db" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                                            <div className="tick-btn-premium disabled" title="Share dimatikan buat masa ini">
+                                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
                                             </div>
                                           ) : (
                                             <button
                                               onClick={() => handleAction(eng, a.key, !isTicked)}
+                                              className={`tick-btn-premium ${isTicked ? 'ticked' : ''}`}
                                               title={isTicked ? `${a.label} ✓ — klik untuk batal` : `Tick ${a.label}`}
                                               style={{
-                                                display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3,
-                                                width: 30, height: 26, borderRadius: 6, cursor: "pointer",
-                                                border: isTicked ? `1.5px solid ${platColor}` : "1.5px solid var(--line)",
-                                                background: isTicked ? platColor : "var(--surface)",
-                                                color: isTicked ? "white" : "var(--text-4)",
-                                                fontWeight: 700, fontSize: 13,
-                                                transition: "all 0.15s ease",
-                                                boxShadow: isTicked ? `0 1px 6px ${platColor}50` : "none",
-                                              }}>
-                                              {isTicked
-                                                ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                                : <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-                                              }
+                                                background: isTicked ? (platName === "Instagram" ? "linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888)" : platColor) : "var(--white)",
+                                                color: isTicked ? "white" : "#cbd5e1"
+                                              }}
+                                            >
+                                              {isTicked ? (
+                                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                              ) : (
+                                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" className="hover-check" style={{ opacity: 0, transition: "opacity 0.15s" }}><polyline points="20 6 9 17 4 12"/></svg>
+                                              )}
                                             </button>
                                           )
                                         ) : (
@@ -664,28 +741,28 @@ export default function MonitoringPage() {
                             })}
 
                             {/* Total ticks */}
-                            <td style={{ padding: "8px", textAlign: "center", borderLeft: "1px solid var(--line)", whiteSpace: "nowrap" }}>
-                              <span style={{ fontSize: 12, fontWeight: 700, color: rateColor }}>{doneTicks}</span>
-                              <span style={{ fontSize: 11, color: "var(--text-4)" }}>/{totalTicks}</span>
+                            <td style={{ padding: "10px 4px", textAlign: "center", borderLeft: "1px solid var(--line)", whiteSpace: "nowrap" }}>
+                              <span style={{ fontSize: 13, fontWeight: 800, color: rateColor }}>{doneTicks}</span>
+                              <span style={{ fontSize: 11, color: "var(--text-4)", fontWeight: 600 }}>/{totalTicks}</span>
                             </td>
                             {/* Rate */}
-                            <td style={{ padding: "8px", textAlign: "center" }}>
+                            <td style={{ padding: "10px 4px", textAlign: "center" }}>
                               <span style={{
-                                fontSize: 11, fontWeight: 700, padding: "2px 7px", borderRadius: 12,
+                                fontSize: 11, fontWeight: 800, padding: "3px 8px", borderRadius: 12,
                                 background: rate >= 100 ? "#dcfce7" : rate >= 50 ? "#fef3c7" : "#fee2e2",
-                                color: rateColor
+                                color: rateColor, display: "inline-block", minWidth: 44, textAlign: "center"
                               }}>{rate}%</span>
                             </td>
                             {/* Reason */}
-                            <td style={{ padding: "8px 8px", textAlign: "center" }}>
+                            <td style={{ padding: "10px 6px", textAlign: "center" }}>
                               <button
                                 onClick={() => openReasonModal(row)}
                                 title={rowReason ? `Reason: ${rowReason}` : "Tambah reason (MC, Cuti, dll.)"}
                                 style={{
-                                  fontSize: 11, padding: "4px 9px", borderRadius: 6,
+                                  fontSize: 11, padding: "4px 8px", borderRadius: 6,
                                   border: rowReason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
-                                  cursor: "pointer", fontWeight: 600, maxWidth: 100,
-                                  background: rowReason ? "rgba(99,102,241,0.07)" : "transparent",
+                                  cursor: "pointer", fontWeight: 700, maxWidth: 95,
+                                  background: rowReason ? "rgba(99,102,241,0.06)" : "transparent",
                                   color: rowReason ? "var(--accent)" : "var(--text-3)",
                                   whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
                                   display: "block", width: "100%", textAlign: "center",
