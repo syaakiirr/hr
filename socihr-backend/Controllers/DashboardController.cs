@@ -199,16 +199,16 @@ public class DashboardController : ControllerBase
             .OrderBy(c => c.CompanyName)
             .ToListAsync();
 
-        // Get all engagements grouped by staff's company
+        // Get all engagements grouped by post's company
         var engagements = await _db.Engagements
-            .Include(e => e.Staff)
-            .Where(e => e.Staff!.CompanyID != null)
+            .Include(e => e.Post)
+            .Where(e => e.Post!.CompanyID != null)
             .ToListAsync();
 
         var result = companies.Select(company =>
         {
             var companyEngagements = engagements
-                .Where(e => e.Staff!.CompanyID == company.CompanyID)
+                .Where(e => e.Post!.CompanyID == company.CompanyID)
                 .ToList();
 
             var completed = companyEngagements.Count(e => e.Status == "Completed");
