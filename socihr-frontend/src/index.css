@@ -4,25 +4,25 @@
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  /* ── Core Palette (OKLCH tinted neutrals, not generic grays) ── */
+  /* ── Core Palette (High-Contrast Slate/Zinc Neutrals - sharp & clean) ── */
   --white:    #ffffff;
-  --surface:  #f8f8fc;   /* warm lavender-tinted off-white */
-  --surface-2:#f1f1f8;   /* slightly deeper */
-  --line:     #e5e5f0;   /* dividers */
-  --line-2:   #d2d2e2;   /* stronger borders */
+  --surface:  #f1f5f9;   /* Slate 100 - distinct page background */
+  --surface-2:#e2e8f0;   /* Slate 200 - deeper neutral */
+  --line:     #e2e8f0;   /* Slate 200 - clean border dividers */
+  --line-2:   #cbd5e1;   /* Slate 300 - stronger input/card borders */
 
-  /* Text scale — OKLCH-tinted, never pure black */
-  --text-1:   #111118;   /* headings */
-  --text-2:   #3d3d50;   /* body */
-  --text-3:   #7b7b96;   /* secondary */
-  --text-4:   #b0b0c8;   /* placeholder / disabled */
+  /* Text scale — Crisp slate tones for high readability */
+  --text-1:   #0f172a;   /* Slate 900 - very dark headings */
+  --text-2:   #334155;   /* Slate 700 - highly legible body text */
+  --text-3:   #64748b;   /* Slate 500 - clear secondary text */
+  --text-4:   #94a3b8;   /* Slate 400 - visible placeholder/disabled */
 
   /* Accent — premium glowing aurora indigo */
-  --accent:         oklch(60% 0.18 280);      /* #6366f1 indigo-500 equivalent */
-  --accent-hover:   oklch(54% 0.20 280);
-  --accent-soft:    oklch(96% 0.04 280);      /* light lavender tint */
-  --accent-border:  oklch(88% 0.08 280);
-  --accent-text:    oklch(56% 0.18 280);
+  --accent:         #4f46e5;      /* Crisp Indigo-600 */
+  --accent-hover:   #4338ca;      /* Indigo-700 */
+  --accent-soft:    #e0e7ff;      /* Indigo-100 */
+  --accent-border:  #c7d2fe;      /* Indigo-200 */
+  --accent-text:    #4f46e5;
 
   /* Semantic */
   --green:       #16a34a;
@@ -600,12 +600,11 @@ html, body, #root {
   background: #ffffff !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(229, 229, 240, 0.9) !important;
+  border: 1px solid var(--line-2) !important;
   box-shadow: 
-    0 1px 3px rgba(17, 17, 24, 0.04),
-    0 4px 16px -4px rgba(17, 17, 24, 0.06) !important;
+    0 1px 2px rgba(15, 23, 42, 0.05),
+    0 4px 12px -2px rgba(15, 23, 42, 0.08) !important;
   transition: box-shadow 0.2s ease, border-color 0.2s ease !important;
-  will-change: auto;
 }
 
 /* tbl-wrap: solid background, no backdrop-filter */
@@ -613,8 +612,8 @@ html, body, #root {
   background: #ffffff !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
-  border: 1px solid rgba(229, 229, 240, 0.9) !important;
-  box-shadow: 0 1px 3px rgba(17, 17, 24, 0.04) !important;
+  border: 1px solid var(--line-2) !important;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05) !important;
   transition: none !important;
 }
 
