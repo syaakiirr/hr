@@ -71,6 +71,24 @@ public class StaffController : ControllerBase
         return Ok(staff);
     }
 
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        try
+        {
+            var staff = await _db.Staff.FindAsync(id);
+            if (staff == null) return NotFound(new { message = "Staff tidak dijumpai." });
+
+            _db.Staff.Remove(staff);
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
     [HttpPatch("{id:guid}/toggle-status")]
     public async Task<IActionResult> ToggleStatus(Guid id)
     {

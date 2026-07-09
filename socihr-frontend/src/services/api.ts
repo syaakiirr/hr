@@ -280,6 +280,14 @@ export async function deleteSnapshot(id: string): Promise<{ message: string }> {
   return handleResponse<{ message: string }>(res);
 }
 
+export async function deleteStaff(staffId: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/staff/${staffId}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  if (!res.ok) throw new Error("Gagal memadam staff.");
+}
+
 // ─── Archive ────────────────────────────────────────
 export async function archiveStaff(staffId: string): Promise<{ message: string }> {
   const res = await fetch(`${BASE_URL}/staff/${staffId}/archive`, {
