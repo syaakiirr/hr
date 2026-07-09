@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import {
@@ -261,6 +261,7 @@ export default function MonitoringPage() {
   // ── Synchronized dual-scrollbar for the engagement table ──
   const tableScrollRef = useRef<HTMLDivElement>(null);
   const topScrollRef = useRef<HTMLDivElement>(null);
+  const topSpacerRef = useRef<HTMLDivElement>(null);
 
   const syncScroll = useCallback((source: "top" | "table") => {
     if (source === "top" && topScrollRef.current && tableScrollRef.current) {
@@ -269,6 +270,22 @@ export default function MonitoringPage() {
       topScrollRef.current.scrollLeft = tableScrollRef.current.scrollLeft;
     }
   }, []);
+
+  // Keep the top scrollbar spacer width in sync with the actual table content width
+  useLayoutEffect(() => {
+    const syncWidth = () => {
+      if (tableScrollRef.current && topSpacerRef.current) {
+        const tableEl = tableScrollRef.current.querySelector('table');
+        if (tableEl) {
+          topSpacerRef.current.style.width = tableEl.scrollWidth + 'px';
+        }
+      }
+    };
+    syncWidth();
+    // Also sync on window resize
+    window.addEventListener('resize', syncWidth);
+    return () => window.removeEventListener('resize', syncWidth);
+  }, [engagements, staffRows]);
 
   return (
     <Layout>
@@ -648,7 +665,7 @@ export default function MonitoringPage() {
                             scrollbarWidth: "thin",
                           }}
                         >
-                          <div style={{ height: 1, minWidth: 400 + actionCols.length * 52 }} />
+                          <div ref={topSpacerRef} style={{ height: 1, minWidth: 1 }} />
                         </div>
                         {/* Main table container */}
                         <div
