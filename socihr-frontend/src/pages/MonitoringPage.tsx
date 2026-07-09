@@ -555,8 +555,8 @@ export default function MonitoringPage() {
                     // Sort posts: group by company, then by platform order (FB → IG → TT)
                     const platformOrder: Record<string, number> = { Facebook: 0, Instagram: 1, TikTok: 2 };
                     const sortedPosts = [...selectedSession.posts].sort((a, b) => {
-                      const coA = (a.companyName || "").toLowerCase();
-                      const coB = (b.companyName || "").toLowerCase();
+                      const coA = (a.companyName || "").trim().toLowerCase();
+                      const coB = (b.companyName || "").trim().toLowerCase();
                       if (coA !== coB) return coA.localeCompare(coB);
                       return (platformOrder[a.platformName] ?? 99) - (platformOrder[b.platformName] ?? 99);
                     });
@@ -564,7 +564,7 @@ export default function MonitoringPage() {
                     sortedPosts.forEach((p) => {
                       const plat = p.platformName;
                       const coID = p.companyID ?? "";
-                      const coName = p.companyName || "No Company";
+                      const coName = (p.companyName || "No Company").trim();
                       const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] =
                         plat === "Facebook"
                           ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
@@ -579,14 +579,14 @@ export default function MonitoringPage() {
                       );
                     });
 
-                    // Group columns by company for the top header row
+                    // Group columns by company name (not ID) to avoid duplicates
                     const coGroups: { companyID: string; name: string; color: string; span: number }[] = [];
                     actionCols.forEach((col) => {
                       const last = coGroups[coGroups.length - 1];
-                      if (last && last.companyID === col.companyID) {
+                      if (last && last.name === col.companyName) {
                         last.span++;
                       } else {
-                        const idx = companies.findIndex(c => c.companyID === col.companyID);
+                        const idx = companies.findIndex(c => c.companyName === col.companyName);
                         coGroups.push({
                           companyID: col.companyID,
                           name: col.companyName,
@@ -619,6 +619,11 @@ export default function MonitoringPage() {
                       padding: "6px", textAlign: "center", verticalAlign: "middle"
                     };
 
+                    // Indices where each company group ends (for separator lines)
+                    const coEndIndices = new Set<number>();
+                    let cumSpan = 0;
+                    coGroups.forEach((cg) => { cumSpan += cg.span; coEndIndices.add(cumSpan - 1); });
+                    
                     return (
                       <div style={{ overflowX: "auto", width: "100%" }}>
                         <table className="simple-engage-table" style={{
@@ -643,7 +648,7 @@ export default function MonitoringPage() {
                                   padding: "5px 6px", textAlign: "center", fontWeight: 800,
                                   fontSize: 10, letterSpacing: "0.03em", textTransform: "uppercase",
                                   color: cg.color, background: `${cg.color}14`,
-                                  borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)"
+                                  borderRight: "2px solid #cbd5e1", borderBottom: "1px solid var(--line)"
                                 }}>
                                   {cg.name}
                                 </th>
@@ -652,26 +657,36 @@ export default function MonitoringPage() {
                             </tr>
                             {/* Row 2 — Platform */}
                             <tr style={{ background: "#f5f6f8" }}>
-                              {platGroups.map((pg, pi) => (
-                                <th key={pi} colSpan={pg.span} style={{
-                                  padding: "3px 4px", textAlign: "center", fontWeight: 700,
-                                  fontSize: 10, color: pg.color, background: `${pg.color}0d`,
-                                  borderRight: "1px solid var(--line)", borderBottom: "1px solid var(--line)"
-                                }}>
-                                  {pg.platformName === "Facebook" ? "Facebook" : pg.platformName === "Instagram" ? "Instagram" : pg.platformName === "TikTok" ? "TikTok" : pg.platformName}
-                                </th>
-                              ))}
+                              {(() => {
+                                let platColIdx = 0;
+                                return platGroups.map((pg, pi) => {
+                                  const endIdx = platColIdx + pg.span - 1;
+                                  const isCoEnd = coEndIndices.has(endIdx);
+                                  platColIdx += pg.span;
+                                  return (
+                                    <th key={pi} colSpan={pg.span} style={{
+                                      padding: "3px 4px", textAlign: "center", fontWeight: 700,
+                                      fontSize: 10, color: pg.color, background: `${pg.color}0d`,
+                                      borderRight: isCoEnd ? "2px solid #cbd5e1" : "1px solid var(--line)",
+                                      borderBottom: "1px solid var(--line)"
+                                    }}>
+                                      {pg.platformName === "Facebook" ? "Facebook" : pg.platformName === "Instagram" ? "Instagram" : pg.platformName === "TikTok" ? "TikTok" : pg.platformName}
+                                    </th>
+                                  );
+                                });
+                              })()}
                             </tr>
                             {/* Row 3 — Action */}
                             <tr style={{ background: "#fafbfc", borderBottom: "2px solid var(--line)" }}>
                               {actionCols.map((col, ci) => {
                                 const platColor = PLATFORM_COLORS[col.platformName] || "var(--accent)";
+                                const isLastInCo = coEndIndices.has(ci);
                                 return (
                                   <th key={ci} style={{
                                     ...thStyle, fontSize: 9.5, width: 46,
                                     color: col.disabled ? "var(--text-4)" : platColor,
                                     opacity: col.disabled ? 0.35 : 1,
-                                    borderRight: "1px solid var(--line)"
+                                    borderRight: isLastInCo ? "2px solid #cbd5e1" : "1px solid var(--line)"
                                   }}>
                                     {col.icon} {col.label}
                                   </th>
@@ -722,37 +737,26 @@ export default function MonitoringPage() {
                                     const isTicked = eng
                                       ? (col.actionKey === "like" ? eng.isLiked : col.actionKey === "comment" ? eng.isCommented : eng.isShared)
                                       : false;
-                                    const pc = PLATFORM_COLORS[col.platformName] || "var(--accent)";
-                                    const isIg = col.platformName === "Instagram";
-                                    const btnBg = isTicked
-                                      ? (isIg ? "linear-gradient(135deg, #f09433, #dc2743, #bc1888)" : pc)
-                                      : "transparent";
+                                    const isLastInGroup =
+                                      ci === actionCols.length - 1 ||
+                                      actionCols[ci].companyName !== (actionCols[ci + 1]?.companyName ?? "");
 
                                     return (
-                                      <td key={ci} style={tdStyle}>
+                                      <td key={ci} style={{
+                                        ...tdStyle,
+                                        borderRight: isLastInGroup ? "2px solid #d1d5db" : "1px solid var(--line)"
+                                      }}>
                                         {eng ? (
                                           col.disabled ? (
-                                            <span style={{ fontSize: 11, color: "#94a3b8" }} title="Disabled">—</span>
+                                            <span style={{ fontSize: 10, color: "#cbd5e1" }} title="Disabled">—</span>
                                           ) : (
-                                            <button
-                                              onClick={(e) => { e.stopPropagation(); handleAction(eng, col.actionKey, !isTicked); }}
-                                              style={{
-                                                display: "inline-flex", alignItems: "center", justifyContent: "center",
-                                                width: 28, height: 28, borderRadius: 6,
-                                                border: isTicked ? "none" : "1.5px solid var(--line)",
-                                                background: btnBg,
-                                                color: isTicked ? "white" : "var(--text-4)",
-                                                cursor: "pointer", fontSize: 11,
-                                                transition: "all 0.15s ease"
-                                              }}
-                                              title={isTicked ? `${col.label} ✓ — click to undo` : `Tick ${col.label}`}
-                                            >
-                                              {isTicked ? (
-                                                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                                                  <polyline points="20 6 9 17 4 12" />
-                                                </svg>
-                                              ) : col.icon}
-                                            </button>
+                                            <input
+                                              type="checkbox"
+                                              checked={isTicked}
+                                              onChange={(e) => { e.stopPropagation(); handleAction(eng, col.actionKey, e.target.checked); }}
+                                              style={{ cursor: "pointer", width: 15, height: 15, accentColor: PLATFORM_COLORS[col.platformName] || "var(--accent)" }}
+                                              title={`${col.label}`}
+                                            />
                                           )
                                         ) : (
                                           <span style={{ color: "var(--text-4)", fontSize: 10 }}>—</span>
