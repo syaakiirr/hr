@@ -6,6 +6,13 @@ import tailwindcss from '@tailwindcss/vite'
 export default defineConfig({
   plugins: [react(),tailwindcss()],
   server: {
-    historyApiFallback: true,
+    historyApiFallback: {
+      index: '/index.html'
+    },
   },
-})
+  preview: {
+    historyApiFallback: {
+      index: '/index.html'
+    },
+  },
+} as any)
