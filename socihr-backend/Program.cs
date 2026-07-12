@@ -136,31 +136,44 @@ await SeedAdminUserAsync(app, args);
 
 async Task SeedAdminUserAsync(WebApplication app, string[] args)
 {
-    using var scope = app.Services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    
-    // Seed admin user
-    var adminExists = await db.Users.AnyAsync(u => u.Username == "admin");
-    if (!adminExists)
+    try
     {
-        var adminUser = new socihr_backend.Models.AppUser
+        using var scope = app.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        
+        // Seed admin user
+        var adminExists = await db.Users.AnyAsync(u => u.Username == "admin");
+        if (!adminExists)
         {
-            UserID = Guid.NewGuid(),
-            Username = "admin",
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
-            Role = "Admin"
-        };
-        await db.Users.AddAsync(adminUser);
-        await db.SaveChangesAsync();
-        Console.WriteLine("✅ Admin user created! Username: admin, Password: admin");
+            var adminUser = new socihr_backend.Models.AppUser
+            {
+                UserID = Guid.NewGuid(),
+                Username = "admin",
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+                Role = "Admin"
+            };
+            await db.Users.AddAsync(adminUser);
+            await db.SaveChangesAsync();
+            Console.WriteLine("✅ Admin user created! Username: admin, Password: admin");
+        }
+        else
+        {
+            Console.WriteLine("ℹ️ Admin user already exists!");
+        }
+        
+        // Seed dummy data if --seed is provided
+        if (args.Contains("--seed"))
+        {
+            Console.WriteLine("🌱 Seeding database with dummy data...");
+            await socihr_backend.SeedData.SeedDummyData(db);
+            Console.WriteLine("✅ Database seeded!");
+        }
     }
-    
-    // Seed dummy data if --seed is provided
-    if (args.Contains("--seed"))
+    catch (Exception ex)
     {
-        Console.WriteLine("🌱 Seeding database with dummy data...");
-        await socihr_backend.SeedData.SeedDummyData(db);
-        Console.WriteLine("✅ Database seeded!");
+        Console.WriteLine($"❌ Error seeding admin user: {ex}");
+        if (ex.InnerException != null)
+            Console.WriteLine($"   Inner exception: {ex.InnerException}");
     }
 }
 
