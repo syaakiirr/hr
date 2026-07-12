@@ -1,0 +1,265 @@
+{
+  "Files": [
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\_redirects",
+      "PackagePath": "staticwebassets"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\AIInsightsPage-C-MJWjTD.js",
+      "PackagePath": "staticwebassets\\assets\\AIInsightsPage-C-MJWjTD.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\ArchivedPage-78KXIeCP.js",
+      "PackagePath": "staticwebassets\\assets\\ArchivedPage-78KXIeCP.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\ArchivedPage-BOIW-bRF.js",
+      "PackagePath": "staticwebassets\\assets\\ArchivedPage-BOIW-bRF.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\ArchivedPage-DG6BldW1.js",
+      "PackagePath": "staticwebassets\\assets\\ArchivedPage-DG6BldW1.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\ArchivedPage-D_FFSKiR.js",
+      "PackagePath": "staticwebassets\\assets\\ArchivedPage-D_FFSKiR.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\AuditPage-BfS26Ga5.js",
+      "PackagePath": "staticwebassets\\assets\\AuditPage-BfS26Ga5.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\AuditPage-CqfvOZAx.js",
+      "PackagePath": "staticwebassets\\assets\\AuditPage-CqfvOZAx.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\AuditPage-CtpC24c6.js",
+      "PackagePath": "staticwebassets\\assets\\AuditPage-CtpC24c6.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\AuditPage-DVRAvrnY.js",
+      "PackagePath": "staticwebassets\\assets\\AuditPage-DVRAvrnY.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\CompanyPage-BGPBtXyG.js",
+      "PackagePath": "staticwebassets\\assets\\CompanyPage-BGPBtXyG.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\CompanyPage-BWGs4u6C.js",
+      "PackagePath": "staticwebassets\\assets\\CompanyPage-BWGs4u6C.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\CompanyPage-CWFVTI8j.js",
+      "PackagePath": "staticwebassets\\assets\\CompanyPage-CWFVTI8j.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\CompanyPage-waXIJkWn.js",
+      "PackagePath": "staticwebassets\\assets\\CompanyPage-waXIJkWn.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\DashboardPage-B8Zq4V3X.js",
+      "PackagePath": "staticwebassets\\assets\\DashboardPage-B8Zq4V3X.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\DashboardPage-BxU8eMRH.js",
+      "PackagePath": "staticwebassets\\assets\\DashboardPage-BxU8eMRH.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\DashboardPage-C-5gh0fG.js",
+      "PackagePath": "staticwebassets\\assets\\DashboardPage-C-5gh0fG.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\DashboardPage-CGaUpSPq.js",
+      "PackagePath": "staticwebassets\\assets\\DashboardPage-CGaUpSPq.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\Layout-BBkoVE_n.js",
+      "PackagePath": "staticwebassets\\assets\\Layout-BBkoVE_n.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\Layout-D-jkTa4J.js",
+      "PackagePath": "staticwebassets\\assets\\Layout-D-jkTa4J.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\Layout-DVAGTKox.js",
+      "PackagePath": "staticwebassets\\assets\\Layout-DVAGTKox.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\Layout-VncI78-O.js",
+      "PackagePath": "staticwebassets\\assets\\Layout-VncI78-O.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\LoginPage-BKhp-8kO.js",
+      "PackagePath": "staticwebassets\\assets\\LoginPage-BKhp-8kO.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\LoginPage-B_fzhqt7.js",
+      "PackagePath": "staticwebassets\\assets\\LoginPage-B_fzhqt7.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\LoginPage-Cqj6F9JF.js",
+      "PackagePath": "staticwebassets\\assets\\LoginPage-Cqj6F9JF.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\LoginPage-HJ--D9yl.js",
+      "PackagePath": "staticwebassets\\assets\\LoginPage-HJ--D9yl.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\MonitoringPage-CNTzQDta.js",
+      "PackagePath": "staticwebassets\\assets\\MonitoringPage-CNTzQDta.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\MonitoringPage-CcpGkcQw.js",
+      "PackagePath": "staticwebassets\\assets\\MonitoringPage-CcpGkcQw.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\MonitoringPage-D1qdRXIH.js",
+      "PackagePath": "staticwebassets\\assets\\MonitoringPage-D1qdRXIH.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\MonitoringPage-DbyjZJ8m.js",
+      "PackagePath": "staticwebassets\\assets\\MonitoringPage-DbyjZJ8m.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\ReportsPage-CsGsSz1Y.js",
+      "PackagePath": "staticwebassets\\assets\\ReportsPage-CsGsSz1Y.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\ReportsPage-DMzk8qO6.js",
+      "PackagePath": "staticwebassets\\assets\\ReportsPage-DMzk8qO6.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\ReportsPage-DeKegcxp.js",
+      "PackagePath": "staticwebassets\\assets\\ReportsPage-DeKegcxp.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\ReportsPage-DgEKWYlM.js",
+      "PackagePath": "staticwebassets\\assets\\ReportsPage-DgEKWYlM.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\SnapshotsPage-Bq7nl8Vs.js",
+      "PackagePath": "staticwebassets\\assets\\SnapshotsPage-Bq7nl8Vs.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\SnapshotsPage-CbQQszvz.js",
+      "PackagePath": "staticwebassets\\assets\\SnapshotsPage-CbQQszvz.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\SnapshotsPage-CjVxT1Ao.js",
+      "PackagePath": "staticwebassets\\assets\\SnapshotsPage-CjVxT1Ao.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\SnapshotsPage-DiEI3270.js",
+      "PackagePath": "staticwebassets\\assets\\SnapshotsPage-DiEI3270.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\StaffEngagementPage-CIgV-9LT.js",
+      "PackagePath": "staticwebassets\\assets\\StaffEngagementPage-CIgV-9LT.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\StaffEngagementPage-D2dvVVII.js",
+      "PackagePath": "staticwebassets\\assets\\StaffEngagementPage-D2dvVVII.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\StaffEngagementPage-DAcI6loK.js",
+      "PackagePath": "staticwebassets\\assets\\StaffEngagementPage-DAcI6loK.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\StaffEngagementPage-bih1FOH8.js",
+      "PackagePath": "staticwebassets\\assets\\StaffEngagementPage-bih1FOH8.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\StaffPage-84ByH9KD.js",
+      "PackagePath": "staticwebassets\\assets\\StaffPage-84ByH9KD.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\StaffPage-BkrZL8gd.js",
+      "PackagePath": "staticwebassets\\assets\\StaffPage-BkrZL8gd.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\StaffPage-CxQb2Bq5.js",
+      "PackagePath": "staticwebassets\\assets\\StaffPage-CxQb2Bq5.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\StaffPage-FO9KRlR8.js",
+      "PackagePath": "staticwebassets\\assets\\StaffPage-FO9KRlR8.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\api-DaaQt9cf.js",
+      "PackagePath": "staticwebassets\\assets\\api-DaaQt9cf.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\api-u19OW-yx.js",
+      "PackagePath": "staticwebassets\\assets\\api-u19OW-yx.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\esm-Aj52fkjv.js",
+      "PackagePath": "staticwebassets\\assets\\esm-Aj52fkjv.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\esm-C6TKTHMq.js",
+      "PackagePath": "staticwebassets\\assets\\esm-C6TKTHMq.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\esm-CDvU07eS.js",
+      "PackagePath": "staticwebassets\\assets\\esm-CDvU07eS.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\esm-CK-35lk8.js",
+      "PackagePath": "staticwebassets\\assets\\esm-CK-35lk8.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\index-2sQW78ZS.js",
+      "PackagePath": "staticwebassets\\assets\\index-2sQW78ZS.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\index-79A5Ya5Y.js",
+      "PackagePath": "staticwebassets\\assets\\index-79A5Ya5Y.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\index-C2m3l8pn.css",
+      "PackagePath": "staticwebassets\\assets\\index-C2m3l8pn.css"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\index-CjkfC8e7.js",
+      "PackagePath": "staticwebassets\\assets\\index-CjkfC8e7.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\index-FAzhSWIu.js",
+      "PackagePath": "staticwebassets\\assets\\index-FAzhSWIu.js"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\assets\\index-QXSP1h_q.css",
+      "PackagePath": "staticwebassets\\assets\\index-QXSP1h_q.css"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\favicon.svg",
+      "PackagePath": "staticwebassets\\favicon.svg"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\icons.svg",
+      "PackagePath": "staticwebassets\\icons.svg"
+    },
+    {
+      "Id": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\wwwroot\\index.html",
+      "PackagePath": "staticwebassets\\index.html"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.build.socihr-backend.props",
+      "PackagePath": "build\\socihr-backend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildMultiTargeting.socihr-backend.props",
+      "PackagePath": "buildMultiTargeting\\socihr-backend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.buildTransitive.socihr-backend.props",
+      "PackagePath": "buildTransitive\\socihr-backend.props"
+    },
+    {
+      "Id": "obj\\Debug\\net8.0\\staticwebassets\\msbuild.socihr-backend.Microsoft.AspNetCore.StaticWebAssets.props",
+      "PackagePath": "build\\Microsoft.AspNetCore.StaticWebAssets.props"
+    }
+  ],
+  "ElementsToRemove": []
+}
