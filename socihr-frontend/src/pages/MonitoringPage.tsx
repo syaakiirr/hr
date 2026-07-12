@@ -583,12 +583,17 @@ export default function MonitoringPage() {
 
                     // Sort posts: group by company, then by platform order (FB → IG → TT)
                     const platformOrder: Record<string, number> = { Facebook: 0, Instagram: 1, TikTok: 2 };
-                    const sortedPosts = [...selectedSession.posts].sort((a, b) => {
+                    let sortedPosts = [...selectedSession.posts].sort((a, b) => {
                       const coA = (a.companyName || "").trim().toLowerCase();
                       const coB = (b.companyName || "").trim().toLowerCase();
                       if (coA !== coB) return coA.localeCompare(coB);
                       return (platformOrder[a.platformName] ?? 99) - (platformOrder[b.platformName] ?? 99);
                     });
+                    
+                    // Filter posts by selected company if filter is set
+                    if (filterCompany) {
+                      sortedPosts = sortedPosts.filter(p => p.companyID === filterCompany);
+                    }
 
                     sortedPosts.forEach((p) => {
                       const plat = p.platformName;
