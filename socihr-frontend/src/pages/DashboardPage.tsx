@@ -525,7 +525,6 @@ export default function DashboardPage() {
                   }}>
                     {c.rate}%
                   </span>
-                  <span style={{ color: "var(--text-4)", fontSize: 11 }}>✓{c.completed} ✗{c.missed}</span>
                 </div>
               ))}
             </div>
@@ -647,11 +646,6 @@ export default function DashboardPage() {
                       <div style={{ width: 10, height: 10, borderRadius: "50%", background: companyColors[i % companyColors.length], flexShrink: 0 }} />
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.company}</p>
-                        <div style={{ display: "flex", gap: 8, marginTop: 3 }}>
-                          <span style={{ fontSize: 10, color: "var(--green)", fontWeight: 600 }}>✓ {c.completed}</span>
-                          <span style={{ fontSize: 10, color: "var(--red)", fontWeight: 600 }}>✗ {c.missed}</span>
-                          <span style={{ fontSize: 10, color: "var(--text-4)" }}>of {c.total}</span>
-                        </div>
                       </div>
                       <div style={{ textAlign: "right" }}>
                         <span style={{
