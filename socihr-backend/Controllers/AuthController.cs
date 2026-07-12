@@ -45,38 +45,66 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        
-        var user = await _db.Users
-            .FirstOrDefaultAsync(u => u.Username == request.Username);
-
-        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
-            return Unauthorized(new { message = "Username atau password salah." });
-
-
-        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
-        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
-
-        var claims = new[]
+        try
         {
-            new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
-            new Claim(ClaimTypes.Name, user.Username),
-            new Claim(ClaimTypes.Role, user.Role)
-        };
+            var user = await _db.Users
+                .FirstOrDefaultAsync(u => u.Username == request.Username);
 
-        var token = new JwtSecurityToken(
-            issuer: _config["Jwt:Issuer"],
-            audience: _config["Jwt:Audience"],
-            claims: claims,
-            expires: DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:ExpireMinutes"]!)),
-            signingCredentials: creds
-        );
+            if (user == null)
+                return Unauthorized(new { message = "Username atau password salah." });
 
-        return Ok(new
+            // Check if password is valid (either BCrypt hash or plain text for migration)
+            bool isValidPassword;
+            try
+            {
+                isValidPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
+            }
+            catch
+            {
+                // If BCrypt.Verify fails (e.g., not a valid hash), check plain text
+                isValidPassword = user.PasswordHash == request.Password;
+            }
+
+            if (!isValidPassword)
+                return Unauthorized(new { message = "Username atau password salah." });
+
+            // If password was plain text, update it to a hash
+            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash) && user.PasswordHash == request.Password)
+            {
+                user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
+                await _db.SaveChangesAsync();
+            }
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, user.UserID.ToString()),
+                new Claim(ClaimTypes.Name, user.Username),
+                new Claim(ClaimTypes.Role, user.Role)
+            };
+
+            var token = new JwtSecurityToken(
+                issuer: _config["Jwt:Issuer"],
+                audience: _config["Jwt:Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(double.Parse(_config["Jwt:ExpireMinutes"]!)),
+                signingCredentials: creds
+            );
+
+            return Ok(new
+            {
+                token = new JwtSecurityTokenHandler().WriteToken(token),
+                username = user.Username,
+                role = user.Role
+            });
+        }
+        catch (Exception ex)
         {
-            token = new JwtSecurityTokenHandler().WriteToken(token),
-            username = user.Username,
-            role = user.Role
-        });
+            Console.WriteLine($"Login error: {ex}");
+            return StatusCode(500, new { message = "Terjadi kesalahan pada server." });
+        }
     }
 }
 

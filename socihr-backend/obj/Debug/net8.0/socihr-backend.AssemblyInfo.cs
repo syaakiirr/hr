@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("socihr-backend")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+fa4d4e7820cbd70b7d1f9508fccbfaad26565e91")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ad822fe9249e2c017dff339557f0224714ee1bb")]
 [assembly: System.Reflection.AssemblyProductAttribute("socihr-backend")]
 [assembly: System.Reflection.AssemblyTitleAttribute("socihr-backend")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

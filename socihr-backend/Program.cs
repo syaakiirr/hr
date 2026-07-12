@@ -6,6 +6,7 @@ using socihr_backend.Data;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using AspNetCoreRateLimit;
+using BCrypt.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -130,18 +131,37 @@ catch (Exception ex)
 }
 
 
-// ── SEED DATA if --seed argument is provided ──
-if (args.Contains("--seed"))
+// ── SEED ADMIN USER automatically if not exists ──
+await SeedAdminUserAsync(app, args);
+
+async Task SeedAdminUserAsync(WebApplication app, string[] args)
 {
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     
-    Console.WriteLine("🌱 Seeding database with dummy data...");
-    await socihr_backend.SeedData.SeedDummyData(db);
-    Console.WriteLine("✅ Database seeded! You can now login with:");
-    Console.WriteLine("   Username: admin");
-    Console.WriteLine("   Password: admin");
-    return;
+    // Seed admin user
+    var adminExists = await db.Users.AnyAsync(u => u.Username == "admin");
+    if (!adminExists)
+    {
+        var adminUser = new socihr_backend.Models.AppUser
+        {
+            UserID = Guid.NewGuid(),
+            Username = "admin",
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+            Role = "Admin"
+        };
+        await db.Users.AddAsync(adminUser);
+        await db.SaveChangesAsync();
+        Console.WriteLine("✅ Admin user created! Username: admin, Password: admin");
+    }
+    
+    // Seed dummy data if --seed is provided
+    if (args.Contains("--seed"))
+    {
+        Console.WriteLine("🌱 Seeding database with dummy data...");
+        await socihr_backend.SeedData.SeedDummyData(db);
+        Console.WriteLine("✅ Database seeded!");
+    }
 }
 
 // ── Global exception handler — log real errors to terminal ──
