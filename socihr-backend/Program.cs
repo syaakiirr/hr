@@ -150,8 +150,8 @@ async Task SeedAdminUserAsync(WebApplication app, string[] args)
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
         // Seed admin user
-        var adminExists = await db.Users.AnyAsync(u => u.Username == "admin");
-        if (!adminExists)
+        var admin = await db.Users.FirstOrDefaultAsync(u => u.Username == "admin");
+        if (admin == null)
         {
             var adminUser = new socihr_backend.Models.AppUser
             {
@@ -166,7 +166,9 @@ async Task SeedAdminUserAsync(WebApplication app, string[] args)
         }
         else
         {
-            Console.WriteLine("ℹ️ Admin user already exists!");
+            admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin");
+            await db.SaveChangesAsync();
+            Console.WriteLine("🔑 Admin password reset to 'admin'!");
         }
         
         // Seed dummy data if --seed is provided
