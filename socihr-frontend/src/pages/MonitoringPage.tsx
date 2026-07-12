@@ -5,7 +5,6 @@ import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
   getSessions, getPlatforms, getCompanies, createSession, deleteSession, archiveSession,
   getEngagements, updateEngagementAction, updateEngagementReason, bulkUpdateEngagementStatus,
-  updatePostLink,
   type MonitoringSession, type Platform, type Engagement, type Company
 } from "../services/api";
 
@@ -96,11 +95,6 @@ export default function MonitoringPage() {
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
   // Post links per platformID (same URL per platform across all companies)
   const [postLinks, setPostLinks] = useState<Record<string, string>>({});
-
-  // Inline post link editor state
-  const [editingPostLink, setEditingPostLink] = useState<{ postID: string; platformName: string; companyName: string; current: string } | null>(null);
-  const [editLinkValue, setEditLinkValue] = useState("");
-  const [savingLink, setSavingLink] = useState(false);
 
   // Confirmation dialog (replaces native confirm/alert)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -480,37 +474,6 @@ export default function MonitoringPage() {
     return () => window.removeEventListener('resize', syncWidth);
   }, [engagements, staffRows, filterCompany]);
 
-  // ── Inline post link editor functions ──
-  async function saveEditPostLink() {
-    if (!editingPostLink) return;
-    setSavingLink(true);
-    try {
-      await updatePostLink(editingPostLink.postID, editLinkValue);
-      // Update local session post links
-      setSessions(prev => prev.map(s => {
-        if (s.sessionID !== selectedSession?.sessionID) return s;
-        return {
-          ...s,
-          posts: s.posts.map(p =>
-            p.postID === editingPostLink.postID ? { ...p, postLink: editLinkValue } : p
-          )
-        };
-      }));
-      // Also update selectedSession
-      setSelectedSession(prev => prev ? {
-        ...prev,
-        posts: prev.posts.map(p =>
-          p.postID === editingPostLink.postID ? { ...p, postLink: editLinkValue } : p
-        )
-      } : prev);
-      setEditingPostLink(null);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSavingLink(false);
-    }
-  }
-
   return (
     <Layout>
       <style>{`
@@ -641,19 +604,6 @@ export default function MonitoringPage() {
           background: #f5f3ff !important;
         }
 
-        /* Post Link Editor */
-        .postlink-panel { background: var(--white); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 16px; box-shadow: 0 2px 8px rgba(15,23,42,0.04); }
-        .postlink-panel-hd { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
-        .postlink-grid { display: flex; flex-wrap: wrap; gap: 8px; }
-        .postlink-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface-2); flex: 1; min-width: 220px; }
-        .postlink-plat { font-size: 10px; font-weight: 700; white-space: nowrap; }
-        .postlink-inp { flex: 1; height: 26px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: 6px; font-size: 11.5px; background: var(--white); color: var(--text-1); outline: none; font-family: inherit; transition: border-color 0.15s; min-width: 0; }
-        .postlink-inp:focus { border-color: var(--accent); }
-        .postlink-save { height: 26px; padding: 0 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit; transition: opacity 0.15s; }
-        .postlink-save:disabled { opacity: 0.5; cursor: not-allowed; }
-        .postlink-link { font-size: 10.5px; color: var(--accent); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
-        .postlink-empty { font-size: 11px; color: var(--text-4); font-style: italic; }
-
         @media (max-width: 700px) { .sesh-item { min-width: 130px; } }
       `}</style>
 
@@ -733,64 +683,6 @@ export default function MonitoringPage() {
             )}
           </div>
         </div>
-
-        {/* ── Post Link Panel (shown when session selected) ── */}
-        {selectedSession && (
-          <div className="postlink-panel">
-            <div className="postlink-panel-hd">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-              Post Links
-              <span style={{ fontWeight: 400, color: "var(--text-4)", textTransform: "none", letterSpacing: 0 }}>— Klik Save untuk kemaskini URL post</span>
-            </div>
-            <div className="postlink-grid">
-              {selectedSession.posts.map(p => {
-                const isEditing = editingPostLink?.postID === p.postID;
-                const platColor = PLATFORM_COLORS[p.platformName] || "var(--accent)";
-                return (
-                  <div key={p.postID} className="postlink-item" style={{ borderColor: isEditing ? platColor : undefined }}>
-                    <span className="postlink-plat" style={{ color: platColor }}>
-                      {p.platformName}
-                      {p.companyName && p.companyName !== "No Company" && (
-                        <span style={{ color: "var(--text-4)", fontWeight: 400 }}> · {p.companyName}</span>
-                      )}
-                    </span>
-                    {isEditing ? (
-                      <>
-                        <input
-                          className="postlink-inp"
-                          type="url"
-                          placeholder="https://..."
-                          value={editLinkValue}
-                          onChange={e => setEditLinkValue(e.target.value)}
-                          autoFocus
-                          onKeyDown={e => { if (e.key === "Enter") saveEditPostLink(); if (e.key === "Escape") setEditingPostLink(null); }}
-                        />
-                        <button className="postlink-save" onClick={saveEditPostLink} disabled={savingLink}>
-                          {savingLink ? "..." : "Save"}
-                        </button>
-                        <button onClick={() => setEditingPostLink(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-3)", fontSize: 12, padding: "0 4px", fontFamily: "inherit" }}>✕</button>
-                      </>
-                    ) : (
-                      <>
-                        {p.postLink ? (
-                          <a href={p.postLink} target="_blank" rel="noreferrer" className="postlink-link" title={p.postLink}>🔗 {p.postLink}</a>
-                        ) : (
-                          <span className="postlink-empty">Tiada URL</span>
-                        )}
-                        <button
-                          onClick={() => { setEditingPostLink({ postID: p.postID, platformName: p.platformName, companyName: p.companyName || "", current: p.postLink }); setEditLinkValue(p.postLink); }}
-                          style={{ background: "none", border: "1.5px solid var(--line)", borderRadius: 5, cursor: "pointer", fontSize: 10, color: "var(--text-3)", padding: "2px 7px", fontFamily: "inherit", whiteSpace: "nowrap", transition: "all 0.15s" }}
-                          onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = platColor; (e.currentTarget as HTMLButtonElement).style.color = platColor; }}
-                          onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-3)"; }}
-                        >✏️ Edit</button>
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
 
         {/* ── Main Content (Full Width) ── */}
         <div className="mon-grid">
