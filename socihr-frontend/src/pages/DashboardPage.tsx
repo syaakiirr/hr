@@ -12,6 +12,7 @@ import {
   getStaffRanking,
   getWeeklyTrend,
   createSnapshot,
+  getHeatmap,
   type KpiData,
 } from "../services/api";
 
@@ -95,6 +96,10 @@ export default function DashboardPage() {
   const [snapshotNotes, setSnapshotNotes] = useState("");
   const [savingSnapshot, setSavingSnapshot] = useState(false);
 
+  // Heatmap state
+  const [heatmapData, setHeatmapData] = useState<{ date: string; completed: number; total: number }[]>([]);
+  const currentYear = new Date().getFullYear();
+
 
   useEffect(() => {
     const { from, to } = getDateRange(filter);
@@ -108,7 +113,8 @@ export default function DashboardPage() {
       getStaffRanking("top", 10, from, to),
       getStaffRanking("bottom", 10, from, to),
       getCompanyPerformance(),
-    ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData]) => {
+      getHeatmap(currentYear),
+    ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData]) => {
       setKpi(kpiData);
       setMonthly(monthData);
       setWeekly(weekData);
@@ -116,6 +122,11 @@ export default function DashboardPage() {
       setTopStaff(topData);
       setBottomStaff(botData);
       setCompanyPerf(compData);
+      setHeatmapData(heatData.map((d: { date: string; completed: number; total: number }) => ({
+        date: d.date,
+        completed: d.completed,
+        total: d.total,
+      })));
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, [filter]);
@@ -410,6 +421,45 @@ export default function DashboardPage() {
     }],
   }), [companyPerf]);
 
+  // Heatmap option (calendar heatmap for current year)
+  const heatmapOption = useMemo(() => ({
+    ...lightChartTheme,
+    tooltip: {
+      ...customTooltip,
+      formatter: (p: { data: [string, number] }) => {
+        if (!p.data) return "No data";
+        const [dateStr, rate] = p.data;
+        return `${dateStr}<br/>Completion: <strong>${rate}%</strong>`;
+      }
+    },
+    visualMap: {
+      min: 0, max: 100, show: true,
+      orient: 'horizontal', left: 'center', top: 0,
+      text: ['100%', '0%'],
+      textStyle: { color: '#7b7b96', fontSize: 10 },
+      inRange: { color: ['#f0f0ff', '#6366f1'] },
+      itemWidth: 10, itemHeight: 10,
+    },
+    calendar: {
+      top: 40, left: 30, right: 20,
+      range: `${currentYear}`,
+      cellSize: ['auto', 13],
+      splitLine: { lineStyle: { color: '#e5e5f0' } },
+      yearLabel: { show: false },
+      dayLabel: { nameMap: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], color: '#9ca3af', fontSize: 9 },
+      monthLabel: { color: '#7b7b96', fontSize: 10 },
+      itemStyle: { borderWidth: 2, borderColor: '#fff' }
+    },
+    series: [{
+      type: 'heatmap',
+      coordinateSystem: 'calendar',
+      data: heatmapData.map(d => [
+        d.date.split('T')[0],
+        d.total > 0 ? Math.round(d.completed / d.total * 100) : 0
+      ])
+    }]
+  }), [heatmapData, currentYear]);
+
   return (
     <>
       <Layout>
@@ -663,10 +713,25 @@ export default function DashboardPage() {
               </div>
             </div>
           )}
-          </div>
+
+          {/* Engagement Activity Heatmap */}
+          {heatmapData.length > 0 && (
+            <div className="chart-wrap" style={{ marginTop: 16 }}>
+              <p className="chart-label" style={{ color: "#6366f1" }}>📅 Daily Engagement Activity — {currentYear}</p>
+              <ReactECharts
+                option={heatmapOption}
+                style={{ height: 160 }}
+                opts={{ renderer: 'canvas' }}
+                notMerge={true}
+                lazyUpdate={true}
+              />
+            </div>
+          )}
+
+        </div>
         ) : null}
 
-      {/* Snapshot Modal */}
+
       {showSnapshotModal && (
         <div
           className="modal-overlay"

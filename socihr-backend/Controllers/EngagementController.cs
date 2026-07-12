@@ -19,6 +19,7 @@ public class EngagementController : ControllerBase
     public async Task<IActionResult> GetBySession([FromQuery] Guid sessionId)
     {
         var engagements = await _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Staff)
             .Include(e => e.Post)
                 .ThenInclude(p => p!.Platform)

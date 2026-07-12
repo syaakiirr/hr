@@ -88,8 +88,16 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddAuthorization();
 
-// Rate Limiting
+// Add Response Compression
+builder.Services.AddResponseCompression(options =>
+{
+    options.EnableForHttps = true;
+});
+
+// Add Memory Caching (we already have AddMemoryCache() for rate limiting, but let's keep it!
 builder.Services.AddMemoryCache();
+
+// Rate Limiting
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimit"));
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 builder.Services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
@@ -201,6 +209,9 @@ app.Use(async (context, next) =>
 });
 
 app.UseCors("AllowFrontend");
+
+// Use Response Compression
+app.UseResponseCompression();
 
 // Rate Limiting Middleware
 app.UseIpRateLimiting();

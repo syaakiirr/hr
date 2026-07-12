@@ -25,7 +25,7 @@ public class AppDbContext : DbContext
             e.ToTable("Staff");
             e.HasKey(x => x.StaffID);
             e.Property(x => x.StaffID).HasColumnName("StaffID");
-            e.Property(x => x.FullName).HasColumnName("Fullname");
+            e.Property(x => x.FullName).HasColumnName("FullName");
             e.Property(x => x.Department).HasColumnName("Department");
             e.Property(x => x.Position).HasColumnName("Position");
             e.Property(x => x.Status).HasColumnName("Status");
@@ -33,6 +33,10 @@ public class AppDbContext : DbContext
             e.Property(x => x.IsArchived).HasColumnName("IsArchived").HasDefaultValue(false);
             e.Property(x => x.ArchivedBy).HasColumnName("ArchivedBy");
             e.Property(x => x.ArchivedAt).HasColumnName("ArchivedAt");
+            
+            // Indexes for performance
+            e.HasIndex(x => x.IsArchived);
+            e.HasIndex(x => x.Department);
         });
 
         // ── Users ──
@@ -58,6 +62,10 @@ public class AppDbContext : DbContext
             e.Property(x => x.IsArchived).HasColumnName("IsArchived").HasDefaultValue(false);
             e.Property(x => x.ArchivedBy).HasColumnName("ArchivedBy");
             e.Property(x => x.ArchivedAt).HasColumnName("ArchivedAt");
+            
+            // Indexes for performance
+            e.HasIndex(x => x.SessionDate);
+            e.HasIndex(x => x.IsArchived);
         });
 
         // ── Platform ──
@@ -99,6 +107,11 @@ public class AppDbContext : DbContext
             e.HasOne(x => x.Session).WithMany().HasForeignKey(x => x.SessionID).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Post).WithMany().HasForeignKey(x => x.PostID).OnDelete(DeleteBehavior.Cascade);
             e.HasOne(x => x.Staff).WithMany().HasForeignKey(x => x.StaffID).OnDelete(DeleteBehavior.Cascade);
+            
+            // Indexes for performance
+            e.HasIndex(x => x.SessionID);
+            e.HasIndex(x => x.StaffID);
+            e.HasIndex(x => x.PostID);
         });
 
         // ── AuditTrail ──

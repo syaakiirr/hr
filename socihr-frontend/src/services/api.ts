@@ -152,6 +152,15 @@ export async function deleteSession(id: string): Promise<void> {
   if (!res.ok) throw new Error("Gagal delete session.");
 }
 
+export async function updatePostLink(postId: string, postLink: string): Promise<{ postID: string; postLink: string }> {
+  const res = await fetch(`${BASE_URL}/monitoringsession/posts/${postId}/link`, {
+    method: "PATCH",
+    headers: authHeaders(),
+    body: JSON.stringify({ PostLink: postLink }),
+  });
+  return handleResponse<{ postID: string; postLink: string }>(res);
+}
+
 // ─── Engagement ─────────────────────────────────────
 export interface Engagement {
   engagementID: string;

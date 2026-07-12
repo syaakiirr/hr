@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import StaffForm from "../components/StaffForm";
+import ConfirmationDialog from "../components/ConfirmationDialog";
 import type { Staff } from "../services/api";
 import { getStaffList, createStaff, updateStaff, toggleStaffStatus, archiveStaff, deleteStaff } from "../services/api";
 
@@ -33,6 +34,12 @@ export default function StaffPage() {
   const [showForm, setShowForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [saving, setSaving] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => Promise<void> | void;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -71,37 +78,56 @@ export default function StaffPage() {
     }
   }
 
-  async function handleToggle(staff: Staff) {
+  function openConfirmDialog(title: string, message: string, onConfirm: () => Promise<void> | void) {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm });
+  }
+
+  function handleToggle(staff: Staff) {
     const action = staff.status === "Active" ? "deactivate" : "activate";
-    if (!confirm(`Are you sure you want to ${action} ${staff.fullName}?`)) return;
-    try {
-      await toggleStaffStatus(staff.staffID);
-      fetchStaff();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "An error occurred.");
-    }
+    openConfirmDialog(
+      `${action.charAt(0).toUpperCase() + action.slice(1)} Staff`,
+      `Are you sure you want to ${action} ${staff.fullName}?`,
+      async () => {
+        try {
+          await toggleStaffStatus(staff.staffID);
+          fetchStaff();
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "An error occurred.");
+        }
+      }
+    );
   }
 
-  async function handleArchive(staff: Staff) {
-    if (!confirm(`Archive ${staff.fullName}? This can be restored later from the Archive page.`)) return;
-    try {
-      await archiveStaff(staff.staffID);
-      alert("Staff archived successfully");
-      fetchStaff();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "An error occurred.");
-    }
+  function handleArchive(staff: Staff) {
+    openConfirmDialog(
+      "Archive Staff",
+      `Archive ${staff.fullName}? This can be restored later from the Archive page.`,
+      async () => {
+        try {
+          await archiveStaff(staff.staffID);
+          alert("Staff archived successfully");
+          fetchStaff();
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "An error occurred.");
+        }
+      }
+    );
   }
 
-  async function handleDelete(staff: Staff) {
-    if (!confirm(`Are you sure you want to PERMANENTLY delete ${staff.fullName}? This will also delete all their historical engagement ticks!`)) return;
-    try {
-      await deleteStaff(staff.staffID);
-      alert("Staff deleted successfully");
-      fetchStaff();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "An error occurred.");
-    }
+  function handleDelete(staff: Staff) {
+    openConfirmDialog(
+      "Permanently Delete Staff",
+      `Are you sure you want to PERMANENTLY delete ${staff.fullName}? This will also delete all their historical engagement ticks!`,
+      async () => {
+        try {
+          await deleteStaff(staff.staffID);
+          alert("Staff deleted successfully");
+          fetchStaff();
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "An error occurred.");
+        }
+      }
+    );
   }
 
   return (
@@ -310,6 +336,14 @@ export default function StaffPage() {
           loading={saving}
         />
       )}
+
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+      />
     </Layout>
   );
 }

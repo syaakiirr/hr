@@ -17,7 +17,7 @@ public class MonitoringSessionController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool includeArchived = false)
     {
-        var query = _db.MonitoringSessions.AsQueryable();
+        var query = _db.MonitoringSessions.AsNoTracking().AsQueryable();
         
         // Filter archived by default
         if (!includeArchived)
@@ -30,6 +30,7 @@ public class MonitoringSessionController : ControllerBase
         // Load posts for each session
         var sessionIds = sessions.Select(s => s.SessionID).ToList();
         var posts = await _db.SessionPosts
+            .AsNoTracking()
             .Include(p => p.Platform)
             .Include(p => p.Company)
             .Where(p => sessionIds.Contains(p.SessionID))
@@ -73,10 +74,11 @@ public class MonitoringSessionController : ControllerBase
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var session = await _db.MonitoringSessions.FindAsync(id);
+        var session = await _db.MonitoringSessions.AsNoTracking().FirstOrDefaultAsync(s => s.SessionID == id);
         if (session == null) return NotFound(new { message = "Session tidak dijumpai." });
 
         var posts = await _db.SessionPosts
+            .AsNoTracking()
             .Include(p => p.Platform)
             .Include(p => p.Company)
             .Where(p => p.SessionID == id)
@@ -344,7 +346,20 @@ public class MonitoringSessionController : ControllerBase
             return StatusCode(500, new { message = ex.Message });
         }
     }
+    // PATCH /api/monitoringsession/posts/{postId}/link
+    [HttpPatch("posts/{postId:guid}/link")]
+    public async Task<IActionResult> UpdatePostLink(Guid postId, [FromBody] UpdatePostLinkRequest req)
+    {
+        var post = await _db.SessionPosts.FindAsync(postId);
+        if (post == null) return NotFound(new { message = "Post tidak dijumpai." });
+
+        post.PostLink = req.PostLink?.Trim() ?? "";
+        await _db.SaveChangesAsync();
+
+        return Ok(new { post.PostID, post.PostLink });
+    }
 }
 
 public record PostRequest(Guid PlatformID, string PostLink);
 public record CreateSessionRequest(DateOnly SessionDate, List<PostRequest> Posts, List<Guid>? CompanyIDs);
+public record UpdatePostLinkRequest(string? PostLink);

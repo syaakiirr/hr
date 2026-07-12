@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using socihr_backend.Data;
 using socihr_backend.Helpers;
 using socihr_backend.Models;
@@ -14,18 +15,25 @@ namespace socihr_backend.Controllers;
 public class DashboardController : ControllerBase
 {
     private readonly AppDbContext _db;
-    public DashboardController(AppDbContext db) => _db = db;
+    private readonly IMemoryCache _cache;
+    public DashboardController(AppDbContext db, IMemoryCache cache) { _db = db; _cache = cache; }
 
     // GET /api/dashboard/kpi?from=2026-01-01&to=2026-12-31
     [HttpGet("kpi")]
     public async Task<IActionResult> GetKpi([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
+        var cacheKey = $"kpi_{from:yyyyMMdd}_{to:yyyyMMdd}";
+        if (_cache.TryGetValue(cacheKey, out object? cached))
+            return Ok(cached);
+
         var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active");
         var totalSessions = await _db.MonitoringSessions.CountAsync();
         var totalPlatforms = await _db.Platforms.CountAsync();
 
         var engQuery = _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .Include(e => e.Session)
             .AsQueryable();
 
         if (from.HasValue)
@@ -47,7 +55,7 @@ public class DashboardController : ControllerBase
         var totalMissed = totalExpected - totalCompleted;
         var completionRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
 
-        return Ok(new
+        var result = new
         {
             totalStaff,
             totalSessions,
@@ -56,7 +64,10 @@ public class DashboardController : ControllerBase
             totalCompleted,
             totalMissed,
             completionRate
-        });
+        };
+
+        _cache.Set(cacheKey, result, TimeSpan.FromSeconds(60));
+        return Ok(result);
     }
 
     // GET /api/dashboard/monthly  — monthly engagement trend

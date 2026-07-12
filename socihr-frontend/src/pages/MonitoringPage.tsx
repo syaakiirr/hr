@@ -1,11 +1,23 @@
 import { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
+import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
   getSessions, getPlatforms, getCompanies, createSession, deleteSession, archiveSession,
   getEngagements, updateEngagementAction, updateEngagementReason, bulkUpdateEngagementStatus,
+  updatePostLink,
   type MonitoringSession, type Platform, type Engagement, type Company
 } from "../services/api";
+
+// Simple debounce hook
+function useDebounce<T>(value: T, delay: number): T {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
 
 const CREATE_PLATFORMS = ["Instagram", "Facebook", "TikTok"];
 const PLATFORM_COLORS: Record<string, string> = {
@@ -82,6 +94,25 @@ export default function MonitoringPage() {
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
+  // Post links per platformID (same URL per platform across all companies)
+  const [postLinks, setPostLinks] = useState<Record<string, string>>({});
+
+  // Inline post link editor state
+  const [editingPostLink, setEditingPostLink] = useState<{ postID: string; platformName: string; companyName: string; current: string } | null>(null);
+  const [editLinkValue, setEditLinkValue] = useState("");
+  const [savingLink, setSavingLink] = useState(false);
+
+  // Confirmation dialog (replaces native confirm/alert)
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+    isLoading?: boolean;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+
+  // Debounced filter for name (avoids re-render on every keystroke)
+  const debouncedFilterName = useDebounce(filterName, 300);
 
   useEffect(() => {
     Promise.all([getSessions(), getPlatforms(), getCompanies()])
@@ -96,6 +127,7 @@ export default function MonitoringPage() {
     // Default: select ALL companies
     setSelectedCompanies(new Set(companies.map((c) => c.companyID)));
     setSelectedPlatforms(new Set());
+    setPostLinks({});
     setShowCreate(true);
   }
 
@@ -105,7 +137,7 @@ export default function MonitoringPage() {
     try {
       const posts = platforms
         .filter((p) => selectedPlatforms.has(p.platformID))
-        .map((p) => ({ platformID: p.platformID, postLink: "" }));
+        .map((p) => ({ platformID: p.platformID, postLink: postLinks[p.platformID] || "" }));
 
       if (posts.length === 0) { alert("Please select at least one platform."); return; }
       if (selectedCompanies.size === 0) { alert("Please select at least one company."); return; }
@@ -118,6 +150,7 @@ export default function MonitoringPage() {
       setShowCreate(false);
       setSelectedPlatforms(new Set());
       setSelectedCompanies(new Set());
+      setPostLinks({});
       const updated = await getSessions();
       setSessions(updated);
     } catch (err: unknown) {
@@ -199,32 +232,49 @@ export default function MonitoringPage() {
   }
 
   async function handleDeleteSession(id: string) {
-    if (!confirm("Are you sure you want to delete this session?")) return;
-    try {
-      await deleteSession(id);
-      setSessions((prev) => prev.filter((s) => s.sessionID !== id));
-      if (selectedSession?.sessionID === id) {
-        setSelectedSession(null);
-        setSelectedEngagements(new Set());
+    setConfirmDialog({
+      isOpen: true,
+      title: "Padam Session",
+      message: "Adakah anda pasti mahu memadam session ini? Tindakan ini tidak boleh dibatalkan.",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          await deleteSession(id);
+          setSessions((prev) => prev.filter((s) => s.sessionID !== id));
+          if (selectedSession?.sessionID === id) {
+            setSelectedSession(null);
+            setSelectedEngagements(new Set());
+          }
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "An error occurred.");
+        } finally {
+          setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+        }
       }
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "An error occurred.");
-    }
+    });
   }
 
   async function handleArchiveSession(id: string) {
-    if (!confirm("Archive this session? This can be restored later from the Archive page.")) return;
-    try {
-      await archiveSession(id);
-      alert("Session archived successfully");
-      setSessions((prev) => prev.filter((s) => s.sessionID !== id));
-      if (selectedSession?.sessionID === id) {
-        setSelectedSession(null);
-        setSelectedEngagements(new Set());
+    setConfirmDialog({
+      isOpen: true,
+      title: "Archive Session",
+      message: "Archive session ini? Ia boleh dipulihkan kemudian dari halaman Archive.",
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          await archiveSession(id);
+          setSessions((prev) => prev.filter((s) => s.sessionID !== id));
+          if (selectedSession?.sessionID === id) {
+            setSelectedSession(null);
+            setSelectedEngagements(new Set());
+          }
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "An error occurred.");
+        } finally {
+          setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+        }
       }
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "An error occurred.");
-    }
+    });
   }
 
   function toggleSelectAll() {
@@ -241,22 +291,29 @@ export default function MonitoringPage() {
       alert("Please select at least one engagement.");
       return;
     }
-    if (!confirm(`Update ${selectedEngagements.size} engagement(s) to "${status}"?`)) return;
-    setBulkUpdating(true);
-    try {
-      const engagementIDs = Array.from(selectedEngagements);
-      await bulkUpdateEngagementStatus(engagementIDs, status);
-      setEngagements((prev) =>
-        prev.map((e) => selectedEngagements.has(e.engagementID) ? { ...e, status } : e)
-      );
-      setSelectedEngagements(new Set());
-      alert(`Successfully updated ${engagementIDs.length} engagement(s)!`);
-    } catch (err) {
-      console.error(err);
-      alert("Failed to update engagements. Please try again.");
-    } finally {
-      setBulkUpdating(false);
-    }
+    setConfirmDialog({
+      isOpen: true,
+      title: `Update ke "${status}"`,
+      message: `Update ${selectedEngagements.size} engagement(s) kepada "${status}"?`,
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        setBulkUpdating(true);
+        try {
+          const engagementIDs = Array.from(selectedEngagements);
+          await bulkUpdateEngagementStatus(engagementIDs, status);
+          setEngagements((prev) =>
+            prev.map((e) => selectedEngagements.has(e.engagementID) ? { ...e, status } : e)
+          );
+          setSelectedEngagements(new Set());
+        } catch (err) {
+          console.error(err);
+          alert("Failed to update engagements. Please try again.");
+        } finally {
+          setBulkUpdating(false);
+          setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+        }
+      }
+    });
   }
 
   // Type definition for staff row
@@ -284,15 +341,16 @@ export default function MonitoringPage() {
     return { allStaffRows: allRows, sessionDepts: depts, sessionCompanies: companies };
   }, [engagements]);
 
-  // Filtered rows (memoized)
+  // Filtered rows (memoized) — use debounced name filter
   const staffRows = useMemo(() => {
     return allStaffRows.filter((row: StaffRow) => {
-      const nameOk = !filterName || row.staffName.toLowerCase().includes(filterName.toLowerCase());
+      const nameOk = !debouncedFilterName || row.staffName.toLowerCase().includes(debouncedFilterName.toLowerCase());
       const deptOk = !filterDept || row.department === filterDept;
       const compOk = !filterCompany || row.engagements.some((e: Engagement) => e.companyID === filterCompany);
       return nameOk && deptOk && compOk;
     });
-  }, [allStaffRows, filterName, filterDept, filterCompany]);
+  }, [allStaffRows, debouncedFilterName, filterDept, filterCompany]);
+  
   
   // Calculate total ticks for stat chips
   const totalTicks = useMemo(() => {
@@ -417,10 +475,41 @@ export default function MonitoringPage() {
       }
     };
     syncWidth();
-    // Also sync on window resize
+    // Also sync on window resize and filter changes
     window.addEventListener('resize', syncWidth);
     return () => window.removeEventListener('resize', syncWidth);
-  }, [engagements, staffRows]);
+  }, [engagements, staffRows, filterCompany]);
+
+  // ── Inline post link editor functions ──
+  async function saveEditPostLink() {
+    if (!editingPostLink) return;
+    setSavingLink(true);
+    try {
+      await updatePostLink(editingPostLink.postID, editLinkValue);
+      // Update local session post links
+      setSessions(prev => prev.map(s => {
+        if (s.sessionID !== selectedSession?.sessionID) return s;
+        return {
+          ...s,
+          posts: s.posts.map(p =>
+            p.postID === editingPostLink.postID ? { ...p, postLink: editLinkValue } : p
+          )
+        };
+      }));
+      // Also update selectedSession
+      setSelectedSession(prev => prev ? {
+        ...prev,
+        posts: prev.posts.map(p =>
+          p.postID === editingPostLink.postID ? { ...p, postLink: editLinkValue } : p
+        )
+      } : prev);
+      setEditingPostLink(null);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setSavingLink(false);
+    }
+  }
 
   return (
     <Layout>
@@ -552,6 +641,19 @@ export default function MonitoringPage() {
           background: #f5f3ff !important;
         }
 
+        /* Post Link Editor */
+        .postlink-panel { background: var(--white); border: 1.5px solid var(--line); border-radius: 12px; padding: 12px 16px; box-shadow: 0 2px 8px rgba(15,23,42,0.04); }
+        .postlink-panel-hd { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); margin-bottom: 10px; display: flex; align-items: center; gap: 6px; }
+        .postlink-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+        .postlink-item { display: flex; align-items: center; gap: 8px; padding: 7px 10px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface-2); flex: 1; min-width: 220px; }
+        .postlink-plat { font-size: 10px; font-weight: 700; white-space: nowrap; }
+        .postlink-inp { flex: 1; height: 26px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: 6px; font-size: 11.5px; background: var(--white); color: var(--text-1); outline: none; font-family: inherit; transition: border-color 0.15s; min-width: 0; }
+        .postlink-inp:focus { border-color: var(--accent); }
+        .postlink-save { height: 26px; padding: 0 10px; background: var(--accent); color: white; border: none; border-radius: 6px; font-size: 11px; font-weight: 700; cursor: pointer; white-space: nowrap; font-family: inherit; transition: opacity 0.15s; }
+        .postlink-save:disabled { opacity: 0.5; cursor: not-allowed; }
+        .postlink-link { font-size: 10.5px; color: var(--accent); text-decoration: none; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 120px; }
+        .postlink-empty { font-size: 11px; color: var(--text-4); font-style: italic; }
+
         @media (max-width: 700px) { .sesh-item { min-width: 130px; } }
       `}</style>
 
@@ -631,6 +733,64 @@ export default function MonitoringPage() {
             )}
           </div>
         </div>
+
+        {/* ── Post Link Panel (shown when session selected) ── */}
+        {selectedSession && (
+          <div className="postlink-panel">
+            <div className="postlink-panel-hd">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+              Post Links
+              <span style={{ fontWeight: 400, color: "var(--text-4)", textTransform: "none", letterSpacing: 0 }}>— Klik Save untuk kemaskini URL post</span>
+            </div>
+            <div className="postlink-grid">
+              {selectedSession.posts.map(p => {
+                const isEditing = editingPostLink?.postID === p.postID;
+                const platColor = PLATFORM_COLORS[p.platformName] || "var(--accent)";
+                return (
+                  <div key={p.postID} className="postlink-item" style={{ borderColor: isEditing ? platColor : undefined }}>
+                    <span className="postlink-plat" style={{ color: platColor }}>
+                      {p.platformName}
+                      {p.companyName && p.companyName !== "No Company" && (
+                        <span style={{ color: "var(--text-4)", fontWeight: 400 }}> · {p.companyName}</span>
+                      )}
+                    </span>
+                    {isEditing ? (
+                      <>
+                        <input
+                          className="postlink-inp"
+                          type="url"
+                          placeholder="https://..."
+                          value={editLinkValue}
+                          onChange={e => setEditLinkValue(e.target.value)}
+                          autoFocus
+                          onKeyDown={e => { if (e.key === "Enter") saveEditPostLink(); if (e.key === "Escape") setEditingPostLink(null); }}
+                        />
+                        <button className="postlink-save" onClick={saveEditPostLink} disabled={savingLink}>
+                          {savingLink ? "..." : "Save"}
+                        </button>
+                        <button onClick={() => setEditingPostLink(null)} style={{ background: "none", border: "none", cursor: "pointer", color: "var(--text-3)", fontSize: 12, padding: "0 4px", fontFamily: "inherit" }}>✕</button>
+                      </>
+                    ) : (
+                      <>
+                        {p.postLink ? (
+                          <a href={p.postLink} target="_blank" rel="noreferrer" className="postlink-link" title={p.postLink}>🔗 {p.postLink}</a>
+                        ) : (
+                          <span className="postlink-empty">Tiada URL</span>
+                        )}
+                        <button
+                          onClick={() => { setEditingPostLink({ postID: p.postID, platformName: p.platformName, companyName: p.companyName || "", current: p.postLink }); setEditLinkValue(p.postLink); }}
+                          style={{ background: "none", border: "1.5px solid var(--line)", borderRadius: 5, cursor: "pointer", fontSize: 10, color: "var(--text-3)", padding: "2px 7px", fontFamily: "inherit", whiteSpace: "nowrap", transition: "all 0.15s" }}
+                          onMouseOver={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = platColor; (e.currentTarget as HTMLButtonElement).style.color = platColor; }}
+                          onMouseOut={e => { (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--line)"; (e.currentTarget as HTMLButtonElement).style.color = "var(--text-3)"; }}
+                        >✏️ Edit</button>
+                      </>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* ── Main Content (Full Width) ── */}
         <div className="mon-grid">
@@ -1100,6 +1260,29 @@ export default function MonitoringPage() {
                   </p>
                 </div>
 
+                {/* Post Links per Platform */}
+                {selectedPlatforms.size > 0 && (
+                  <div>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Post URLs (Pilihan)</p>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                      {platforms.filter(p => selectedPlatforms.has(p.platformID)).map(p => (
+                        <div key={p.platformID} style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                          <span style={{ fontSize: 11, fontWeight: 700, color: PLATFORM_COLORS[p.platformName] || "var(--accent)", width: 76, flexShrink: 0 }}>{p.platformName}</span>
+                          <input
+                            className="input"
+                            type="url"
+                            placeholder={`URL post ${p.platformName} (optional)`}
+                            value={postLinks[p.platformID] || ""}
+                            onChange={e => setPostLinks(prev => ({ ...prev, [p.platformID]: e.target.value }))}
+                            style={{ height: 34, fontSize: 12 }}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                    <p style={{ fontSize: 11, color: "var(--text-4)", marginTop: 6, fontStyle: "italic" }}>* URL yang sama akan digunakan untuk semua syarikat dalam platform ini. Boleh kemaskini kemudian.</p>
+                  </div>
+                )}
+
                 {/* Summary */}
                 <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, padding: "10px 14px" }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 4 }}>Session Summary</p>
@@ -1156,6 +1339,16 @@ export default function MonitoringPage() {
           </div>
         </div>
       )}
+
+      {/* ── Confirmation Dialog (replaces native confirm/alert) ── */}
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+        isLoading={confirmDialog.isLoading}
+      />
     </Layout>
   );
 }
