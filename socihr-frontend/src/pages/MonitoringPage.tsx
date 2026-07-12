@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useLayoutEffect } from "react";
+import { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import {
@@ -226,34 +226,40 @@ export default function MonitoringPage() {
     }
   }
 
-  // Group engagements by staff
-  const staffMap = new Map<string, { staffID: string; staffName: string; department: string; engagements: Engagement[] }>();
-  engagements.forEach((eng) => {
-    if (!staffMap.has(eng.staffID)) {
-      staffMap.set(eng.staffID, {
-        staffID: eng.staffID,
-        staffName: eng.staffName,
-        department: eng.department,
-        engagements: []
-      });
-    }
-    staffMap.get(eng.staffID)!.engagements.push(eng);
-  });
-  const allStaffRows = Array.from(staffMap.values()).sort((a, b) => a.staffName.localeCompare(b.staffName));
+  // Type definition for staff row
+  type StaffRow = { staffID: string; staffName: string; department: string; engagements: Engagement[] };
 
-  // Unique departments and companies from current session
-  const sessionDepts = Array.from(new Set(allStaffRows.map(r => r.department).filter(Boolean)));
-  const sessionCompanies = Array.from(
-    new Map(engagements.filter(e => e.companyID).map(e => [e.companyID, e.companyName ?? "No Company"])).entries()
-  ).map(([id, name]) => ({ id, name }));
+  // Group engagements by staff (memoized)
+  const { allStaffRows, sessionDepts, sessionCompanies } = useMemo(() => {
+    const staffMap = new Map<string, StaffRow>();
+    engagements.forEach((eng) => {
+      if (!staffMap.has(eng.staffID)) {
+        staffMap.set(eng.staffID, {
+          staffID: eng.staffID,
+          staffName: eng.staffName,
+          department: eng.department,
+          engagements: []
+        });
+      }
+      staffMap.get(eng.staffID)!.engagements.push(eng);
+    });
+    const allRows: StaffRow[] = Array.from(staffMap.values()).sort((a, b) => a.staffName.localeCompare(b.staffName));
+    const depts: string[] = Array.from(new Set(allRows.map((r: StaffRow) => r.department).filter(Boolean)));
+    const companies: { id: string; name: string }[] = Array.from(
+      new Map(engagements.filter((e: Engagement) => e.companyID).map((e: Engagement) => [e.companyID!, e.companyName ?? "No Company"]))
+    ).map(([id, name]) => ({ id, name }));
+    return { allStaffRows: allRows, sessionDepts: depts, sessionCompanies: companies };
+  }, [engagements]);
 
-  // Filtered rows
-  const staffRows = allStaffRows.filter(row => {
-    const nameOk = !filterName || row.staffName.toLowerCase().includes(filterName.toLowerCase());
-    const deptOk = !filterDept || row.department === filterDept;
-    const compOk = !filterCompany || row.engagements.some(e => e.companyID === filterCompany);
-    return nameOk && deptOk && compOk;
-  });
+  // Filtered rows (memoized)
+  const staffRows = useMemo(() => {
+    return allStaffRows.filter((row: StaffRow) => {
+      const nameOk = !filterName || row.staffName.toLowerCase().includes(filterName.toLowerCase());
+      const deptOk = !filterDept || row.department === filterDept;
+      const compOk = !filterCompany || row.engagements.some((e: Engagement) => e.companyID === filterCompany);
+      return nameOk && deptOk && compOk;
+    });
+  }, [allStaffRows, filterName, filterDept, filterCompany]);
 
   // ── Wizard step label helper ──
   const stepLabels = ["Date", "Company", "Platform"];
