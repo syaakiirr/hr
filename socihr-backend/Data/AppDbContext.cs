@@ -25,7 +25,7 @@ public class AppDbContext : DbContext
             e.ToTable("Staff");
             e.HasKey(x => x.StaffID);
             e.Property(x => x.StaffID).HasColumnName("StaffID");
-            e.Property(x => x.FullName).HasColumnName("FullName");
+            e.Property(x => x.FullName).HasColumnName("Fullname");
             e.Property(x => x.Department).HasColumnName("Department");
             e.Property(x => x.Position).HasColumnName("Position");
             e.Property(x => x.Status).HasColumnName("Status");
