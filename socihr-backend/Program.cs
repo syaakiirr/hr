@@ -166,9 +166,7 @@ async Task SeedAdminUserAsync(WebApplication app, string[] args)
         }
         else
         {
-            admin.PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin");
-            await db.SaveChangesAsync();
-            Console.WriteLine("🔑 Admin password reset to 'admin'!");
+            Console.WriteLine("ℹ️ Admin user already exists, skipping password reset.");
         }
         
         // Seed dummy data if --seed is provided
