@@ -595,11 +595,11 @@ export default function MonitoringPage() {
                       const coID = p.companyID ?? "";
                       const coName = (p.companyName || "No Company").trim();
                       const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] =
-                        plat === "Facebook"
+                        plat.toLowerCase() === "facebook"
                           ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
-                        : plat === "Instagram"
+                          : plat.toLowerCase() === "instagram"
                           ? [{ key: "like", label: "Like", icon: "❤️" }, { key: "comment", label: "Komen", icon: "💬" }]
-                        : plat === "TikTok"
+                          : plat.toLowerCase() === "tiktok"
                           ? [{ key: "comment", label: "Komen", icon: "💬" }]
                           : [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }];
 
