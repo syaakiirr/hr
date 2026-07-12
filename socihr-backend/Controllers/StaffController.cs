@@ -129,6 +129,7 @@ public class StaffController : ControllerBase
                 var totalCompleted = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
                 var totalExpected = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
                 var totalMissed = totalExpected - totalCompleted;
+                var totalPosts = staffEngs.Select(e => e.PostID).Distinct().Count();
                 var completionRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
                 
                 return new
@@ -138,6 +139,7 @@ public class StaffController : ControllerBase
                     s.Department,
                     s.Position,
                     s.Status,
+                    TotalPosts = totalPosts,
                     TotalEngagements = totalExpected,
                     TotalCompleted = totalCompleted,
                     TotalMissed = totalMissed,

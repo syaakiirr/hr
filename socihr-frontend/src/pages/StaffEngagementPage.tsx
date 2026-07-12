@@ -240,7 +240,7 @@ export default function StaffEngagementPage() {
                     </span>
                   </td>
                   <td style={{ textAlign: "center", fontWeight: 600, fontSize: 15 }}>
-                    {stat.totalEngagements}
+                    {stat.totalPosts}
                   </td>
                   <td style={{ textAlign: "center" }}>
                     <span style={{ 

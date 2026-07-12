@@ -70,6 +70,7 @@ export interface StaffEngagementStats {
   department: string;
   position?: string;
   status: string;
+  totalPosts: number;
   totalEngagements: number;
   totalCompleted: number;
   totalMissed: number;
