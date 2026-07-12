@@ -93,8 +93,6 @@ export default function MonitoringPage() {
   const [sessionDate, setSessionDate] = useState(new Date().toISOString().split("T")[0]);
   const [selectedCompanies, setSelectedCompanies] = useState<Set<string>>(new Set());
   const [selectedPlatforms, setSelectedPlatforms] = useState<Set<string>>(new Set());
-  // Post links per platformID (same URL per platform across all companies)
-  const [postLinks, setPostLinks] = useState<Record<string, string>>({});
 
   // Confirmation dialog (replaces native confirm/alert)
   const [confirmDialog, setConfirmDialog] = useState<{
@@ -121,7 +119,6 @@ export default function MonitoringPage() {
     // Default: select ALL companies
     setSelectedCompanies(new Set(companies.map((c) => c.companyID)));
     setSelectedPlatforms(new Set());
-    setPostLinks({});
     setShowCreate(true);
   }
 
@@ -131,7 +128,7 @@ export default function MonitoringPage() {
     try {
       const posts = platforms
         .filter((p) => selectedPlatforms.has(p.platformID))
-        .map((p) => ({ platformID: p.platformID, postLink: postLinks[p.platformID] || "" }));
+        .map((p) => ({ platformID: p.platformID, postLink: "" }));
 
       if (posts.length === 0) { alert("Please select at least one platform."); return; }
       if (selectedCompanies.size === 0) { alert("Please select at least one company."); return; }
@@ -144,7 +141,6 @@ export default function MonitoringPage() {
       setShowCreate(false);
       setSelectedPlatforms(new Set());
       setSelectedCompanies(new Set());
-      setPostLinks({});
       const updated = await getSessions();
       setSessions(updated);
     } catch (err: unknown) {
@@ -1151,29 +1147,6 @@ export default function MonitoringPage() {
                     * Select which platforms are active for this session.
                   </p>
                 </div>
-
-                {/* Post Links per Platform */}
-                {selectedPlatforms.size > 0 && (
-                  <div>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 8 }}>Post URLs (Pilihan)</p>
-                    <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                      {platforms.filter(p => selectedPlatforms.has(p.platformID)).map(p => (
-                        <div key={p.platformID} style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                          <span style={{ fontSize: 11, fontWeight: 700, color: PLATFORM_COLORS[p.platformName] || "var(--accent)", width: 76, flexShrink: 0 }}>{p.platformName}</span>
-                          <input
-                            className="input"
-                            type="url"
-                            placeholder={`URL post ${p.platformName} (optional)`}
-                            value={postLinks[p.platformID] || ""}
-                            onChange={e => setPostLinks(prev => ({ ...prev, [p.platformID]: e.target.value }))}
-                            style={{ height: 34, fontSize: 12 }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                    <p style={{ fontSize: 11, color: "var(--text-4)", marginTop: 6, fontStyle: "italic" }}>* URL yang sama akan digunakan untuk semua syarikat dalam platform ini. Boleh kemaskini kemudian.</p>
-                  </div>
-                )}
 
                 {/* Summary */}
                 <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, padding: "10px 14px" }}>
