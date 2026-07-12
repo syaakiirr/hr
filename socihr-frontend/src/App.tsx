@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "./components/PageTransition";
 import LoginTransition from "./components/LoginTransition";
-import { DarkModeProvider } from "./contexts/DarkModeContext";
+
 
 const LoginPage           = lazy(() => import("./pages/LoginPage"));
 const DashboardPage       = lazy(() => import("./pages/DashboardPage"));
@@ -131,11 +131,9 @@ function AppContent() {
 
 function App() {
   return (
-    <DarkModeProvider>
-      <BrowserRouter>
-        <AppContent />
-      </BrowserRouter>
-    </DarkModeProvider>
+    <BrowserRouter>
+      <AppContent />
+    </BrowserRouter>
   );
 }
 
