@@ -87,6 +87,7 @@ builder.Services.AddCors(options =>
     {
         policy.WithOrigins(
                 "https://soci-hr.onrender.com",
+                "https://socihr.onrender.com",
                 "https://syaakiirr.onrender.com",
                 "http://localhost:5173",
                 "http://localhost:3000"
