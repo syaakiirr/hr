@@ -117,24 +117,30 @@ export default function MonitoringPage() {
 
 
   async function handleAction(eng: Engagement, action: "like" | "comment" | "share", value: boolean) {
-    // Optimistic update
-    setEngagements((prev) => prev.map((e) =>
-      e.engagementID === eng.engagementID
-        ? { ...e,
-            isLiked: action === "like" ? value : e.isLiked,
-            isCommented: action === "comment" ? value : e.isCommented,
-            isShared: action === "share" ? value : e.isShared,
-          }
-        : e
-    ));
+    // Optimistic update: calculate new status as well
+    setEngagements((prev) => prev.map((e) => {
+      if (e.engagementID !== eng.engagementID) return e;
+      
+      const newEngagement = {
+        ...e,
+        isLiked: action === "like" ? value : e.isLiked,
+        isCommented: action === "comment" ? value : e.isCommented,
+        isShared: action === "share" ? value : e.isShared,
+      };
+      
+      // Auto-calculate status
+      const platform = e.platformName.toLowerCase();
+      const completed = 
+        platform === "tiktok" ? newEngagement.isCommented : 
+        (newEngagement.isLiked && newEngagement.isCommented);
+      
+      newEngagement.status = completed ? "Completed" : "Missed";
+      
+      return newEngagement;
+    }));
+    
     try {
-      const res = await updateEngagementAction(eng.engagementID, action, value);
-      // Sync with server response (includes computed status)
-      setEngagements((prev) => prev.map((e) =>
-        e.engagementID === eng.engagementID
-          ? { ...e, status: res.status, isLiked: res.isLiked, isCommented: res.isCommented, isShared: res.isShared }
-          : e
-      ));
+      await updateEngagementAction(eng.engagementID, action, value);
     } catch (err) {
       // Don't revert — keep optimistic state. Server didn't save, but UI stays consistent.
       // Next page load will fetch ground-truth from server.
@@ -260,6 +266,90 @@ export default function MonitoringPage() {
       return nameOk && deptOk && compOk;
     });
   }, [allStaffRows, filterName, filterDept, filterCompany]);
+
+  // Memoized table columns and groups
+  const tableData = useMemo(() => {
+    if (!selectedSession) {
+      return { actionCols: [], coGroups: [], platGroups: [], coEndIndices: new Set() };
+    }
+
+    // Build column list with company info — one column per post+action
+    const actionCols: {
+      postID: string; platformName: string; companyID: string; companyName: string;
+      actionKey: "like" | "comment" | "share";
+      label: string; icon: string; disabled?: boolean;
+    }[] = [];
+
+    // Sort posts: group by company, then by platform order (FB → IG → TT)
+    const platformOrder: Record<string, number> = { Facebook: 0, Instagram: 1, TikTok: 2 };
+    let sortedPosts = [...selectedSession.posts].sort((a, b) => {
+      const coA = (a.companyName || "").trim().toLowerCase();
+      const coB = (b.companyName || "").trim().toLowerCase();
+      if (coA !== coB) return coA.localeCompare(coB);
+      return (platformOrder[a.platformName] ?? 99) - (platformOrder[b.platformName] ?? 99);
+    });
+    
+    // Filter posts by selected company if filter is set
+    if (filterCompany) {
+      sortedPosts = sortedPosts.filter(p => p.companyID === filterCompany);
+    }
+
+    sortedPosts.forEach((p) => {
+      const plat = p.platformName;
+      const coID = p.companyID ?? "";
+      const coName = (p.companyName || "No Company").trim();
+      const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] =
+        plat.toLowerCase() === "facebook"
+          ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
+          : plat.toLowerCase() === "instagram"
+          ? [{ key: "like", label: "Like", icon: "❤️" }, { key: "comment", label: "Komen", icon: "💬" }]
+          : plat.toLowerCase() === "tiktok"
+          ? [{ key: "comment", label: "Komen", icon: "💬" }]
+          : [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }];
+
+      acts.forEach((a) =>
+        actionCols.push({ ...a, postID: p.postID, platformName: plat, companyID: coID, companyName: coName, actionKey: a.key, label: a.label, icon: a.icon, disabled: a.disabled })
+      );
+    });
+
+    // Group columns by company name (not ID) to avoid duplicates
+    const coGroups: { companyID: string; name: string; color: string; span: number }[] = [];
+    actionCols.forEach((col) => {
+      const last = coGroups[coGroups.length - 1];
+      if (last && last.name === col.companyName) {
+        last.span++;
+      } else {
+        const idx = companies.findIndex(c => c.companyName === col.companyName);
+        coGroups.push({
+          companyID: col.companyID,
+          name: col.companyName,
+          color: idx >= 0 ? COMPANY_COLORS[idx % COMPANY_COLORS.length] : "#6b7280",
+          span: 1
+        });
+      }
+    });
+
+    // Group columns by platform for the middle header row
+    const platGroups: { platformName: string; color: string; span: number }[] = [];
+    actionCols.forEach((col) => {
+      const last = platGroups[platGroups.length - 1];
+      if (last && last.platformName === col.platformName) {
+        last.span++;
+      } else {
+        platGroups.push({
+          platformName: col.platformName,
+          color: PLATFORM_COLORS[col.platformName] || "var(--accent)",
+          span: 1
+        });
+      }
+    });
+
+    const coEndIndices = new Set<number>();
+    let cumSpan = 0;
+    coGroups.forEach((cg) => { cumSpan += cg.span; coEndIndices.add(cumSpan - 1); });
+
+    return { actionCols, coGroups, platGroups, coEndIndices };
+  }, [selectedSession, filterCompany, companies]);
 
   // ── Wizard step label helper ──
   const stepLabels = ["Date", "Company", "Platform"];
@@ -580,77 +670,8 @@ export default function MonitoringPage() {
                   </div>
                 ) : (
                   (() => {
-                    // Build column list with company info — one column per post+action
-                    const actionCols: {
-                      postID: string; platformName: string; companyID: string; companyName: string;
-                      actionKey: "like" | "comment" | "share";
-                      label: string; icon: string; disabled?: boolean;
-                    }[] = [];
-
-                    // Sort posts: group by company, then by platform order (FB → IG → TT)
-                    const platformOrder: Record<string, number> = { Facebook: 0, Instagram: 1, TikTok: 2 };
-                    let sortedPosts = [...selectedSession.posts].sort((a, b) => {
-                      const coA = (a.companyName || "").trim().toLowerCase();
-                      const coB = (b.companyName || "").trim().toLowerCase();
-                      if (coA !== coB) return coA.localeCompare(coB);
-                      return (platformOrder[a.platformName] ?? 99) - (platformOrder[b.platformName] ?? 99);
-                    });
+                    const { actionCols, coGroups, platGroups, coEndIndices } = tableData;
                     
-                    // Filter posts by selected company if filter is set
-                    if (filterCompany) {
-                      sortedPosts = sortedPosts.filter(p => p.companyID === filterCompany);
-                    }
-
-                    sortedPosts.forEach((p) => {
-                      const plat = p.platformName;
-                      const coID = p.companyID ?? "";
-                      const coName = (p.companyName || "No Company").trim();
-                      const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] =
-                        plat.toLowerCase() === "facebook"
-                          ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
-                          : plat.toLowerCase() === "instagram"
-                          ? [{ key: "like", label: "Like", icon: "❤️" }, { key: "comment", label: "Komen", icon: "💬" }]
-                          : plat.toLowerCase() === "tiktok"
-                          ? [{ key: "comment", label: "Komen", icon: "💬" }]
-                          : [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }];
-
-                      acts.forEach((a) =>
-                        actionCols.push({ ...a, postID: p.postID, platformName: plat, companyID: coID, companyName: coName, actionKey: a.key, label: a.label, icon: a.icon, disabled: a.disabled })
-                      );
-                    });
-
-                    // Group columns by company name (not ID) to avoid duplicates
-                    const coGroups: { companyID: string; name: string; color: string; span: number }[] = [];
-                    actionCols.forEach((col) => {
-                      const last = coGroups[coGroups.length - 1];
-                      if (last && last.name === col.companyName) {
-                        last.span++;
-                      } else {
-                        const idx = companies.findIndex(c => c.companyName === col.companyName);
-                        coGroups.push({
-                          companyID: col.companyID,
-                          name: col.companyName,
-                          color: idx >= 0 ? COMPANY_COLORS[idx % COMPANY_COLORS.length] : "#6b7280",
-                          span: 1
-                        });
-                      }
-                    });
-
-                    // Group columns by platform for the middle header row
-                    const platGroups: { platformName: string; color: string; span: number }[] = [];
-                    actionCols.forEach((col) => {
-                      const last = platGroups[platGroups.length - 1];
-                      if (last && last.platformName === col.platformName) {
-                        last.span++;
-                      } else {
-                        platGroups.push({
-                          platformName: col.platformName,
-                          color: PLATFORM_COLORS[col.platformName] || "var(--accent)",
-                          span: 1
-                        });
-                      }
-                    });
-
                     const thStyle: React.CSSProperties = {
                       padding: "6px 5px", textAlign: "center", fontWeight: 700,
                       fontSize: 11.5, color: "var(--text-2)", whiteSpace: "nowrap"
@@ -658,11 +679,6 @@ export default function MonitoringPage() {
                     const tdStyle: React.CSSProperties = {
                       padding: "6px", textAlign: "center", verticalAlign: "middle"
                     };
-
-                    
-                    const coEndIndices = new Set<number>();
-                    let cumSpan = 0;
-                    coGroups.forEach((cg) => { cumSpan += cg.span; coEndIndices.add(cumSpan - 1); });
                     
                     return (
                       <div style={{ width: "100%" }}>
