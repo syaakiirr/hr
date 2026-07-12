@@ -55,24 +55,34 @@ public class AuthController : ControllerBase
 
             // Check if password is valid (either BCrypt hash or plain text for migration)
             bool isValidPassword;
+            bool isPlainTextPassword = false;
+            
             try
             {
                 isValidPassword = BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash);
             }
+            catch (BCrypt.Net.SaltParseException)
+            {
+                // If salt is invalid (not a BCrypt hash), check plain text
+                isValidPassword = user.PasswordHash == request.Password;
+                isPlainTextPassword = isValidPassword;
+            }
             catch
             {
-                // If BCrypt.Verify fails (e.g., not a valid hash), check plain text
+                // Any other exception, check plain text
                 isValidPassword = user.PasswordHash == request.Password;
+                isPlainTextPassword = isValidPassword;
             }
 
             if (!isValidPassword)
                 return Unauthorized(new { message = "Username atau password salah." });
 
             // If password was plain text, update it to a hash
-            if (!BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash) && user.PasswordHash == request.Password)
+            if (isPlainTextPassword)
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.Password);
                 await _db.SaveChangesAsync();
+                Console.WriteLine("✅ Updated user password to BCrypt hash!");
             }
 
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
