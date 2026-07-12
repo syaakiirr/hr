@@ -453,3 +453,10 @@ C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_proje
 C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\obj\Debug\net8.0\ref\socihr-backend.dll
 C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\obj\Debug\net8.0\socihr-backend.sourcelink.json
 C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\socihr-backend.staticwebassets.runtime.json
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\obj\Debug\net8.0\socihr-backend.MvcApplicationPartsAssemblyInfo.cs
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\AspNetCoreRateLimit.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\BCrypt-Net-Next.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\FluentValidation.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\FluentValidation.AspNetCore.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\FluentValidation.DependencyInjectionExtensions.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\Newtonsoft.Json.dll
