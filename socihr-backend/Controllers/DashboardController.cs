@@ -466,48 +466,16 @@ public class DashboardController : ControllerBase
 
     private async Task<object> GetStaffRankingData(string order, int limit, DateTime? from = null, DateTime? to = null)
     {
-        var query = _db.Engagements
-            .Include(e => e.Staff)
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .AsQueryable();
-
-        if (from.HasValue)
+        var ranking = await StaffRankingHelper.GetRanking(_db, order, limit, from, to);
+        return ranking.Select(d => new
         {
-            var fromDate = DateOnly.FromDateTime(from.Value);
-            query = query.Where(e => e.Session!.SessionDate >= fromDate);
-        }
-        if (to.HasValue)
-        {
-            var toDate = DateOnly.FromDateTime(to.Value);
-            query = query.Where(e => e.Session!.SessionDate <= toDate);
-        }
-
-        var engagements = await query.ToListAsync();
-
-        var data = engagements
-            .GroupBy(e => new { e.StaffID, e.Staff!.FullName, e.Staff.Department })
-            .Select(g =>
-            {
-                var staffEngs = g.ToList();
-                var completed = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
-                var total = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
-                var completionRate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
-                return new
-                {
-                    g.Key.StaffID,
-                    g.Key.FullName,
-                    g.Key.Department,
-                    Completed = completed,
-                    Total = total,
-                    CompletionRate = completionRate
-                };
-            })
-            .ToList();
-
-        if (order == "bottom")
-            return data.OrderBy(d => d.CompletionRate).ThenBy(d => d.Completed).ThenBy(d => d.FullName).Take(limit).ToList();
-        else
-            return data.OrderByDescending(d => d.CompletionRate).ThenByDescending(d => d.Completed).ThenBy(d => d.FullName).Take(limit).ToList();
+            d.StaffID,
+            d.FullName,
+            d.Department,
+            d.Completed,
+            d.Total,
+            d.CompletionRate
+        }).ToList();
     }
 }
 

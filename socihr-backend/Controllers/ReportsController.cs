@@ -29,61 +29,28 @@ public class ReportsController : ControllerBase
     {
         var staffList = await _db.Staff
             .Where(s => !s.IsArchived)
-            .ToListAsync();
+            .ToDictionaryAsync(s => s.StaffID);
 
-        var engQuery = _db.Engagements
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .AsQueryable();
-        if (from.HasValue)
-        {
-            var fromDate = DateOnly.FromDateTime(from.Value);
-            engQuery = engQuery.Where(e => e.Session!.SessionDate >= fromDate);
-        }
-        if (to.HasValue)
-        {
-            var toDate = DateOnly.FromDateTime(to.Value);
-            engQuery = engQuery.Where(e => e.Session!.SessionDate <= toDate);
-        }
+        var ranking = await StaffRankingHelper.GetRanking(_db, "top", null, from, to);
 
-        var engagementsList = await engQuery.ToListAsync();
-
-        var staffPerf = staffList.Select(s =>
+        var staffPerf = ranking.Select((d, idx) =>
         {
-            var staffEngs = engagementsList.Where(e => e.StaffID == s.StaffID).ToList();
-            var completed = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
-            var total = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
-            var missed = total - completed;
-            var rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
-            return new
+            var staff = staffList.TryGetValue(d.StaffID, out var s) ? s : null;
+            var missed = d.Total - d.Completed;
+            return new StaffPerformanceDto
             {
-                s.StaffID,
-                FullName = s.FullName,
-                Department = s.Department ?? "-",
-                Position = s.Position ?? "-",
-                Status = s.Status,
-                Completed = completed,
+                Rank = idx + 1,
+                StaffID = d.StaffID,
+                FullName = d.FullName,
+                Department = d.Department ?? "-",
+                Position = staff?.Position ?? "-",
+                Status = staff?.Status ?? "Active",
+                Completed = d.Completed,
                 Missed = missed,
-                Total = total,
-                CompletionRate = rate
+                Total = d.Total,
+                CompletionRate = d.CompletionRate
             };
-        })
-        .OrderByDescending(d => d.CompletionRate)
-        .ThenByDescending(d => d.Completed)
-        .ThenBy(d => d.FullName)
-        .Select((d, idx) => new StaffPerformanceDto
-        {
-            Rank = idx + 1,
-            StaffID = d.StaffID,
-            FullName = d.FullName,
-            Department = d.Department,
-            Position = d.Position,
-            Status = d.Status,
-            Completed = d.Completed,
-            Missed = d.Missed,
-            Total = d.Total,
-            CompletionRate = d.CompletionRate
-        })
-        .ToList();
+        }).ToList();
 
         var totalCompleted = staffPerf.Sum(s => s.Completed);
         var totalMissed = staffPerf.Sum(s => s.Missed);
@@ -224,61 +191,28 @@ public class ReportsController : ControllerBase
 
         var staffList = await _db.Staff
             .Where(s => !s.IsArchived)
-            .ToListAsync();
+            .ToDictionaryAsync(s => s.StaffID);
 
-        var engQuery = _db.Engagements
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .AsQueryable();
-        if (from.HasValue)
-        {
-            var fromDate = DateOnly.FromDateTime(from.Value);
-            engQuery = engQuery.Where(e => e.Session!.SessionDate >= fromDate);
-        }
-        if (to.HasValue)
-        {
-            var toDate = DateOnly.FromDateTime(to.Value);
-            engQuery = engQuery.Where(e => e.Session!.SessionDate <= toDate);
-        }
+        var ranking = await StaffRankingHelper.GetRanking(_db, "top", null, from, to);
 
-        var engagementsList = await engQuery.ToListAsync();
-
-        var staffPerf = staffList.Select(s =>
+        var staffPerf = ranking.Select((d, idx) =>
         {
-            var staffEngs = engagementsList.Where(e => e.StaffID == s.StaffID).ToList();
-            var completed = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
-            var total = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
-            var missed = total - completed;
-            var rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
-            return new
+            var staff = staffList.TryGetValue(d.StaffID, out var s) ? s : null;
+            var missed = d.Total - d.Completed;
+            return new StaffPerformanceDto
             {
-                s.StaffID,
-                FullName = s.FullName,
-                Department = s.Department ?? "-",
-                Position = s.Position ?? "-",
-                Status = s.Status,
-                Completed = completed,
+                Rank = idx + 1,
+                StaffID = d.StaffID,
+                FullName = d.FullName,
+                Department = d.Department ?? "-",
+                Position = staff?.Position ?? "-",
+                Status = staff?.Status ?? "Active",
+                Completed = d.Completed,
                 Missed = missed,
-                Total = total,
-                CompletionRate = rate
+                Total = d.Total,
+                CompletionRate = d.CompletionRate
             };
-        })
-        .OrderByDescending(d => d.CompletionRate)
-        .ThenByDescending(d => d.Completed)
-        .ThenBy(d => d.FullName)
-        .Select((d, idx) => new StaffPerformanceDto
-        {
-            Rank = idx + 1,
-            StaffID = d.StaffID,
-            FullName = d.FullName,
-            Department = d.Department,
-            Position = d.Position,
-            Status = d.Status,
-            Completed = d.Completed,
-            Missed = d.Missed,
-            Total = d.Total,
-            CompletionRate = d.CompletionRate
-        })
-        .ToList();
+        }).ToList();
 
         var totalCompleted = staffPerf.Sum(s => s.Completed);
         var totalMissed = staffPerf.Sum(s => s.Missed);
