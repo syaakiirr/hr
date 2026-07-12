@@ -480,9 +480,9 @@ export default function DashboardPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 24 }}>
                 <KpiCard label="Total Staff" value={kpi.totalStaff} colorClass="kpi-indigo" />
                 <KpiCard label="Total Sessions" value={kpi.totalSessions} colorClass="kpi-blue" />
-                <KpiCard label="Expected Posts" value={kpi.totalExpected} colorClass="kpi-amber" />
-                <KpiCard label="Completed Posts" value={kpi.totalCompleted} colorClass="kpi-green" />
-                <KpiCard label="Missed Posts" value={kpi.totalMissed} colorClass="kpi-red" />
+                <KpiCard label="Expected Ticks" value={kpi.totalExpected} colorClass="kpi-amber" />
+                  <KpiCard label="Completed Ticks" value={kpi.totalCompleted} colorClass="kpi-green" />
+                  <KpiCard label="Missed Ticks" value={kpi.totalMissed} colorClass="kpi-red" />
                 <KpiCard label="Completion Rate" value={`${kpi.completionRate}%`} colorClass={kpi.completionRate >= 75 ? "kpi-green" : kpi.completionRate >= 50 ? "kpi-amber" : "kpi-red"} />
               </div>
 
