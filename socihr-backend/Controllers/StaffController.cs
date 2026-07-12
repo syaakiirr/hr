@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using socihr_backend.Data;
+using socihr_backend.Helpers;
 using socihr_backend.Models;
 
 namespace socihr_backend.Controllers;
@@ -103,33 +104,48 @@ public class StaffController : ControllerBase
     [HttpGet("engagement-stats")]
     public async Task<IActionResult> GetEngagementStats([FromQuery] string? search, [FromQuery] string? department, [FromQuery] string? status)
     {
-        var query = _db.Staff.AsQueryable();
+        var staffQuery = _db.Staff.AsQueryable();
         
         if (!string.IsNullOrWhiteSpace(search))
-            query = query.Where(s => s.FullName.ToLower().Contains(search.ToLower()));
+            staffQuery = staffQuery.Where(s => s.FullName.ToLower().Contains(search.ToLower()));
         if (!string.IsNullOrWhiteSpace(department))
-            query = query.Where(s => s.Department == department);
+            staffQuery = staffQuery.Where(s => s.Department == department);
         if (!string.IsNullOrWhiteSpace(status))
-            query = query.Where(s => s.Status == status);
+            staffQuery = staffQuery.Where(s => s.Status == status);
 
-        var stats = await query
-            .Select(s => new
+        var staffList = await staffQuery.ToListAsync();
+        
+        // Get all relevant engagements with necessary includes
+        var staffIds = staffList.Select(s => s.StaffID).ToList();
+        var allEngagements = await _db.Engagements
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .Where(e => staffIds.Contains(e.StaffID))
+            .ToListAsync();
+
+        var stats = staffList
+            .Select(s =>
             {
-                s.StaffID,
-                s.FullName,
-                s.Department,
-                s.Position,
-                s.Status,
-                TotalEngagements = _db.Engagements.Count(e => e.StaffID == s.StaffID && (e.Status == "Completed" || e.Status == "Missed")),
-                TotalCompleted = _db.Engagements.Count(e => e.StaffID == s.StaffID && e.Status == "Completed"),
-                TotalMissed = _db.Engagements.Count(e => e.StaffID == s.StaffID && e.Status == "Missed"),
-                CompletionRate = _db.Engagements.Count(e => e.StaffID == s.StaffID && (e.Status == "Completed" || e.Status == "Missed")) > 0
-                    ? Math.Round((double)_db.Engagements.Count(e => e.StaffID == s.StaffID && e.Status == "Completed") 
-                        / _db.Engagements.Count(e => e.StaffID == s.StaffID && (e.Status == "Completed" || e.Status == "Missed")) * 100, 1)
-                    : 0
+                var staffEngs = allEngagements.Where(e => e.StaffID == s.StaffID).ToList();
+                var totalCompleted = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
+                var totalExpected = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
+                var totalMissed = totalExpected - totalCompleted;
+                var completionRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
+                
+                return new
+                {
+                    s.StaffID,
+                    s.FullName,
+                    s.Department,
+                    s.Position,
+                    s.Status,
+                    TotalEngagements = totalExpected,
+                    TotalCompleted = totalCompleted,
+                    TotalMissed = totalMissed,
+                    CompletionRate = completionRate
+                };
             })
             .OrderByDescending(s => s.TotalCompleted)
-            .ToListAsync();
+            .ToList();
 
         return Ok(stats);
     }

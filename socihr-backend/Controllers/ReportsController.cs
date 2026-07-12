@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using socihr_backend.Data;
+using socihr_backend.Helpers;
 using ClosedXML.Excel;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
@@ -30,7 +31,9 @@ public class ReportsController : ControllerBase
             .Where(s => !s.IsArchived)
             .ToListAsync();
 
-        var engQuery = _db.Engagements.AsQueryable();
+        var engQuery = _db.Engagements
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .AsQueryable();
         if (from.HasValue)
         {
             var fromDate = DateOnly.FromDateTime(from.Value);
@@ -47,9 +50,9 @@ public class ReportsController : ControllerBase
         var staffPerf = staffList.Select(s =>
         {
             var staffEngs = engagementsList.Where(e => e.StaffID == s.StaffID).ToList();
-            var completed = staffEngs.Count(e => e.Status == "Completed");
-            var missed = staffEngs.Count(e => e.Status == "Missed");
-            var total = completed + missed;
+            var completed = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
+            var total = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
+            var missed = total - completed;
             var rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
             return new
             {
@@ -223,7 +226,9 @@ public class ReportsController : ControllerBase
             .Where(s => !s.IsArchived)
             .ToListAsync();
 
-        var engQuery = _db.Engagements.AsQueryable();
+        var engQuery = _db.Engagements
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .AsQueryable();
         if (from.HasValue)
         {
             var fromDate = DateOnly.FromDateTime(from.Value);
@@ -240,9 +245,9 @@ public class ReportsController : ControllerBase
         var staffPerf = staffList.Select(s =>
         {
             var staffEngs = engagementsList.Where(e => e.StaffID == s.StaffID).ToList();
-            var completed = staffEngs.Count(e => e.Status == "Completed");
-            var missed = staffEngs.Count(e => e.Status == "Missed");
-            var total = completed + missed;
+            var completed = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
+            var total = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
+            var missed = total - completed;
             var rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
             return new
             {

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using socihr_backend.Data;
+using socihr_backend.Helpers;
 using socihr_backend.Models;
 using System.Text.Json;
 
@@ -23,7 +24,9 @@ public class DashboardController : ControllerBase
         var totalSessions = await _db.MonitoringSessions.CountAsync();
         var totalPlatforms = await _db.Platforms.CountAsync();
 
-        var engQuery = _db.Engagements.AsQueryable();
+        var engQuery = _db.Engagements
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .AsQueryable();
 
         if (from.HasValue)
         {
@@ -36,9 +39,12 @@ public class DashboardController : ControllerBase
             engQuery = engQuery.Where(e => e.Session!.SessionDate <= toDate);
         }
 
-        var totalCompleted = await engQuery.CountAsync(e => e.Status == "Completed");
-        var totalMissed = await engQuery.CountAsync(e => e.Status == "Missed");
-        var totalExpected = totalCompleted + totalMissed;
+        var engagements = await engQuery.ToListAsync();
+
+        // Count ticks at action level: each checkbox = 1 tick
+        var totalCompleted = engagements.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
+        var totalExpected = engagements.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
+        var totalMissed = totalExpected - totalCompleted;
         var completionRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
 
         return Ok(new
@@ -59,19 +65,23 @@ public class DashboardController : ControllerBase
     {
         var y = year ?? DateTime.UtcNow.Year;
 
-        var data = await _db.Engagements
+        var engagements = await _db.Engagements
             .Include(e => e.Session)
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate.Year == y)
+            .ToListAsync();
+
+        var data = engagements
             .GroupBy(e => e.Session!.SessionDate.Month)
             .Select(g => new
             {
                 Month = g.Key,
-                Completed = g.Count(e => e.Status == "Completed"),
-                Missed = g.Count(e => e.Status == "Missed"),
-                Total = g.Count()
+                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Missed = g.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
             })
             .OrderBy(g => g.Month)
-            .ToListAsync();
+            .ToList();
 
         return Ok(data);
     }
@@ -89,6 +99,7 @@ public class DashboardController : ControllerBase
 
         var sessionIds = sessions.Select(s => s.SessionID).ToList();
         var engagements = await _db.Engagements
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => sessionIds.Contains(e.SessionID))
             .ToListAsync();
 
@@ -107,9 +118,9 @@ public class DashboardController : ControllerBase
             return new
             {
                 Week = g.Key,
-                Completed = eng.Count(e => e.Status == "Completed"),
-                Missed = eng.Count(e => e.Status == "Missed"),
-                Total = eng.Count
+                Completed = eng.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Missed = eng.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Total = eng.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
             };
         })
         .OrderBy(g => g.Week)
@@ -122,18 +133,21 @@ public class DashboardController : ControllerBase
     [HttpGet("platform-comparison")]
     public async Task<IActionResult> GetPlatformComparison()
     {
-        var data = await _db.Engagements
+        var engagements = await _db.Engagements
             .Include(e => e.Post)
                 .ThenInclude(p => p!.Platform)
+            .ToListAsync();
+
+        var data = engagements
             .GroupBy(e => e.Post!.Platform!.PlatformName)
             .Select(g => new
             {
                 Platform = g.Key,
-                Completed = g.Count(e => e.Status == "Completed"),
-                Missed = g.Count(e => e.Status == "Missed"),
-                Total = g.Count()
+                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Missed = g.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
             })
-            .ToListAsync();
+            .ToList();
 
         return Ok(data);
     }
@@ -154,18 +168,22 @@ public class DashboardController : ControllerBase
         var startDate = new DateOnly(y, 1, 1);
         var endDate = new DateOnly(y, 12, 31);
 
-        var data = await _db.Engagements
+        var engagements = await _db.Engagements
             .Include(e => e.Session)
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate >= startDate && e.Session.SessionDate <= endDate)
+            .ToListAsync();
+
+        var data = engagements
             .GroupBy(e => e.Session!.SessionDate)
             .Select(g => new
             {
                 Date = g.Key,
-                Completed = g.Count(e => e.Status == "Completed"),
-                Total = g.Count()
+                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
             })
             .OrderBy(g => g.Date)
-            .ToListAsync();
+            .ToList();
 
         return Ok(data);
     }
@@ -181,7 +199,7 @@ public class DashboardController : ControllerBase
 
         // Get all engagements grouped by post's company
         var engagements = await _db.Engagements
-            .Include(e => e.Post)
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Post!.CompanyID != null)
             .ToListAsync();
 
@@ -191,10 +209,10 @@ public class DashboardController : ControllerBase
                 .Where(e => e.Post!.CompanyID == company.CompanyID)
                 .ToList();
 
-            var completed = companyEngagements.Count(e => e.Status == "Completed");
-            var missed = companyEngagements.Count(e => e.Status == "Missed");
-            var total = completed + missed;
-            var rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
+            var completed = companyEngagements.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
+            var expected = companyEngagements.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
+            var missed = expected - completed;
+            var rate = expected > 0 ? Math.Round((double)completed / expected * 100, 1) : 0;
 
             return new
             {
@@ -202,7 +220,7 @@ public class DashboardController : ControllerBase
                 Company = company.CompanyName,
                 Completed = completed,
                 Missed = missed,
-                Total = total,
+                Total = expected,
                 Rate = rate
             };
         }).ToList();
@@ -370,7 +388,9 @@ public class DashboardController : ControllerBase
         var totalSessions = await _db.MonitoringSessions.CountAsync();
         var totalPlatforms = await _db.Platforms.CountAsync();
 
-        var engQuery = _db.Engagements.AsQueryable();
+        var engQuery = _db.Engagements
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .AsQueryable();
 
         if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var from))
         {
@@ -383,9 +403,10 @@ public class DashboardController : ControllerBase
             engQuery = engQuery.Where(e => e.Session!.SessionDate <= toDateOnly);
         }
 
-        var totalCompleted = await engQuery.CountAsync(e => e.Status == "Completed");
-        var totalMissed = await engQuery.CountAsync(e => e.Status == "Missed");
-        var totalExpected = totalCompleted + totalMissed;
+        var engagements = await engQuery.ToListAsync();
+        var totalCompleted = engagements.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
+        var totalExpected = engagements.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
+        var totalMissed = totalExpected - totalCompleted;
         var completionRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
 
         return new
@@ -402,37 +423,43 @@ public class DashboardController : ControllerBase
 
     private async Task<object> GetMonthlyData(int year)
     {
-        var data = await _db.Engagements
+        var engagements = await _db.Engagements
             .Include(e => e.Session)
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate.Year == year)
+            .ToListAsync();
+
+        var data = engagements
             .GroupBy(e => e.Session!.SessionDate.Month)
             .Select(g => new
             {
                 Month = g.Key,
-                Completed = g.Count(e => e.Status == "Completed"),
-                Missed = g.Count(e => e.Status == "Missed"),
-                Total = g.Count()
+                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Missed = g.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
             })
             .OrderBy(g => g.Month)
-            .ToListAsync();
+            .ToList();
 
         return data;
     }
 
     private async Task<object> GetPlatformData()
     {
-        var data = await _db.Engagements
-            .Include(e => e.Post)
-                .ThenInclude(p => p!.Platform)
+        var engagements = await _db.Engagements
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .ToListAsync();
+
+        var data = engagements
             .GroupBy(e => e.Post!.Platform!.PlatformName)
             .Select(g => new
             {
                 Platform = g.Key,
-                Completed = g.Count(e => e.Status == "Completed"),
-                Missed = g.Count(e => e.Status == "Missed"),
-                Total = g.Count()
+                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Missed = g.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
             })
-            .ToListAsync();
+            .ToList();
 
         return data;
     }
@@ -441,6 +468,7 @@ public class DashboardController : ControllerBase
     {
         var query = _db.Engagements
             .Include(e => e.Staff)
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .AsQueryable();
 
         if (from.HasValue)
@@ -454,20 +482,27 @@ public class DashboardController : ControllerBase
             query = query.Where(e => e.Session!.SessionDate <= toDate);
         }
 
-        var data = await query
+        var engagements = await query.ToListAsync();
+
+        var data = engagements
             .GroupBy(e => new { e.StaffID, e.Staff!.FullName, e.Staff.Department })
-            .Select(g => new
+            .Select(g =>
             {
-                g.Key.StaffID,
-                g.Key.FullName,
-                g.Key.Department,
-                Completed = g.Count(e => e.Status == "Completed"),
-                Total = g.Count(e => e.Status == "Completed" || e.Status == "Missed"),
-                CompletionRate = g.Count(e => e.Status == "Completed" || e.Status == "Missed") > 0
-                    ? Math.Round((double)g.Count(e => e.Status == "Completed") / g.Count(e => e.Status == "Completed" || e.Status == "Missed") * 100, 1)
-                    : 0
+                var staffEngs = g.ToList();
+                var completed = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
+                var total = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
+                var completionRate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
+                return new
+                {
+                    g.Key.StaffID,
+                    g.Key.FullName,
+                    g.Key.Department,
+                    Completed = completed,
+                    Total = total,
+                    CompletionRate = completionRate
+                };
             })
-            .ToListAsync();
+            .ToList();
 
         if (order == "bottom")
             return data.OrderBy(d => d.CompletionRate).ThenBy(d => d.Completed).ThenBy(d => d.FullName).Take(limit).ToList();

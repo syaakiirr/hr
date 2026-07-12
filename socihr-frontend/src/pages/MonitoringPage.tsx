@@ -648,7 +648,7 @@ export default function MonitoringPage() {
                       padding: "6px", textAlign: "center", verticalAlign: "middle"
                     };
 
-                    // Indices where each company group ends (for separator lines)
+                    
                     const coEndIndices = new Set<number>();
                     let cumSpan = 0;
                     coGroups.forEach((cg) => { cumSpan += cg.span; coEndIndices.add(cumSpan - 1); });

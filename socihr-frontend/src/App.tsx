@@ -13,7 +13,6 @@ const StaffEngagementPage = lazy(() => import("./pages/StaffEngagementPage"));
 const MonitoringPage      = lazy(() => import("./pages/MonitoringPage"));
 const ReportsPage         = lazy(() => import("./pages/ReportsPage"));
 const AuditPage           = lazy(() => import("./pages/AuditPage"));
-const AIInsightsPage      = lazy(() => import("./pages/AIInsightsPage"));
 const CompanyPage         = lazy(() => import("./pages/CompanyPage"));
 
 
@@ -76,11 +75,6 @@ function AnimatedRoutes() {
         <Route path="/audit" element={
           <ProtectedRoute>
             <PageTransition><AuditPage /></PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/ai-insights" element={
-          <ProtectedRoute>
-            <PageTransition><AIInsightsPage /></PageTransition>
           </ProtectedRoute>
         } />
         <Route path="/snapshots" element={
