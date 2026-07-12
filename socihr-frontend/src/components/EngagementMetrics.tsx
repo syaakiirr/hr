@@ -4,6 +4,33 @@ import { getDashboardKpi, getSessions, getEngagements } from "../services/api";
 
 const MAX_SESSIONS = 30; // Limit concurrent API calls
 
+// Frontend implementation of TickHelper.cs to calculate ticks at action level
+const calculateTicks = (platformName: string, isLiked: boolean, isCommented: boolean, isShared: boolean) => {
+  const platform = platformName.toLowerCase();
+  let ticked = 0;
+  let expected = 0;
+  
+  if (platform === "facebook") {
+    expected = 2;
+    if (isLiked) ticked++;
+    if (isCommented) ticked++;
+  } else if (platform === "instagram") {
+    expected = 2;
+    if (isLiked) ticked++;
+    if (isCommented) ticked++;
+  } else if (platform === "tiktok") {
+    expected = 1;
+    if (isCommented) ticked++;
+  } else {
+    expected = 3;
+    if (isLiked) ticked++;
+    if (isCommented) ticked++;
+    if (isShared) ticked++;
+  }
+  
+  return { ticked, missed: expected - ticked, expected };
+};
+
 interface MetricRow {
   id: string;
   label: string;
@@ -94,18 +121,31 @@ export default function EngagementMetrics() {
         );
 
         const sessionMetrics: MetricRow[] = allData.map(({ session, engagements }, idx) => {
-          const completed = engagements.filter((e) => e.status === "Completed").length;
-          const missed = engagements.filter((e) => e.status === "Missed").length;
-          const total = completed + missed; // Only Completed + Missed (no Pending)
-          const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+          let totalCompleted = 0;
+          let totalMissed = 0;
+          let totalExpected = 0;
+          
+          engagements.forEach(e => {
+            const { ticked, missed, expected } = calculateTicks(
+              e.platformName, 
+              e.isLiked, 
+              e.isCommented, 
+              e.isShared
+            );
+            totalCompleted += ticked;
+            totalMissed += missed;
+            totalExpected += expected;
+          });
+          
+          const rate = totalExpected > 0 ? Math.round((totalCompleted / totalExpected) * 100) : 0;
 
           return {
             id: session.sessionID,
             label: `Session ${idx + 1}`,
             date: session.sessionDate,
-            completed,
-            missed,
-            total,
+            completed: totalCompleted,
+            missed: totalMissed,
+            total: totalExpected,
             rate,
           };
         });

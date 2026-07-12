@@ -14,6 +14,33 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 const COMPANY_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b"];
 
+// Frontend implementation of TickHelper.cs to calculate ticks at action level
+const calculateTicks = (platformName: string, isLiked: boolean, isCommented: boolean, isShared: boolean) => {
+  const platform = platformName.toLowerCase();
+  let ticked = 0;
+  let expected = 0;
+  
+  if (platform === "facebook") {
+    expected = 2;
+    if (isLiked) ticked++;
+    if (isCommented) ticked++;
+  } else if (platform === "instagram") {
+    expected = 2;
+    if (isLiked) ticked++;
+    if (isCommented) ticked++;
+  } else if (platform === "tiktok") {
+    expected = 1;
+    if (isCommented) ticked++;
+  } else {
+    expected = 3;
+    if (isLiked) ticked++;
+    if (isCommented) ticked++;
+    if (isShared) ticked++;
+  }
+  
+  return { ticked, missed: expected - ticked, expected };
+};
+
 // Parse DateOnly string (YYYY-MM-DD) without timezone shift
 function parseDateOnly(dateStr: string) {
   const [y, m, d] = dateStr.split("-").map(Number);
@@ -266,6 +293,18 @@ export default function MonitoringPage() {
       return nameOk && deptOk && compOk;
     });
   }, [allStaffRows, filterName, filterDept, filterCompany]);
+  
+  // Calculate total ticks for stat chips
+  const totalTicks = useMemo(() => {
+    let completed = 0;
+    let missed = 0;
+    engagements.forEach(e => {
+      const { ticked, missed: m } = calculateTicks(e.platformName, e.isLiked, e.isCommented, e.isShared);
+      completed += ticked;
+      missed += m;
+    });
+    return { completed, missed };
+  }, [engagements]);
 
   // Memoized table columns and groups
   const tableData = useMemo(() => {
@@ -618,8 +657,8 @@ export default function MonitoringPage() {
                       <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                       {allStaffRows.length}
                     </span>
-                    <span className="stat-chip chip-g">✓ {engagements.filter(e => e.status === "Completed").length}</span>
-                    <span className="stat-chip chip-r">✗ {engagements.filter(e => e.status === "Missed").length}</span>
+                    <span className="stat-chip chip-g">✓ {totalTicks.completed}</span>
+                    <span className="stat-chip chip-r">✗ {totalTicks.missed}</span>
                   </div>
                 </div>
 
