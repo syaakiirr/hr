@@ -152,10 +152,12 @@ app.Use(async (context, next) =>
 });
 
 app.UseCors("AllowFrontend");
+
+// Serve static files and SPA fallback FIRST, before auth, so React can load
+app.UseStaticFiles();
+
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseStaticFiles();
 
 app.MapControllers();
 app.MapFallbackToFile("index.html");
