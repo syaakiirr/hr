@@ -383,6 +383,26 @@ export async function getArchivedSessions(): Promise<MonitoringSession[]> {
   return handleResponse<MonitoringSession[]>(res);
 }
 
+export async function downloadSessionReportPdf(sessionId: string, sessionDate: string): Promise<void> {
+  try {
+    const res = await fetch(`${BASE_URL}/monitoringsession/${sessionId}/report-pdf`, {
+      headers: authHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to download report.");
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `monitoring-report-${sessionDate}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (err) {
+    throw new Error(err instanceof Error ? err.message : "Failed to download PDF report.");
+  }
+}
+
 // ─── AI Insights ────────────────────────────────────
 export async function getDashboardInsights(fromDate?: string, toDate?: string): Promise<{ insights: string; generatedAt: string }> {
   const params = new URLSearchParams();

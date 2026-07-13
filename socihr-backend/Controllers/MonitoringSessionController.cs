@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using socihr_backend.Data;
 using socihr_backend.Models;
+using QuestPDF.Fluent;
+using QuestPDF.Helpers;
+using QuestPDF.Infrastructure;
 
 namespace socihr_backend.Controllers;
 
@@ -357,6 +360,192 @@ public class MonitoringSessionController : ControllerBase
         await _db.SaveChangesAsync();
 
         return Ok(new { post.PostID, post.PostLink });
+    }
+
+    // GET /api/monitoringsession/{id}/report-pdf
+    [HttpGet("{id:guid}/report-pdf")]
+    public async Task<IActionResult> GenerateReportPdf(Guid id)
+    {
+        try
+        {
+            var session = await _db.MonitoringSessions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SessionID == id);
+            
+            if (session == null)
+                return NotFound(new { message = "Session not found." });
+
+            // Load engagements with related data
+            var engagements = await _db.Engagements
+                .AsNoTracking()
+                .Include(e => e.Staff)
+                .Include(e => e.Post)
+                .ThenInclude(p => p!.Platform)
+                .Include(e => e.Post)
+                .ThenInclude(p => p!.Company)
+                .Where(e => e.SessionID == id)
+                .ToListAsync();
+
+            // Build report data
+            var reportData = BuildReportData(session, engagements);
+
+            // Generate PDF
+            var pdf = GeneratePdfDocument(reportData);
+
+            return File(pdf, "application/pdf", $"monitoring-report-{session.SessionDate:yyyy-MM-dd}.pdf");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
+    private class ReportData
+    {
+        public DateOnly SessionDate { get; set; }
+        public List<StaffRowData> StaffRows { get; set; } = new();
+        public int TotalComments { get; set; }
+        public int TotalLikes { get; set; }
+        public int TotalShares { get; set; }
+        public int TotalCompleted { get; set; }
+        public int TotalMissed { get; set; }
+    }
+
+    private class StaffRowData
+    {
+        public string StaffName { get; set; } = "";
+        public string Department { get; set; } = "";
+        public int Comments { get; set; }
+        public int Likes { get; set; }
+        public int Shares { get; set; }
+        public int Completed { get; set; }
+        public int Missed { get; set; }
+    }
+
+    private ReportData BuildReportData(MonitoringSession session, List<Engagement> engagements)
+    {
+        var data = new ReportData { SessionDate = session.SessionDate };
+
+        // Group by staff
+        var staffGroups = engagements
+            .GroupBy(e => new { e.StaffID, e.Staff!.FullName, e.Staff.Department })
+            .ToList();
+
+        foreach (var group in staffGroups)
+        {
+            var row = new StaffRowData
+            {
+                StaffName = group.Key.FullName ?? "Unknown",
+                Department = group.Key.Department ?? "N/A"
+            };
+
+            foreach (var eng in group)
+            {
+                if (eng.IsLiked) row.Likes++;
+                if (eng.IsCommented) row.Comments++;
+                if (eng.IsShared) row.Shares++;
+                if (eng.Status == "Completed") row.Completed++;
+                else if (eng.Status == "Missed") row.Missed++;
+            }
+
+            data.StaffRows.Add(row);
+            data.TotalComments += row.Comments;
+            data.TotalLikes += row.Likes;
+            data.TotalShares += row.Shares;
+            data.TotalCompleted += row.Completed;
+            data.TotalMissed += row.Missed;
+        }
+
+        // Sort by staff name
+        data.StaffRows = data.StaffRows.OrderBy(r => r.StaffName).ToList();
+
+        return data;
+    }
+
+    private byte[] GeneratePdfDocument(ReportData data)
+    {
+        var document = Document.Create(container =>
+        {
+            container.Page(page =>
+            {
+                page.Size(PageSizes.A4);
+                page.Margin(20);
+                page.PageColor(Colors.White);
+
+                page.Header().Text(txt =>
+                {
+                    txt.Span("Monitoring Session Report").FontSize(20).Bold().FontColor("#1e40af");
+                });
+
+                page.Content().Column(col =>
+                {
+                    // Session date
+                    col.Item().Text($"Date: {data.SessionDate:dd MMMM yyyy}").FontSize(12).FontColor("#4b5563");
+
+                    // Summary section
+                    col.Item().PaddingTop(12).Column(c =>
+                    {
+                        c.Item().Text("Total Engagements").FontSize(12).Bold().FontColor("#1e40af");
+                        c.Item().Row(r =>
+                        {
+                            r.RelativeColumn().Text($"💬 Comments: {data.TotalComments}").FontSize(11);
+                            r.RelativeColumn().Text($"👍 Likes: {data.TotalLikes}").FontSize(11);
+                            r.RelativeColumn().Text($"🔁 Shares: {data.TotalShares}").FontSize(11);
+                        });
+                    });
+
+                    col.Item().PaddingTop(8).Text($"Completed: {data.TotalCompleted} | Missed: {data.TotalMissed}").FontSize(10).FontColor("#6b7280");
+
+                    // Table
+                    col.Item().PaddingTop(16).Table(table =>
+                    {
+                        table.ColumnsDefinition(columns =>
+                        {
+                            columns.RelativeColumn(2f);
+                            columns.RelativeColumn(1.5f);
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                            columns.RelativeColumn();
+                        });
+
+                        // Header
+                        table.Header(header =>
+                        {
+                            void HeaderCell(string text)
+                            {
+                                header.Cell().Background("#1e40af").Padding(8).Text(text).FontColor(Colors.White).Bold().FontSize(10);
+                            }
+
+                            HeaderCell("Staff Name");
+                            HeaderCell("Department");
+                            HeaderCell("Comments");
+                            HeaderCell("Likes");
+                            HeaderCell("Shares");
+                            HeaderCell("Completed");
+                            HeaderCell("Missed");
+                        });
+
+                        // Rows
+                        foreach (var row in data.StaffRows)
+                        {
+                            table.Cell().Padding(8).Text(row.StaffName).FontSize(10);
+                            table.Cell().Padding(8).Text(row.Department).FontSize(10);
+                            table.Cell().Padding(8).Text(row.Comments.ToString()).FontSize(10);
+                            table.Cell().Padding(8).Text(row.Likes.ToString()).FontSize(10);
+                            table.Cell().Padding(8).Text(row.Shares.ToString()).FontSize(10);
+                            table.Cell().Padding(8).Text(row.Completed.ToString()).FontSize(10);
+                            table.Cell().Padding(8).Text(row.Missed.ToString()).FontSize(10);
+                        }
+                    });
+                });
+
+                page.Footer().AlignCenter().Text($"Generated on {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(9).FontColor("#9ca3af");
+            });
+        });
+
+        return document.GeneratePdf();
     }
 }
 
