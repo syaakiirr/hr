@@ -31,7 +31,12 @@ public class StaffController : ControllerBase
             query = query.Where(s => s.Department == department);
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(s => s.Status == status);
-        var staff = await query.OrderByDescending(s => s.CreatedAt).ToListAsync();
+        // Order by Department A→Z, then FullName A→Z so each department's staff are grouped and
+        // alphabetically ordered within the department (no interleaving across departments).
+        var staff = await query
+            .OrderBy(s => s.Department ?? string.Empty)
+            .ThenBy(s => s.FullName ?? string.Empty)
+            .ToListAsync();
         return Ok(staff);
     }
 
