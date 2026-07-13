@@ -403,47 +403,120 @@ public class MonitoringSessionController : ControllerBase
     private class ReportData
     {
         public DateOnly SessionDate { get; set; }
-        public List<string> Companies { get; set; } = new();  // Unique company names
+        public List<ColumnInfo> ActionColumns { get; set; } = new();  // Columns with company/platform/action info
+        public List<CompanyGroup> CompanyGroups { get; set; } = new();  // Grouped for header
+        public List<PlatformGroup> PlatformGroups { get; set; } = new();  // Grouped for sub-header
         public List<StaffRowData> StaffRows { get; set; } = new();
-        public int TotalComments { get; set; }
         public int TotalLikes { get; set; }
+        public int TotalComments { get; set; }
         public int TotalShares { get; set; }
+    }
+
+    private class ColumnInfo
+    {
+        public string PostID { get; set; } = "";
+        public string PlatformName { get; set; } = "";
+        public string CompanyID { get; set; } = "";
+        public string CompanyName { get; set; } = "";
+        public string Action { get; set; } = "";  // "like", "comment", "share"
+        public string ActionLabel { get; set; } = "";
+        public string ActionIcon { get; set; } = "";
+    }
+
+    private class CompanyGroup
+    {
+        public string CompanyID { get; set; } = "";
+        public string Name { get; set; } = "";
+        public int Span { get; set; }
+    }
+
+    private class PlatformGroup
+    {
+        public string PlatformName { get; set; } = "";
+        public int Span { get; set; }
     }
 
     private class StaffRowData
     {
         public string StaffName { get; set; } = "";
         public string Department { get; set; } = "";
-        public List<EngagementDetail> Engagements { get; set; } = new();  // Per staff, all engagements
-    }
-
-    private class EngagementDetail
-    {
-        public string CompanyName { get; set; } = "";
-        public bool IsLiked { get; set; }
-        public bool IsCommented { get; set; }
-        public bool IsShared { get; set; }
+        public List<bool> EngagementValues { get; set; } = new();  // Per column (like/comment/share)
     }
 
     private ReportData BuildReportData(MonitoringSession session, List<Engagement> engagements)
     {
         var data = new ReportData { SessionDate = session.SessionDate };
 
-        // Get unique companies
-        var companies = engagements
-            .Where(e => !string.IsNullOrEmpty(e.Post?.Company?.CompanyName))
-            .Select(e => e.Post!.Company!.CompanyName)
-            .Distinct()
-            .OrderBy(c => c)
+        // Get unique posts from engagements, sorted by company then platform
+        var platformOrder = new Dictionary<string, int> { { "Facebook", 0 }, { "Instagram", 1 }, { "TikTok", 2 } };
+        var uniquePosts = engagements
+            .GroupBy(e => e.Post!.PostID)
+            .Select(g => g.First().Post!)
+            .OrderBy(p => (p.Company?.CompanyName ?? "").ToLower())
+            .ThenBy(p => platformOrder.ContainsKey(p.Platform?.PlatformName ?? "") 
+                ? platformOrder[p.Platform!.PlatformName] 
+                : 99)
             .ToList();
-        data.Companies = companies;
 
-        // Count totals
-        data.TotalLikes = engagements.Count(e => e.IsLiked);
-        data.TotalComments = engagements.Count(e => e.IsCommented);
-        data.TotalShares = engagements.Count(e => e.IsShared);
+        // Build action columns
+        foreach (var post in uniquePosts)
+        {
+            var platform = post.Platform?.PlatformName?.ToLower() ?? "";
+            var actions = platform == "facebook"
+                ? new[] { ("like", "Like"), ("comment", "Comment") }
+                : platform == "instagram"
+                ? new[] { ("like", "Like"), ("comment", "Comment") }
+                : platform == "tiktok"
+                ? new[] { ("comment", "Comment") }
+                : new[] { ("like", "Like"), ("comment", "Comment"), ("share", "Share") };
 
-        // Group by staff
+            foreach (var (action, label) in actions)
+            {
+                data.ActionColumns.Add(new ColumnInfo
+                {
+                    PostID = post.PostID.ToString(),
+                    PlatformName = post.Platform?.PlatformName ?? "Unknown",
+                    CompanyID = post.Company?.CompanyID.ToString() ?? "",
+                    CompanyName = post.Company?.CompanyName ?? "No Company",
+                    Action = action,
+                    ActionLabel = label
+                });
+            }
+        }
+
+        // Build company groups (for header spanning)
+        var companyGroups = new List<CompanyGroup>();
+        foreach (var col in data.ActionColumns)
+        {
+            var lastCo = companyGroups.LastOrDefault();
+            if (lastCo != null && lastCo.Name == col.CompanyName)
+            {
+                lastCo.Span++;
+            }
+            else
+            {
+                companyGroups.Add(new CompanyGroup { CompanyID = col.CompanyID, Name = col.CompanyName, Span = 1 });
+            }
+        }
+        data.CompanyGroups = companyGroups;
+
+        // Build platform groups (for sub-header spanning)
+        var platformGroups = new List<PlatformGroup>();
+        foreach (var col in data.ActionColumns)
+        {
+            var lastPl = platformGroups.LastOrDefault();
+            if (lastPl != null && lastPl.PlatformName == col.PlatformName)
+            {
+                lastPl.Span++;
+            }
+            else
+            {
+                platformGroups.Add(new PlatformGroup { PlatformName = col.PlatformName, Span = 1 });
+            }
+        }
+        data.PlatformGroups = platformGroups;
+
+        // Build staff rows with engagement values
         var staffGroups = engagements
             .GroupBy(e => new { e.StaffID, e.Staff!.FullName, e.Staff.Department })
             .OrderBy(g => g.Key.FullName)
@@ -457,18 +530,29 @@ public class MonitoringSessionController : ControllerBase
                 Department = group.Key.Department ?? "N/A"
             };
 
-            // For each company, add engagement details
-            foreach (var company in companies)
+            // For each column, check if staff has this action for this post
+            foreach (var col in data.ActionColumns)
             {
-                var staffCompanyEngs = group.Where(e => e.Post?.Company?.CompanyName == company).ToList();
-                var detail = new EngagementDetail
+                var eng = group.FirstOrDefault(e => e.PostID.ToString() == col.PostID);
+                bool value = false;
+
+                if (eng != null)
                 {
-                    CompanyName = company,
-                    IsLiked = staffCompanyEngs.Any(e => e.IsLiked),
-                    IsCommented = staffCompanyEngs.Any(e => e.IsCommented),
-                    IsShared = staffCompanyEngs.Any(e => e.IsShared)
-                };
-                row.Engagements.Add(detail);
+                    value = col.Action == "like" ? eng.IsLiked
+                          : col.Action == "comment" ? eng.IsCommented
+                          : col.Action == "share" ? eng.IsShared
+                          : false;
+                }
+
+                row.EngagementValues.Add(value);
+
+                // Count totals
+                if (value)
+                {
+                    if (col.Action == "like") data.TotalLikes++;
+                    else if (col.Action == "comment") data.TotalComments++;
+                    else if (col.Action == "share") data.TotalShares++;
+                }
             }
 
             data.StaffRows.Add(row);
@@ -484,82 +568,89 @@ public class MonitoringSessionController : ControllerBase
             container.Page(page =>
             {
                 page.Size(PageSizes.A4.Landscape());
-                page.Margin(15);
+                page.Margin(12);
                 page.PageColor(Colors.White);
 
                 page.Header().Text(txt =>
                 {
-                    txt.Span("Monitoring Session Report").FontSize(18).Bold().FontColor("#1e40af");
+                    txt.Span("Monitoring Session Report").FontSize(16).Bold().FontColor("#1e40af");
+                    txt.Span($" — {data.SessionDate:dd MMMM yyyy}").FontSize(12).FontColor("#6b7280");
                 });
 
                 page.Content().Column(col =>
                 {
-                    // Session date
-                    col.Item().Text($"Date: {data.SessionDate:dd MMMM yyyy}").FontSize(11).FontColor("#4b5563");
-
-                    // Summary section (totals)
-                    col.Item().PaddingTop(10).Column(c =>
+                    // Summary Totals (top)
+                    col.Item().Row(row =>
                     {
-                        c.Item().Text("Summary").FontSize(11).Bold().FontColor("#1e40af");
-                        c.Item().Row(r =>
+                        row.RelativeItem().Column(c =>
                         {
-                            r.RelativeColumn().Text($"Total Likes: {data.TotalLikes}").FontSize(10);
-                            r.RelativeColumn().Text($"Total Comments: {data.TotalComments}").FontSize(10);
-                            r.RelativeColumn().Text($"Total Shares: {data.TotalShares}").FontSize(10);
+                            c.Item().Text("Totals").FontSize(11).Bold().FontColor("#1e40af");
+                            c.Item().Row(r =>
+                            {
+                                r.RelativeItem().Text($"Total Likes: {data.TotalLikes}").FontSize(10).Bold();
+                                r.RelativeItem().Text($"Total Comments: {data.TotalComments}").FontSize(10).Bold();
+                                r.RelativeItem().Text($"Total Shares: {data.TotalShares}").FontSize(10).Bold();
+                            });
                         });
                     });
 
-                    // Table with per-staff, per-company engagements
-                    col.Item().PaddingTop(12).Table(table =>
+                    // Engagement Matrix Table
+                    col.Item().PaddingTop(8).Table(table =>
                     {
+                        // Define columns: # + Staff Name + Department + Action columns
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(1.5f);  // Staff Name
+                            columns.RelativeColumn(0.4f);  // #
+                            columns.RelativeColumn(1.8f);  // Staff Name
                             columns.RelativeColumn(1.2f);  // Department
                             
-                            // For each company, add 3 columns (Like, Comment, Share)
-                            foreach (var _ in data.Companies)
+                            // One column per action
+                            foreach (var _ in data.ActionColumns)
                             {
-                                columns.RelativeColumn(0.5f);  // Like
-                                columns.RelativeColumn(0.5f);  // Comment
-                                columns.RelativeColumn(0.5f);  // Share
+                                columns.RelativeColumn(0.35f);
                             }
                         });
 
-                        // Header row: Staff name, Dept, then Company names with sub-labels
+                        // Header Row: Staff/Dept + Company Headers
                         table.Header(header =>
                         {
-                            header.Cell().Background("#1e40af").Padding(6).Text("Staff Name").FontColor(Colors.White).Bold().FontSize(9);
-                            header.Cell().Background("#1e40af").Padding(6).Text("Department").FontColor(Colors.White).Bold().FontSize(9);
+                            header.Cell().Background("#f3f4f6").Padding(4).Text("#").FontSize(8).AlignCenter().Bold();
+                            header.Cell().Background("#f3f4f6").Padding(4).Text("Staff Name").FontSize(8).AlignCenter().Bold();
+                            header.Cell().Background("#f3f4f6").Padding(4).Text("Department").FontSize(8).AlignCenter().Bold();
                             
-                            foreach (var company in data.Companies)
+                            foreach (var coGroup in data.CompanyGroups)
                             {
-                                header.Cell().Background("#3b82f6").Padding(3).Text(company).FontColor(Colors.White).Bold().FontSize(8).AlignCenter();
-                                header.Cell().Background("#3b82f6").Padding(3).Text("").FontSize(8);
-                                header.Cell().Background("#3b82f6").Padding(3).Text("").FontSize(8);
+                                header.Cell().ColumnSpan((uint)coGroup.Span).Background("#dbeafe").Padding(4)
+                                    .Text(coGroup.Name).FontSize(8).AlignCenter().Bold();
                             }
                         });
 
-                        // Data rows
+                        // Data Rows
+                        int rowNum = 1;
                         foreach (var staffRow in data.StaffRows)
                         {
-                            table.Cell().Padding(6).Text(staffRow.StaffName).FontSize(9);
-                            table.Cell().Padding(6).Text(staffRow.Department).FontSize(9);
+                            table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
+                                .Text(rowNum.ToString()).FontSize(8).AlignCenter();
+                            table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
+                                .Text(staffRow.StaffName).FontSize(7);
+                            table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
+                                .Text(staffRow.Department).FontSize(7);
                             
-                            foreach (var engagement in staffRow.Engagements)
+                            for (int i = 0; i < staffRow.EngagementValues.Count; i++)
                             {
-                                table.Cell().Padding(4).Text(engagement.IsLiked ? "✓" : "-").FontSize(9).AlignCenter().FontColor(engagement.IsLiked ? "#10b981" : "#d1d5db");
-                                table.Cell().Padding(4).Text(engagement.IsCommented ? "✓" : "-").FontSize(9).AlignCenter().FontColor(engagement.IsCommented ? "#10b981" : "#d1d5db");
-                                table.Cell().Padding(4).Text(engagement.IsShared ? "✓" : "-").FontSize(9).AlignCenter().FontColor(engagement.IsShared ? "#10b981" : "#d1d5db");
+                                var value = staffRow.EngagementValues[i];
+                                table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(2)
+                                    .Text(value ? "✓" : "").FontSize(9).AlignCenter()
+                                    .FontColor(value ? "#059669" : "#d1d5db");
                             }
+
+                            rowNum++;
                         }
                     });
-
-                    // Legend
-                    col.Item().PaddingTop(8).Text("✓ = Yes | - = No | L = Like | C = Comment | S = Share").FontSize(8).FontColor("#9ca3af").Italic();
                 });
 
-                page.Footer().AlignCenter().Text($"Generated on {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
+                page.Footer().AlignCenter().Text($"Generated {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC")
+                    .FontSize(8).FontColor("#9ca3af");
             });
         });
 
