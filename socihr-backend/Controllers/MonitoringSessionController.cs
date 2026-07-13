@@ -403,32 +403,50 @@ public class MonitoringSessionController : ControllerBase
     private class ReportData
     {
         public DateOnly SessionDate { get; set; }
+        public List<string> Companies { get; set; } = new();  // Unique company names
         public List<StaffRowData> StaffRows { get; set; } = new();
         public int TotalComments { get; set; }
         public int TotalLikes { get; set; }
         public int TotalShares { get; set; }
-        public int TotalCompleted { get; set; }
-        public int TotalMissed { get; set; }
     }
 
     private class StaffRowData
     {
         public string StaffName { get; set; } = "";
         public string Department { get; set; } = "";
-        public int Comments { get; set; }
-        public int Likes { get; set; }
-        public int Shares { get; set; }
-        public int Completed { get; set; }
-        public int Missed { get; set; }
+        public List<EngagementDetail> Engagements { get; set; } = new();  // Per staff, all engagements
+    }
+
+    private class EngagementDetail
+    {
+        public string CompanyName { get; set; } = "";
+        public bool IsLiked { get; set; }
+        public bool IsCommented { get; set; }
+        public bool IsShared { get; set; }
     }
 
     private ReportData BuildReportData(MonitoringSession session, List<Engagement> engagements)
     {
         var data = new ReportData { SessionDate = session.SessionDate };
 
+        // Get unique companies
+        var companies = engagements
+            .Where(e => !string.IsNullOrEmpty(e.Post?.Company?.CompanyName))
+            .Select(e => e.Post!.Company!.CompanyName)
+            .Distinct()
+            .OrderBy(c => c)
+            .ToList();
+        data.Companies = companies;
+
+        // Count totals
+        data.TotalLikes = engagements.Count(e => e.IsLiked);
+        data.TotalComments = engagements.Count(e => e.IsCommented);
+        data.TotalShares = engagements.Count(e => e.IsShared);
+
         // Group by staff
         var staffGroups = engagements
             .GroupBy(e => new { e.StaffID, e.Staff!.FullName, e.Staff.Department })
+            .OrderBy(g => g.Key.FullName)
             .ToList();
 
         foreach (var group in staffGroups)
@@ -439,25 +457,22 @@ public class MonitoringSessionController : ControllerBase
                 Department = group.Key.Department ?? "N/A"
             };
 
-            foreach (var eng in group)
+            // For each company, add engagement details
+            foreach (var company in companies)
             {
-                if (eng.IsLiked) row.Likes++;
-                if (eng.IsCommented) row.Comments++;
-                if (eng.IsShared) row.Shares++;
-                if (eng.Status == "Completed") row.Completed++;
-                else if (eng.Status == "Missed") row.Missed++;
+                var staffCompanyEngs = group.Where(e => e.Post?.Company?.CompanyName == company).ToList();
+                var detail = new EngagementDetail
+                {
+                    CompanyName = company,
+                    IsLiked = staffCompanyEngs.Any(e => e.IsLiked),
+                    IsCommented = staffCompanyEngs.Any(e => e.IsCommented),
+                    IsShared = staffCompanyEngs.Any(e => e.IsShared)
+                };
+                row.Engagements.Add(detail);
             }
 
             data.StaffRows.Add(row);
-            data.TotalComments += row.Comments;
-            data.TotalLikes += row.Likes;
-            data.TotalShares += row.Shares;
-            data.TotalCompleted += row.Completed;
-            data.TotalMissed += row.Missed;
         }
-
-        // Sort by staff name
-        data.StaffRows = data.StaffRows.OrderBy(r => r.StaffName).ToList();
 
         return data;
     }
@@ -468,80 +483,83 @@ public class MonitoringSessionController : ControllerBase
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4);
-                page.Margin(20);
+                page.Size(PageSizes.A4.Landscape());
+                page.Margin(15);
                 page.PageColor(Colors.White);
 
                 page.Header().Text(txt =>
                 {
-                    txt.Span("Monitoring Session Report").FontSize(20).Bold().FontColor("#1e40af");
+                    txt.Span("Monitoring Session Report").FontSize(18).Bold().FontColor("#1e40af");
                 });
 
                 page.Content().Column(col =>
                 {
                     // Session date
-                    col.Item().Text($"Date: {data.SessionDate:dd MMMM yyyy}").FontSize(12).FontColor("#4b5563");
+                    col.Item().Text($"Date: {data.SessionDate:dd MMMM yyyy}").FontSize(11).FontColor("#4b5563");
 
-                    // Summary section
-                    col.Item().PaddingTop(12).Column(c =>
+                    // Summary section (totals)
+                    col.Item().PaddingTop(10).Column(c =>
                     {
-                        c.Item().Text("Total Engagements").FontSize(12).Bold().FontColor("#1e40af");
+                        c.Item().Text("Summary").FontSize(11).Bold().FontColor("#1e40af");
                         c.Item().Row(r =>
                         {
-                            r.RelativeColumn().Text($"💬 Comments: {data.TotalComments}").FontSize(11);
-                            r.RelativeColumn().Text($"👍 Likes: {data.TotalLikes}").FontSize(11);
-                            r.RelativeColumn().Text($"🔁 Shares: {data.TotalShares}").FontSize(11);
+                            r.RelativeColumn().Text($"Total Likes: {data.TotalLikes}").FontSize(10);
+                            r.RelativeColumn().Text($"Total Comments: {data.TotalComments}").FontSize(10);
+                            r.RelativeColumn().Text($"Total Shares: {data.TotalShares}").FontSize(10);
                         });
                     });
 
-                    col.Item().PaddingTop(8).Text($"Completed: {data.TotalCompleted} | Missed: {data.TotalMissed}").FontSize(10).FontColor("#6b7280");
-
-                    // Table
-                    col.Item().PaddingTop(16).Table(table =>
+                    // Table with per-staff, per-company engagements
+                    col.Item().PaddingTop(12).Table(table =>
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(2f);
-                            columns.RelativeColumn(1.5f);
-                            columns.RelativeColumn();
-                            columns.RelativeColumn();
-                            columns.RelativeColumn();
-                            columns.RelativeColumn();
-                            columns.RelativeColumn();
+                            columns.RelativeColumn(1.5f);  // Staff Name
+                            columns.RelativeColumn(1.2f);  // Department
+                            
+                            // For each company, add 3 columns (Like, Comment, Share)
+                            foreach (var _ in data.Companies)
+                            {
+                                columns.RelativeColumn(0.5f);  // Like
+                                columns.RelativeColumn(0.5f);  // Comment
+                                columns.RelativeColumn(0.5f);  // Share
+                            }
                         });
 
-                        // Header
+                        // Header row: Staff name, Dept, then Company names with sub-labels
                         table.Header(header =>
                         {
-                            void HeaderCell(string text)
+                            header.Cell().Background("#1e40af").Padding(6).Text("Staff Name").FontColor(Colors.White).Bold().FontSize(9);
+                            header.Cell().Background("#1e40af").Padding(6).Text("Department").FontColor(Colors.White).Bold().FontSize(9);
+                            
+                            foreach (var company in data.Companies)
                             {
-                                header.Cell().Background("#1e40af").Padding(8).Text(text).FontColor(Colors.White).Bold().FontSize(10);
+                                header.Cell().Background("#3b82f6").Padding(3).Text(company).FontColor(Colors.White).Bold().FontSize(8).AlignCenter();
+                                header.Cell().Background("#3b82f6").Padding(3).Text("").FontSize(8);
+                                header.Cell().Background("#3b82f6").Padding(3).Text("").FontSize(8);
                             }
-
-                            HeaderCell("Staff Name");
-                            HeaderCell("Department");
-                            HeaderCell("Comments");
-                            HeaderCell("Likes");
-                            HeaderCell("Shares");
-                            HeaderCell("Completed");
-                            HeaderCell("Missed");
                         });
 
-                        // Rows
-                        foreach (var row in data.StaffRows)
+                        // Data rows
+                        foreach (var staffRow in data.StaffRows)
                         {
-                            table.Cell().Padding(8).Text(row.StaffName).FontSize(10);
-                            table.Cell().Padding(8).Text(row.Department).FontSize(10);
-                            table.Cell().Padding(8).Text(row.Comments.ToString()).FontSize(10);
-                            table.Cell().Padding(8).Text(row.Likes.ToString()).FontSize(10);
-                            table.Cell().Padding(8).Text(row.Shares.ToString()).FontSize(10);
-                            table.Cell().Padding(8).Text(row.Completed.ToString()).FontSize(10);
-                            table.Cell().Padding(8).Text(row.Missed.ToString()).FontSize(10);
+                            table.Cell().Padding(6).Text(staffRow.StaffName).FontSize(9);
+                            table.Cell().Padding(6).Text(staffRow.Department).FontSize(9);
+                            
+                            foreach (var engagement in staffRow.Engagements)
+                            {
+                                table.Cell().Padding(4).Text(engagement.IsLiked ? "✓" : "-").FontSize(9).AlignCenter().FontColor(engagement.IsLiked ? "#10b981" : "#d1d5db");
+                                table.Cell().Padding(4).Text(engagement.IsCommented ? "✓" : "-").FontSize(9).AlignCenter().FontColor(engagement.IsCommented ? "#10b981" : "#d1d5db");
+                                table.Cell().Padding(4).Text(engagement.IsShared ? "✓" : "-").FontSize(9).AlignCenter().FontColor(engagement.IsShared ? "#10b981" : "#d1d5db");
+                            }
                         }
                     });
+
+                    // Legend
+                    col.Item().PaddingTop(8).Text("✓ = Yes | - = No | L = Like | C = Comment | S = Share").FontSize(8).FontColor("#9ca3af").Italic();
                 });
 
-                page.Footer().AlignCenter().Text($"Generated on {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(9).FontColor("#9ca3af");
+                page.Footer().AlignCenter().Text($"Generated on {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
             });
         });
 
