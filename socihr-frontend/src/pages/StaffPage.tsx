@@ -98,36 +98,24 @@ export default function StaffPage() {
     );
   }
 
-  function handleArchive(staff: Staff) {
-    openConfirmDialog(
-      "Archive Staff",
-      `Archive ${staff.fullName}? This can be restored later from the Archive page.`,
-      async () => {
-        try {
-          await archiveStaff(staff.staffID);
-          alert("Staff archived successfully");
-          fetchStaff();
-        } catch (err: unknown) {
-          alert(err instanceof Error ? err.message : "An error occurred.");
-        }
-      }
-    );
+  async function handleArchive(staff: Staff) {
+    try {
+      await archiveStaff(staff.staffID);
+      alert("Staff archived successfully");
+      fetchStaff();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "An error occurred.");
+    }
   }
 
-  function handleDelete(staff: Staff) {
-    openConfirmDialog(
-      "Permanently Delete Staff",
-      `Are you sure you want to PERMANENTLY delete ${staff.fullName}? This will also delete all their historical engagement ticks!`,
-      async () => {
-        try {
-          await deleteStaff(staff.staffID);
-          alert("Staff deleted successfully");
-          fetchStaff();
-        } catch (err: unknown) {
-          alert(err instanceof Error ? err.message : "An error occurred.");
-        }
-      }
-    );
+  async function handleDelete(staff: Staff) {
+    try {
+      await deleteStaff(staff.staffID);
+      alert("Staff deleted successfully");
+      fetchStaff();
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "An error occurred.");
+    }
   }
 
   return (
