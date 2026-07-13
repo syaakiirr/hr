@@ -253,13 +253,28 @@ public class ReportsController : ControllerBase
             wsDaily.Cell(row, 1).Value = dailyStats[i].Date.ToString("dd/MM/yyyy");
             wsDaily.Cell(row, 2).Value = dailyStats[i].SessionCount;
             wsDaily.Cell(row, 3).Value = dailyStats[i].Completed;
+            wsDaily.Cell(row, 3).Style.Font.FontColor = XLColor.FromHtml("#16a34a");
             wsDaily.Cell(row, 4).Value = dailyStats[i].Missed;
+            wsDaily.Cell(row, 4).Style.Font.FontColor = XLColor.FromHtml("#dc2626");
             wsDaily.Cell(row, 5).Value = dailyStats[i].Total;
-            wsDaily.Cell(row, 6).Value = $"{dailyStats[i].Rate}%";
+            // Store as a real numeric percentage (not text) so it can drive a color-scale,
+            // mirroring the dashboard's heatmap (color intensity = completion rate).
+            wsDaily.Cell(row, 6).Value = dailyStats[i].Rate / 100.0;
+            wsDaily.Cell(row, 6).Style.NumberFormat.Format = "0.0%";
+            wsDaily.Cell(row, 6).Style.Font.Bold = true;
         }
         if (dailyStats.Count == 0)
         {
             wsDaily.Cell(3, 1).Value = "No sessions found in this date range.";
+        }
+        else
+        {
+            // Heatmap-style color scale on the Rate column, same visual language as the dashboard
+            var rateRange = wsDaily.Range(3, 6, 2 + dailyStats.Count, 6);
+            rateRange.AddConditionalFormat().ColorScale()
+                .LowestValue(XLColor.FromHtml("#eef2ff"))
+                .Midpoint(XLCFContentType.Percent, "50", XLColor.FromHtml("#a5b4fc"))
+                .HighestValue(XLColor.FromHtml("#6366f1"));
         }
 
         wsDaily.Columns().AdjustToContents();
@@ -662,16 +677,31 @@ public class ReportsController : ControllerBase
                 static IContainer DataCell(IContainer c, string color) =>
                     c.Background(color).BorderBottom(1).BorderColor(Colors.Grey.Lighten3).Padding(5);
 
-                var rateColor = d.Rate >= 80 ? Colors.Green.Darken1 : d.Rate >= 50 ? Colors.Orange.Darken2 : Colors.Red.Darken1;
-
                 table.Cell().Element(c => DataCell(c, bgColor)).Text(d.Date.ToString("dd/MM/yyyy")).Bold();
                 table.Cell().Element(c => DataCell(c, bgColor)).Text(d.SessionCount.ToString());
                 table.Cell().Element(c => DataCell(c, bgColor)).Text(d.Completed.ToString()).FontColor(Colors.Green.Medium);
                 table.Cell().Element(c => DataCell(c, bgColor)).Text(d.Missed.ToString()).FontColor(Colors.Red.Medium);
                 table.Cell().Element(c => DataCell(c, bgColor)).Text(d.Total.ToString());
-                table.Cell().Element(c => DataCell(c, bgColor)).Text($"{d.Rate}%").FontColor(rateColor).Bold();
+
+                // Heatmap-style tinted cell for Rate, same colour language as the dashboard calendar
+                var heatBg = RateHeatColor(d.Rate);
+                var heatText = d.Rate >= 60 ? "#ffffff" : "#4338ca";
+                table.Cell().Element(c => DataCell(c, heatBg)).AlignCenter().Text($"{d.Rate}%").FontColor(heatText).Bold();
             }
         });
+    }
+
+    /// <summary>Interpolates a heatmap color (light lavender → indigo) for a 0-100 rate, matching the dashboard.</summary>
+    private static string RateHeatColor(double rate)
+    {
+        var t = Math.Clamp(rate / 100.0, 0, 1);
+        // #eef2ff -> #6366f1
+        int r1 = 0xee, g1 = 0xf2, b1 = 0xff;
+        int r2 = 0x63, g2 = 0x66, b2 = 0xf1;
+        int r = (int)(r1 + (r2 - r1) * t);
+        int g = (int)(g1 + (g2 - g1) * t);
+        int b = (int)(b1 + (b2 - b1) * t);
+        return $"#{r:X2}{g:X2}{b:X2}";
     }
 
     // ─── Data helpers shared by Excel & PDF exports ─────────────────
