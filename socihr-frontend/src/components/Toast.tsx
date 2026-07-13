@@ -26,12 +26,12 @@ export default function Toast({ isOpen, message, type, onClose, duration = 3000 
     <AnimatePresence>
       {isOpen && (
         <motion.div
-          initial={{ opacity: 0, y: -12, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: -8, scale: 0.96 }}
+          initial={{ opacity: 0, y: -16, scale: 0.96, x: "-50%" }}
+          animate={{ opacity: 1, y: 0, scale: 1, x: "-50%" }}
+          exit={{ opacity: 0, y: -12, scale: 0.96, x: "-50%" }}
           transition={{ duration: 0.2 }}
           style={{
-            position: "fixed", top: 20, right: 20, zIndex: 200,
+            position: "fixed", top: 24, left: "50%", zIndex: 200,
             display: "flex", alignItems: "center", gap: 10,
             background: "var(--white)",
             border: `1px solid ${isSuccess ? "var(--green-line)" : "var(--red-line)"}`,
