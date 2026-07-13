@@ -97,14 +97,32 @@ public class DashboardController : ControllerBase
         return Ok(data);
     }
 
-    // GET /api/dashboard/weekly  — last 12 weeks
+    // GET /api/dashboard/weekly  — last 12 weeks (or a custom from/to range)
     [HttpGet("weekly")]
-    public async Task<IActionResult> GetWeekly()
+    public async Task<IActionResult> GetWeekly([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-84)); // 12 weeks
+        var sessionsQuery = _db.MonitoringSessions.AsQueryable();
 
-        var sessions = await _db.MonitoringSessions
-            .Where(s => s.SessionDate >= cutoff)
+        if (from.HasValue || to.HasValue)
+        {
+            if (from.HasValue)
+            {
+                var fromDate = DateOnly.FromDateTime(from.Value);
+                sessionsQuery = sessionsQuery.Where(s => s.SessionDate >= fromDate);
+            }
+            if (to.HasValue)
+            {
+                var toDate = DateOnly.FromDateTime(to.Value);
+                sessionsQuery = sessionsQuery.Where(s => s.SessionDate <= toDate);
+            }
+        }
+        else
+        {
+            var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-84)); // 12 weeks
+            sessionsQuery = sessionsQuery.Where(s => s.SessionDate >= cutoff);
+        }
+
+        var sessions = await sessionsQuery
             .OrderBy(s => s.SessionDate)
             .ToListAsync();
 
@@ -142,12 +160,26 @@ public class DashboardController : ControllerBase
 
     // GET /api/dashboard/platform-comparison
     [HttpGet("platform-comparison")]
-    public async Task<IActionResult> GetPlatformComparison()
+    public async Task<IActionResult> GetPlatformComparison([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var engagements = await _db.Engagements
+        var query = _db.Engagements
             .Include(e => e.Post)
                 .ThenInclude(p => p!.Platform)
-            .ToListAsync();
+            .Include(e => e.Session)
+            .AsQueryable();
+
+        if (from.HasValue)
+        {
+            var fromDate = DateOnly.FromDateTime(from.Value);
+            query = query.Where(e => e.Session!.SessionDate >= fromDate);
+        }
+        if (to.HasValue)
+        {
+            var toDate = DateOnly.FromDateTime(to.Value);
+            query = query.Where(e => e.Session!.SessionDate <= toDate);
+        }
+
+        var engagements = await query.ToListAsync();
 
         var data = engagements
             .GroupBy(e => e.Post!.Platform!.PlatformName)
@@ -201,7 +233,7 @@ public class DashboardController : ControllerBase
 
     // GET /api/dashboard/company-performance
     [HttpGet("company-performance")]
-    public async Task<IActionResult> GetCompanyPerformance()
+    public async Task<IActionResult> GetCompanyPerformance([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
         // Get all companies
         var companies = await _db.Companies
@@ -209,10 +241,24 @@ public class DashboardController : ControllerBase
             .ToListAsync();
 
         // Get all engagements grouped by post's company
-        var engagements = await _db.Engagements
+        var companyEngQuery = _db.Engagements
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .Include(e => e.Session)
             .Where(e => e.Post!.CompanyID != null)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (from.HasValue)
+        {
+            var fromDate = DateOnly.FromDateTime(from.Value);
+            companyEngQuery = companyEngQuery.Where(e => e.Session!.SessionDate >= fromDate);
+        }
+        if (to.HasValue)
+        {
+            var toDate = DateOnly.FromDateTime(to.Value);
+            companyEngQuery = companyEngQuery.Where(e => e.Session!.SessionDate <= toDate);
+        }
+
+        var engagements = await companyEngQuery.ToListAsync();
 
         var result = companies.Select(company =>
         {

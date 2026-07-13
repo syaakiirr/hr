@@ -108,11 +108,11 @@ export default function DashboardPage() {
     Promise.all([
       getDashboardKpi(from, to),
       getMonthlyTrend(new Date().getFullYear()),
-      getWeeklyTrend(),
-      getPlatformComparison(),
+      getWeeklyTrend(from, to),
+      getPlatformComparison(from, to),
       getStaffRanking("top", 10, from, to),
       getStaffRanking("bottom", 10, from, to),
-      getCompanyPerformance(),
+      getCompanyPerformance(from, to),
       getHeatmap(currentYear),
     ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData]) => {
       setKpi(kpiData);

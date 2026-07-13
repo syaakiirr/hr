@@ -255,18 +255,27 @@ export async function getMonthlyTrend(year?: number) {
   return handleResponse<{ month: number; completed: number; missed: number; total: number }[]>(res);
 }
 
-export async function getWeeklyTrend() {
-  const res = await fetch(`${BASE_URL}/dashboard/weekly`, { headers: authHeaders() });
+export async function getWeeklyTrend(from?: string, to?: string) {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const res = await fetch(`${BASE_URL}/dashboard/weekly?${q}`, { headers: authHeaders() });
   return handleResponse<{ week: string; completed: number; missed: number; total: number }[]>(res);
 }
 
-export async function getPlatformComparison() {
-  const res = await fetch(`${BASE_URL}/dashboard/platform-comparison`, { headers: authHeaders() });
+export async function getPlatformComparison(from?: string, to?: string) {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const res = await fetch(`${BASE_URL}/dashboard/platform-comparison?${q}`, { headers: authHeaders() });
   return handleResponse<{ platform: string; completed: number; missed: number; total: number }[]>(res);
 }
 
-export async function getCompanyPerformance() {
-  const res = await fetch(`${BASE_URL}/dashboard/company-performance`, { headers: authHeaders() });
+export async function getCompanyPerformance(from?: string, to?: string) {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const res = await fetch(`${BASE_URL}/dashboard/company-performance?${q}`, { headers: authHeaders() });
   return handleResponse<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>(res);
 }
 
