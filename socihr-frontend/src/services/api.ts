@@ -10,12 +10,14 @@ function authHeaders(): Record<string, string> {
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const text = await res.text();
+    let message = "An error occurred. Please try again.";
     try {
       const err = JSON.parse(text);
-      throw new Error(err.message || "Ralat berlaku.");
+      if (err?.message) message = err.message;
     } catch {
-      throw new Error("Ralat berlaku. Sila cuba lagi.");
+      // response body wasn't JSON; fall back to the default message
     }
+    throw new Error(message);
   }
   return res.json();
 }
@@ -149,7 +151,7 @@ export async function createSession(data: { sessionDate: string; posts: { platfo
 
 export async function deleteSession(id: string): Promise<void> {
   const res = await fetch(`${BASE_URL}/monitoringsession/${id}`, { method: "DELETE", headers: authHeaders() });
-  if (!res.ok) throw new Error("Gagal delete session.");
+  if (!res.ok) throw new Error("Failed to delete session.");
 }
 
 export async function updatePostLink(postId: string, postLink: string): Promise<{ postID: string; postLink: string }> {
@@ -326,7 +328,7 @@ export async function deleteStaff(staffId: string): Promise<void> {
     method: "DELETE",
     headers: authHeaders(),
   });
-  if (!res.ok) throw new Error("Gagal memadam staff.");
+  if (!res.ok) throw new Error("Failed to delete staff.");
 }
 
 // ─── Archive ────────────────────────────────────────

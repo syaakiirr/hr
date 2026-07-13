@@ -298,8 +298,8 @@ export default function SnapshotsPage() {
                 </div>
               ) : selectedSnapshot && !selectedSnapshot.data ? (
                 <div style={{ textAlign: 'center', padding: 32 }}>
-                  <p style={{ color: 'var(--amber)', marginBottom: 8, fontWeight: 600 }}>⚠️ Snapshot data format tidak dikenali</p>
-                  <p style={{ fontSize: 12, color: 'var(--text-4)' }}>Snapshot ini mungkin disimpan dengan versi lama. Cuba create snapshot baru.</p>
+                  <p style={{ color: 'var(--amber)', marginBottom: 8, fontWeight: 600 }}>⚠️ Snapshot data format not recognized</p>
+                                    <p style={{ fontSize: 12, color: 'var(--text-4)' }}>This snapshot may have been saved with an older version. Try creating a new snapshot.</p>
                 </div>
               ) : (
                 <p style={{ textAlign: 'center', color: 'var(--text-4)', padding: 32 }}>No data available</p>

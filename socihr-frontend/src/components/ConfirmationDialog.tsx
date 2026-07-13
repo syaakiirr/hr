@@ -44,7 +44,7 @@ export default function ConfirmationDialog({
                 disabled={isLoading}
                 className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
               >
-                Batal
+                Cancel
               </button>
               <button
                 onClick={onConfirm}
@@ -54,7 +54,7 @@ export default function ConfirmationDialog({
                 {isLoading ? (
                   <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
                 ) : null}
-                Padam
+                Delete
               </button>
             </div>
           </motion.div>

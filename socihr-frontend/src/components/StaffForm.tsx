@@ -95,7 +95,7 @@ export default function StaffForm({ staff, onSave, onClose, loading }: Props) {
             </div>
 
             <div>
-              <label className="input-label" htmlFor="staff-position">Jawatan / Position</label>
+              <label className="input-label" htmlFor="staff-position">Position</label>
               <input
                 id="staff-position"
                 className="input"

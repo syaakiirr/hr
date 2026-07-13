@@ -75,7 +75,7 @@ public class MonitoringSessionController : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var session = await _db.MonitoringSessions.AsNoTracking().FirstOrDefaultAsync(s => s.SessionID == id);
-        if (session == null) return NotFound(new { message = "Session tidak dijumpai." });
+        if (session == null) return NotFound(new { message = "Session not found." });
 
         var posts = await _db.SessionPosts
             .AsNoTracking()
@@ -196,7 +196,7 @@ public class MonitoringSessionController : ControllerBase
         try
         {
             var session = await _db.MonitoringSessions.FindAsync(id);
-            if (session == null) return NotFound(new { message = "Session tidak dijumpai." });
+            if (session == null) return NotFound(new { message = "Session not found." });
 
             // 1. Get all engagement IDs for this session
             var engagementIds = await _db.Engagements
@@ -351,7 +351,7 @@ public class MonitoringSessionController : ControllerBase
     public async Task<IActionResult> UpdatePostLink(Guid postId, [FromBody] UpdatePostLinkRequest req)
     {
         var post = await _db.SessionPosts.FindAsync(postId);
-        if (post == null) return NotFound(new { message = "Post tidak dijumpai." });
+        if (post == null) return NotFound(new { message = "Post not found." });
 
         post.PostLink = req.PostLink?.Trim() ?? "";
         await _db.SaveChangesAsync();

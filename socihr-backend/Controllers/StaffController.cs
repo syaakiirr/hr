@@ -39,7 +39,7 @@ public class StaffController : ControllerBase
     public async Task<IActionResult> GetById(Guid id)
     {
         var staff = await _db.Staff.FindAsync(id);
-        if (staff == null) return NotFound(new { message = "Staff tidak dijumpai." });
+        if (staff == null) return NotFound(new { message = "Staff not found." });
         return Ok(staff);
     }
 
@@ -64,7 +64,7 @@ public class StaffController : ControllerBase
     public async Task<IActionResult> Update(Guid id, [FromBody] StaffRequest req)
     {
         var staff = await _db.Staff.FindAsync(id);
-        if (staff == null) return NotFound(new { message = "Staff tidak dijumpai." });
+        if (staff == null) return NotFound(new { message = "Staff not found." });
         staff.FullName = req.FullName;
         staff.Department = req.Department;
         staff.Position = req.Position;
@@ -78,7 +78,7 @@ public class StaffController : ControllerBase
         try
         {
             var staff = await _db.Staff.FindAsync(id);
-            if (staff == null) return NotFound(new { message = "Staff tidak dijumpai." });
+            if (staff == null) return NotFound(new { message = "Staff not found." });
 
             _db.Staff.Remove(staff);
             await _db.SaveChangesAsync();
@@ -94,7 +94,7 @@ public class StaffController : ControllerBase
     public async Task<IActionResult> ToggleStatus(Guid id)
     {
         var staff = await _db.Staff.FindAsync(id);
-        if (staff == null) return NotFound(new { message = "Staff tidak dijumpai." });
+        if (staff == null) return NotFound(new { message = "Staff not found." });
         staff.Status = staff.Status == "Active" ? "Inactive" : "Active";
         await _db.SaveChangesAsync();
         return Ok(staff);

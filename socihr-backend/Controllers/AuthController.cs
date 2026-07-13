@@ -51,7 +51,7 @@ public class AuthController : ControllerBase
                 .FirstOrDefaultAsync(u => u.Username == request.Username);
 
             if (user == null)
-                return Unauthorized(new { message = "Username atau password salah." });
+                return Unauthorized(new { message = "Incorrect username or password." });
 
             // Check if password is valid (either BCrypt hash or plain text for migration)
             bool isValidPassword;
@@ -75,7 +75,7 @@ public class AuthController : ControllerBase
             }
 
             if (!isValidPassword)
-                return Unauthorized(new { message = "Username atau password salah." });
+                return Unauthorized(new { message = "Incorrect username or password." });
 
             // If password was plain text, update it to a hash
             if (isPlainTextPassword)
@@ -113,7 +113,7 @@ public class AuthController : ControllerBase
         catch (Exception ex)
         {
             Console.WriteLine($"Login error: {ex}");
-            return StatusCode(500, new { message = "Terjadi kesalahan pada server." });
+            return StatusCode(500, new { message = "An error occurred on the server." });
         }
     }
 }

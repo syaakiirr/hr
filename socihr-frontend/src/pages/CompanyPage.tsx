@@ -275,7 +275,7 @@ export default function CompanyPage() {
                 <input
                   className="input"
                   type="text"
-                  placeholder="e.g. Syarikat Epsilon"
+                  placeholder="e.g. Muaz Force SDN BHD"
                   value={newCompanyName}
                   onChange={(e) => setNewCompanyName(e.target.value)}
                   required

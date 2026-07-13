@@ -8,11 +8,11 @@ public class LoginRequestValidator : AbstractValidator<LoginRequest>
     public LoginRequestValidator()
     {
         RuleFor(x => x.Username)
-            .NotEmpty().WithMessage("Username diperlukan.")
-            .MinimumLength(3).WithMessage("Username sekurang-kurangnya 3 aksara.");
+            .NotEmpty().WithMessage("Username is required.")
+            .MinimumLength(3).WithMessage("Username must be at least 3 characters.");
             
         RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password diperlukan.")
-            .MinimumLength(4).WithMessage("Password sekurang-kurangnya 4 aksara.");
+            .NotEmpty().WithMessage("Password is required.")
+            .MinimumLength(4).WithMessage("Password must be at least 4 characters.");
     }
 }

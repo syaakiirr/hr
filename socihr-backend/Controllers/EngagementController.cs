@@ -58,7 +58,7 @@ public class EngagementController : ControllerBase
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest req)
     {
         var engagement = await _db.Engagements.FindAsync(id);
-        if (engagement == null) return NotFound(new { message = "Engagement tidak dijumpai." });
+        if (engagement == null) return NotFound(new { message = "Engagement not found." });
 
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
@@ -90,7 +90,7 @@ public class EngagementController : ControllerBase
         var engagement = await _db.Engagements
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .FirstOrDefaultAsync(e => e.EngagementID == id);
-        if (engagement == null) return NotFound(new { message = "Engagement tidak dijumpai." });
+        if (engagement == null) return NotFound(new { message = "Engagement not found." });
 
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
@@ -160,7 +160,7 @@ public class EngagementController : ControllerBase
     public async Task<IActionResult> UpdateReason(Guid id, [FromBody] UpdateReasonRequest req)
     {
         var engagement = await _db.Engagements.FindAsync(id);
-        if (engagement == null) return NotFound(new { message = "Engagement tidak dijumpai." });
+        if (engagement == null) return NotFound(new { message = "Engagement not found." });
 
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;

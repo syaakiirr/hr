@@ -224,8 +224,8 @@ export default function MonitoringPage() {
   async function handleDeleteSession(id: string) {
     setConfirmDialog({
       isOpen: true,
-      title: "Padam Session",
-      message: "Adakah anda pasti mahu memadam session ini? Tindakan ini tidak boleh dibatalkan.",
+      title: "Delete Session",
+      message: "Are you sure you want to delete this session? This action cannot be undone.",
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -248,7 +248,7 @@ export default function MonitoringPage() {
     setConfirmDialog({
       isOpen: true,
       title: "Archive Session",
-      message: "Archive session ini? Ia boleh dipulihkan kemudian dari halaman Archive.",
+      message: "Archive this session? It can be restored later from the Archive page.",
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -714,14 +714,14 @@ export default function MonitoringPage() {
                 <div className="filter-bar">
                   <div className="fi-wrap">
                     <svg className="fi-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-                    <input className="fi-inp" placeholder="Cari nama staff..." value={filterName} onChange={e => setFilterName(e.target.value)} />
+                    <input className="fi-inp" placeholder="Search staff name..." value={filterName} onChange={e => setFilterName(e.target.value)} />
                   </div>
                   <select className="fi-sel" value={filterDept} onChange={e => setFilterDept(e.target.value)}>
-                    <option value="">Semua Jabatan</option>
+                    <option value="">All Departments</option>
                     {sessionDepts.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                   <select className="fi-sel" value={filterCompany} onChange={e => setFilterCompany(e.target.value)}>
-                    <option value="">Semua Syarikat</option>
+                    <option value="">All Companies</option>
                     {sessionCompanies.map(c => <option key={c.id} value={c.id!}>{c.name}</option>)}
                   </select>
                   {(filterName || filterDept || filterCompany) && (
@@ -738,12 +738,12 @@ export default function MonitoringPage() {
                   <div className="bulk-bar">
                     <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)" }}>
                       <span className="bulk-badge">{selectedEngagements.size}</span>
-                      dipilih
+                      selected
                     </span>
                     <div style={{ display: "flex", gap: 5 }}>
                       <button onClick={() => handleBulkUpdate("Completed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--green)", color: "white", border: "none", fontSize: 12, height: 28 }}>✓ Done</button>
                       <button onClick={() => handleBulkUpdate("Missed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--red)", color: "white", border: "none", fontSize: 12, height: 28 }}>✗ Missed</button>
-                      <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ fontSize: 12, height: 28 }}>Batal</button>
+                      <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ fontSize: 12, height: 28 }}>Cancel</button>
                     </div>
                   </div>
                 )}
@@ -753,7 +753,7 @@ export default function MonitoringPage() {
                   <div className="loader" style={{ padding: 32 }}><div className="spin" /> Loading...</div>
                 ) : staffRows.length === 0 ? (
                   <div style={{ padding: "32px 20px", textAlign: "center" }}>
-                    <p style={{ color: "var(--text-3)", fontSize: 13 }}>Tiada staff sepadan dengan filter.</p>
+                    <p style={{ color: "var(--text-3)", fontSize: 13 }}>No staff match the current filter.</p>
                   </div>
                 ) : (
                   (() => {
@@ -802,8 +802,8 @@ export default function MonitoringPage() {
                                 />
                               </th>
                               <th rowSpan={3} style={{ ...thStyle, width: 28, fontSize: 11, color: "var(--text-4)", borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>#</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 120, fontSize: 12, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Nama Staff</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 80, fontSize: 11, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Jabatan</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 120, fontSize: 12, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Staff Name</th>
+                                                            <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 80, fontSize: 11, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Department</th>
                               {coGroups.map((cg) => (
                                 <th key={cg.companyID} colSpan={cg.span} style={{
                                   padding: "5px 6px", textAlign: "center", fontWeight: 800,
@@ -814,7 +814,7 @@ export default function MonitoringPage() {
                                   {cg.name}
                                 </th>
                               ))}
-                              <th rowSpan={3} style={{ ...thStyle, width: 68, borderBottom: "2px solid var(--line)" }}>Sebab</th>
+                              <th rowSpan={3} style={{ ...thStyle, width: 68, borderBottom: "2px solid var(--line)" }}>Reason</th>
                             </tr>
                             {/* Row 2 — Platform */}
                             <tr style={{ background: "#f5f6f8" }}>
@@ -928,7 +928,7 @@ export default function MonitoringPage() {
                                   <td style={tdStyle}>
                                     <button
                                       onClick={(e) => { e.stopPropagation(); openReasonModal(row); }}
-                                      title={reason || "Tambah sebab"}
+                                      title={reason || "Add reason"}
                                       style={{
                                         fontSize: 11, padding: "3px 6px", borderRadius: 6,
                                         border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",

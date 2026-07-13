@@ -92,7 +92,7 @@ public class ReportsController : ControllerBase
         wsSummary.Cell(8, 1).Style.Font.FontSize = 12;
         wsSummary.Cell(8, 1).Style.Font.FontColor = XLColor.FromHtml("#16a34a");
 
-        var rankHeaders = new[] { "Rank", "Name", "Department", "Jawatan / Position", "Completed Ticks", "Expected Ticks", "Rate (%)" };
+        var rankHeaders = new[] { "Rank", "Name", "Department", "Position", "Completed Ticks", "Expected Ticks", "Rate (%)" };
         for (int i = 0; i < rankHeaders.Length; i++)
         {
             var cell = wsSummary.Cell(9, i + 1);
@@ -148,7 +148,7 @@ public class ReportsController : ControllerBase
 
         // Sheet 2: All Staff Details
         var wsDetails = workbook.Worksheets.Add("All Staff Performance");
-        var detailsHeaders = new[] { "Rank", "Name", "Department", "Jawatan / Position", "Status", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Completion Rate (%)" };
+        var detailsHeaders = new[] { "Rank", "Name", "Department", "Position", "Status", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Completion Rate (%)" };
         for (int i = 0; i < detailsHeaders.Length; i++)
         {
             var cell = wsDetails.Cell(1, i + 1);

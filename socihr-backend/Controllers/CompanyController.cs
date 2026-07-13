@@ -34,7 +34,7 @@ public class CompanyController : ControllerBase
     public async Task<IActionResult> Create([FromBody] CreateCompanyRequest req)
     {
         if (string.IsNullOrWhiteSpace(req.CompanyName))
-            return BadRequest(new { message = "Nama syarikat tidak boleh kosong." });
+            return BadRequest(new { message = "Company name cannot be empty." });
 
         var company = new Models.Company
         {

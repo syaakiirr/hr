@@ -46,8 +46,8 @@ export default function ArchivedPage() {
   async function handleRestoreStaff(staffId: string, name: string) {
     setConfirmDialog({
       isOpen: true,
-      title: "Pulihkan Staff",
-      message: `Pulihkan ${name}? Status akan dikembalikan kepada Active.`,
+      title: "Restore Staff",
+      message: `Restore ${name}? Status will be set back to Active.`,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -65,8 +65,8 @@ export default function ArchivedPage() {
   async function handleDeleteStaffPermanently(staffId: string, name: string) {
     setConfirmDialog({
       isOpen: true,
-      title: "⚠️ Padam Kekal — Staff",
-      message: `Padam ${name} secara kekal? Semua data engagement mereka akan turut dipadam. Tindakan ini TIDAK BOLEH dibatalkan.`,
+      title: "⚠️ Permanently Delete — Staff",
+      message: `Permanently delete ${name}? All of their engagement data will also be deleted. This action CANNOT be undone.`,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -84,8 +84,8 @@ export default function ArchivedPage() {
   async function handleRestoreSession(sessionId: string, date: string) {
     setConfirmDialog({
       isOpen: true,
-      title: "Pulihkan Session",
-      message: `Pulihkan session ${date}? Session akan dipaparkan semula dalam halaman Monitoring.`,
+      title: "Restore Session",
+      message: `Restore session ${date}? The session will reappear on the Monitoring page.`,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -103,8 +103,8 @@ export default function ArchivedPage() {
   async function handleDeleteSessionPermanently(sessionId: string, date: string) {
     setConfirmDialog({
       isOpen: true,
-      title: "⚠️ Padam Kekal — Session",
-      message: `Padam session ${date} secara kekal? Semua engagement dan audit trail akan turut dipadam. Tindakan ini TIDAK BOLEH dibatalkan.`,
+      title: "⚠️ Permanently Delete — Session",
+      message: `Permanently delete session ${date}? All engagements and audit trail entries will also be deleted. This action CANNOT be undone.`,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -216,7 +216,7 @@ export default function ArchivedPage() {
                               onClick={() => handleRestoreStaff(staff.staffID, staff.fullName)}
                               className="btn btn-success-outline btn-sm"
                               style={{ display: "flex", alignItems: "center", gap: 4 }}
-                              title="Pulihkan staff"
+                              title="Restore staff"
                             >
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
@@ -230,7 +230,7 @@ export default function ArchivedPage() {
                               onClick={() => handleDeleteStaffPermanently(staff.staffID, staff.fullName)}
                               className="btn btn-sm"
                               style={{ display: "flex", alignItems: "center", gap: 4, background: "transparent", border: "1.5px solid var(--red)", color: "var(--red)" }}
-                              title="Padam kekal"
+                              title="Permanently delete"
                             >
                               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                 <polyline points="3 6 5 6 21 6" />
@@ -238,7 +238,7 @@ export default function ArchivedPage() {
                                 <path d="M10 11v6M14 11v6" />
                                 <path d="M9 6V4h6v2" />
                               </svg>
-                              Padam
+                              Delete
                             </button>
                           </div>
                         </td>
@@ -311,7 +311,7 @@ export default function ArchivedPage() {
                                 onClick={() => handleRestoreSession(session.sessionID, sessionDateStr)}
                                 className="btn btn-success-outline btn-sm"
                                 style={{ display: "flex", alignItems: "center", gap: 4 }}
-                                title="Pulihkan session"
+                                title="Restore session"
                               >
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                                   <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
@@ -325,7 +325,7 @@ export default function ArchivedPage() {
                                 onClick={() => handleDeleteSessionPermanently(session.sessionID, sessionDateStr)}
                                 className="btn btn-sm"
                                 style={{ display: "flex", alignItems: "center", gap: 4, background: "transparent", border: "1.5px solid var(--red)", color: "var(--red)" }}
-                                title="Padam kekal"
+                                title="Permanently delete"
                               >
                                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                                   <polyline points="3 6 5 6 21 6" />
@@ -333,7 +333,7 @@ export default function ArchivedPage() {
                                   <path d="M10 11v6M14 11v6" />
                                   <path d="M9 6V4h6v2" />
                                 </svg>
-                                Padam
+                                Delete
                               </button>
                             </div>
                           </td>
