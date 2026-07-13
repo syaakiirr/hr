@@ -39,7 +39,8 @@ export default function StaffPage() {
     title: string;
     message: string;
     onConfirm: () => Promise<void> | void;
-  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+    isLoading: boolean;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {}, isLoading: false });
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -79,7 +80,11 @@ export default function StaffPage() {
   }
 
   function openConfirmDialog(title: string, message: string, onConfirm: () => Promise<void> | void) {
-    setConfirmDialog({ isOpen: true, title, message, onConfirm });
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, isLoading: false });
+  }
+
+  function closeConfirmDialog() {
+    setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {}, isLoading: false });
   }
 
   function handleToggle(staff: Staff) {
@@ -88,34 +93,55 @@ export default function StaffPage() {
       `${action.charAt(0).toUpperCase() + action.slice(1)} Staff`,
       `Are you sure you want to ${action} ${staff.fullName}?`,
       async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
           await toggleStaffStatus(staff.staffID);
           fetchStaff();
         } catch (err: unknown) {
           alert(err instanceof Error ? err.message : "An error occurred.");
+        } finally {
+          closeConfirmDialog();
         }
       }
     );
   }
 
-  async function handleArchive(staff: Staff) {
-    try {
-      await archiveStaff(staff.staffID);
-      alert("Staff archived successfully");
-      fetchStaff();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "An error occurred.");
-    }
+  function handleArchive(staff: Staff) {
+    openConfirmDialog(
+      "Archive Staff",
+      `Archive ${staff.fullName}? This can be restored later from the Archive page.`,
+      async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          await archiveStaff(staff.staffID);
+          alert("Staff archived successfully");
+          fetchStaff();
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "An error occurred.");
+        } finally {
+          closeConfirmDialog();
+        }
+      }
+    );
   }
 
-  async function handleDelete(staff: Staff) {
-    try {
-      await deleteStaff(staff.staffID);
-      alert("Staff deleted successfully");
-      fetchStaff();
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : "An error occurred.");
-    }
+  function handleDelete(staff: Staff) {
+    openConfirmDialog(
+      "Permanently Delete Staff",
+      `Are you sure you want to PERMANENTLY delete ${staff.fullName}? This will also delete all their historical engagement ticks!`,
+      async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          await deleteStaff(staff.staffID);
+          alert("Staff deleted successfully");
+          fetchStaff();
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "An error occurred.");
+        } finally {
+          closeConfirmDialog();
+        }
+      }
+    );
   }
 
   return (
@@ -330,7 +356,8 @@ export default function StaffPage() {
         title={confirmDialog.title}
         message={confirmDialog.message}
         onConfirm={confirmDialog.onConfirm}
-        onCancel={() => setConfirmDialog({ ...confirmDialog, isOpen: false })}
+        onCancel={closeConfirmDialog}
+        isLoading={confirmDialog.isLoading}
       />
     </Layout>
   );
