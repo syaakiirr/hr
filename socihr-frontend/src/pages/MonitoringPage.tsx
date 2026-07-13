@@ -5,7 +5,7 @@ import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
   getSessions, getPlatforms, getCompanies, createSession, deleteSession, archiveSession,
   getEngagements, updateEngagementAction, updateEngagementReason, bulkUpdateEngagementStatus,
-  downloadSessionReportPdf,
+  downloadSessionReportPdf, updatePostLink,
   type MonitoringSession, type Platform, type Engagement, type Company
 } from "../services/api";
 
@@ -198,6 +198,28 @@ export default function MonitoringPage() {
       // Don't revert — keep optimistic state. Server didn't save, but UI stays consistent.
       // Next page load will fetch ground-truth from server.
       console.error("Failed to update engagement:", err);
+    }
+  }
+
+  async function handleEditPostLink(postId: string, platformName: string, currentLink: string) {
+    const newLink = prompt(`Update ${platformName} Post Link:`, currentLink);
+    if (newLink === null) return; // user cancelled
+    
+    try {
+      await updatePostLink(postId, newLink.trim());
+      setSelectedSession(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          posts: prev.posts.map(p => p.postID === postId ? { ...p, postLink: newLink.trim() } : p)
+        };
+      });
+      setSessions(prev => prev.map(s => s.sessionID === selectedSession?.sessionID
+        ? { ...s, posts: s.posts.map(p => p.postID === postId ? { ...p, postLink: newLink.trim() } : p) }
+        : s
+      ));
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "Failed to update post link.");
     }
   }
 
@@ -426,13 +448,16 @@ export default function MonitoringPage() {
     });
 
     // Group columns by platform for the middle header row
-    const platGroups: { platformName: string; color: string; span: number }[] = [];
+    const platGroups: { postID: string; postLink: string; platformName: string; color: string; span: number }[] = [];
     actionCols.forEach((col) => {
       const last = platGroups[platGroups.length - 1];
-      if (last && last.platformName === col.platformName) {
+      if (last && last.platformName === col.platformName && last.postID === col.postID) {
         last.span++;
       } else {
+        const post = selectedSession.posts.find(p => p.postID === col.postID);
         platGroups.push({
+          postID: col.postID,
+          postLink: post?.postLink || "",
           platformName: col.platformName,
           color: PLATFORM_COLORS[col.platformName] || "var(--accent)",
           span: 1
@@ -850,12 +875,53 @@ export default function MonitoringPage() {
                                   platColIdx += pg.span;
                                   return (
                                     <th key={pi} colSpan={pg.span} style={{
-                                      padding: "3px 4px", textAlign: "center", fontWeight: 700,
+                                      padding: "6px 4px", textAlign: "center", fontWeight: 700,
                                       fontSize: 11, color: pg.color, background: `${pg.color}0d`,
                                       borderRight: isCoEnd ? "2px solid #cbd5e1" : "1px solid var(--line)",
                                       borderBottom: "1px solid var(--line)"
                                     }}>
-                                      {pg.platformName === "Facebook" ? "Facebook" : pg.platformName === "Instagram" ? "Instagram" : pg.platformName === "TikTok" ? "TikTok" : pg.platformName}
+                                      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+                                        {pg.postLink ? (
+                                          <a
+                                            href={pg.postLink}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            title={`Go to ${pg.platformName} Post`}
+                                            style={{
+                                              color: pg.color,
+                                              textDecoration: "underline",
+                                              display: "inline-flex",
+                                              alignItems: "center",
+                                              gap: 3,
+                                              fontWeight: 800
+                                            }}
+                                          >
+                                            <span>{pg.platformName}</span>
+                                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>
+                                          </a>
+                                        ) : (
+                                          <span style={{ color: pg.color, opacity: 0.7 }}>{pg.platformName}</span>
+                                        )}
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleEditPostLink(pg.postID, pg.platformName, pg.postLink);
+                                          }}
+                                          style={{
+                                            border: "none",
+                                            background: "none",
+                                            cursor: "pointer",
+                                            padding: "2px 4px",
+                                            color: "var(--text-3)",
+                                            fontSize: 11,
+                                            display: "inline-flex",
+                                            alignItems: "center"
+                                          }}
+                                          title="Update Link"
+                                        >
+                                          ✏️
+                                        </button>
+                                      </div>
                                     </th>
                                   );
                                 });

@@ -421,6 +421,7 @@ public class MonitoringSessionController : ControllerBase
         public string Action { get; set; } = "";  // "like", "comment", "share"
         public string ActionLabel { get; set; } = "";
         public string ActionIcon { get; set; } = "";
+        public string PostLink { get; set; } = "";
     }
 
     private class CompanyGroup
@@ -432,7 +433,9 @@ public class MonitoringSessionController : ControllerBase
 
     private class PlatformGroup
     {
+        public string PostID { get; set; } = "";
         public string PlatformName { get; set; } = "";
+        public string PostLink { get; set; } = "";
         public int Span { get; set; }
     }
 
@@ -450,6 +453,7 @@ public class MonitoringSessionController : ControllerBase
         // Get unique posts from engagements, sorted by company then platform
         var platformOrder = new Dictionary<string, int> { { "Facebook", 0 }, { "Instagram", 1 }, { "TikTok", 2 } };
         var uniquePosts = engagements
+            .Where(e => e.Post != null)
             .GroupBy(e => e.Post!.PostID)
             .Select(g => g.First().Post!)
             .OrderBy(p => (p.Company?.CompanyName ?? "").ToLower())
@@ -479,7 +483,8 @@ public class MonitoringSessionController : ControllerBase
                     CompanyID = post.Company?.CompanyID.ToString() ?? "",
                     CompanyName = post.Company?.CompanyName ?? "No Company",
                     Action = action,
-                    ActionLabel = label
+                    ActionLabel = label,
+                    PostLink = post.PostLink ?? ""
                 });
             }
         }
@@ -505,13 +510,19 @@ public class MonitoringSessionController : ControllerBase
         foreach (var col in data.ActionColumns)
         {
             var lastPl = platformGroups.LastOrDefault();
-            if (lastPl != null && lastPl.PlatformName == col.PlatformName)
+            if (lastPl != null && lastPl.PostID == col.PostID)
             {
                 lastPl.Span++;
             }
             else
             {
-                platformGroups.Add(new PlatformGroup { PlatformName = col.PlatformName, Span = 1 });
+                platformGroups.Add(new PlatformGroup 
+                { 
+                    PostID = col.PostID,
+                    PlatformName = col.PlatformName, 
+                    PostLink = col.PostLink,
+                    Span = 1 
+                });
             }
         }
         data.PlatformGroups = platformGroups;
@@ -568,123 +579,159 @@ public class MonitoringSessionController : ControllerBase
             container.Page(page =>
             {
                 page.Size(PageSizes.A4.Landscape());
-                page.Margin(12);
+                page.Margin(16);
                 page.PageColor(Colors.White);
 
-                page.Header().Text(txt =>
+                page.Header().PaddingBottom(8).Row(row =>
                 {
-                    txt.Span("Monitoring Session Report").FontSize(16).Bold().FontColor("#1e40af");
-                    txt.Span($" — {data.SessionDate:dd MMMM yyyy}").FontSize(12).FontColor("#6b7280");
+                    row.RelativeItem().Column(c =>
+                    {
+                        c.Item().Text("Monitoring Session Report").FontSize(16).Bold().FontColor("#1e40af");
+                        c.Item().Text($"System crafted by @syaakiirr").FontSize(8).FontColor("#9ca3af");
+                    });
+                    row.ConstantItem(150).AlignRight().Text($"{data.SessionDate:dd MMMM yyyy}").FontSize(11).Bold().FontColor("#475569");
                 });
 
                 page.Content().Column(col =>
                 {
-                    // Summary Totals (top)
-                    col.Item().Row(row =>
+                    // Summary Totals cards
+                    col.Item().PaddingBottom(12).Row(row =>
                     {
-                        row.RelativeItem().Column(c =>
-                        {
-                            c.Item().Text("Totals").FontSize(11).Bold().FontColor("#1e40af");
-                            c.Item().Row(r =>
-                            {
-                                r.RelativeItem().Text($"Total Likes: {data.TotalLikes}").FontSize(10).Bold();
-                                r.RelativeItem().Text($"Total Comments: {data.TotalComments}").FontSize(10).Bold();
-                                r.RelativeItem().Text($"Total Shares: {data.TotalShares}").FontSize(10).Bold();
-                            });
-                        });
+                        row.RelativeItem().Element(c => Card(c, "Total Likes", data.TotalLikes.ToString(), "#3b82f6"));
+                        row.ConstantItem(12);
+                        row.RelativeItem().Element(c => Card(c, "Total Comments", data.TotalComments.ToString(), "#0ea5e9"));
+                        row.ConstantItem(12);
+                        row.RelativeItem().Element(c => Card(c, "Total Shares", data.TotalShares.ToString(), "#10b981"));
                     });
 
-                    // Engagement Matrix - 3 header rows + data table
-                    col.Item().PaddingTop(8).Column(tableCol =>
+                    // Engagement Matrix - Single Table
+                    col.Item().Table(table =>
                     {
-                        var colW = 0.35f;
-                        
-                        // Row 1: Company Headers
-                        tableCol.Item().Height(20).Row(row =>
+                        table.ColumnsDefinition(columns =>
                         {
-                            row.RelativeItem(0.4f).Background("#f3f4f6").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text("#").FontSize(8).Bold();
-                            row.RelativeItem(1.8f).Background("#f3f4f6").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text("Staff Name").FontSize(8).Bold();
-                            row.RelativeItem(1.2f).Background("#f3f4f6").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text("Dept").FontSize(8).Bold();
+                            columns.RelativeColumn(0.4f);  // Rank
+                            columns.RelativeColumn(2.0f);  // Staff Name
+                            columns.RelativeColumn(1.2f);  // Department
                             
+                            foreach (var _ in data.ActionColumns)
+                            {
+                                columns.RelativeColumn(0.35f);
+                            }
+                        });
+
+                        // Headers
+                        table.Header(header =>
+                        {
+                            static IContainer BaseHeader(IContainer container, string bg) =>
+                                container.Background(bg).Border(1).BorderColor("#cbd5e1").PaddingHorizontal(4).AlignCenter().AlignMiddle();
+
+                            // Column 1, 2, 3: Spanning 3 rows vertically
+                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("#").FontSize(8).Bold().FontColor("#475569");
+                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Staff Name").FontSize(8).Bold().FontColor("#475569");
+                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Dept").FontSize(8).Bold().FontColor("#475569");
+
+                            // Row 1: Company groups
                             foreach (var coGroup in data.CompanyGroups)
                             {
-                                var w = colW * coGroup.Span;
-                                row.RelativeItem(w).Background("#dbeafe").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text(coGroup.Name).FontSize(8).Bold();
+                                header.Cell().ColumnSpan((uint)coGroup.Span).Element(c => BaseHeader(c, "#dbeafe"))
+                                    .Text(coGroup.Name).FontSize(8).Bold().FontColor("#1e40af");
                             }
-                        });
 
-                        // Row 2: Platform Headers
-                        tableCol.Item().Height(18).Row(row =>
-                        {
-                            row.RelativeItem(0.4f).Background("#e0f2fe");
-                            row.RelativeItem(1.8f).Background("#e0f2fe");
-                            row.RelativeItem(1.2f).Background("#e0f2fe");
-                            
+                            // Row 2: Platform groups
                             foreach (var platGroup in data.PlatformGroups)
                             {
-                                var w = colW * platGroup.Span;
-                                row.RelativeItem(w).Background("#e0f2fe").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text(platGroup.PlatformName).FontSize(7).Bold();
+                                var cell = header.Cell().ColumnSpan((uint)platGroup.Span).Element(c => BaseHeader(c, "#e0f2fe"));
+                                if (!string.IsNullOrEmpty(platGroup.PostLink))
+                                {
+                                    cell.Hyperlink(platGroup.PostLink).Text(platGroup.PlatformName).FontSize(7).Bold().FontColor("#0369a1").Underline();
+                                }
+                                else
+                                {
+                                    cell.Text(platGroup.PlatformName).FontSize(7).Bold().FontColor("#0369a1");
+                                }
                             }
-                        });
 
-                        // Row 3: Action Labels
-                        tableCol.Item().Height(18).Row(row =>
-                        {
-                            row.RelativeItem(0.4f).Background("#f0fdf4");
-                            row.RelativeItem(1.8f).Background("#f0fdf4");
-                            row.RelativeItem(1.2f).Background("#f0fdf4");
-                            
+                            // Row 3: Action columns
                             foreach (var col in data.ActionColumns)
                             {
-                                row.RelativeItem(colW).Background("#f0fdf4").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text(col.ActionLabel).FontSize(7).Bold();
+                                header.Cell().Element(c => BaseHeader(c, "#f0fdf4"))
+                                    .Text(col.ActionLabel).FontSize(7).Bold().FontColor("#15803d");
                             }
                         });
 
-                        // Data Table
-                        tableCol.Item().Table(table =>
+                        // Data Rows
+                        int rowNum = 1;
+                        foreach (var staffRow in data.StaffRows)
                         {
-                            table.ColumnsDefinition(columns =>
-                            {
-                                columns.RelativeColumn(0.4f);
-                                columns.RelativeColumn(1.8f);
-                                columns.RelativeColumn(1.2f);
-                                
-                                foreach (var _ in data.ActionColumns)
-                                {
-                                    columns.RelativeColumn(0.35f);
-                                }
-                            });
+                            var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
 
-                            int rowNum = 1;
-                            foreach (var staffRow in data.StaffRows)
-                            {
-                                table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
-                                    .Text(rowNum.ToString()).FontSize(8).AlignCenter();
-                                table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
-                                    .Text(staffRow.StaffName).FontSize(7);
-                                table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
-                                    .Text(staffRow.Department).FontSize(7);
-                                
-                                for (int i = 0; i < staffRow.EngagementValues.Count; i++)
-                                {
-                                    var value = staffRow.EngagementValues[i];
-                                    table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(2)
-                                        .Text(value ? "✓" : "").FontSize(9).AlignCenter()
-                                        .FontColor(value ? "#059669" : "#d1d5db");
-                                }
+                            static IContainer DataCell(IContainer container, string bg) =>
+                                container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
 
-                                rowNum++;
+                            // Rank
+                            table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter().Text(rowNum.ToString()).FontSize(7).FontColor("#64748b");
+                            
+                            // Staff Name
+                            table.Cell().Element(c => DataCell(c, bgColor)).Text(staffRow.StaffName).FontSize(7).Bold().FontColor("#1e293b");
+                            
+                            // Department
+                            table.Cell().Element(c => DataCell(c, bgColor)).Text(staffRow.Department).FontSize(7).FontColor("#475569");
+
+                            // Engagement Values
+                            for (int i = 0; i < staffRow.EngagementValues.Count; i++)
+                            {
+                                var value = staffRow.EngagementValues[i];
+                                var cell = table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter();
+                                
+                                if (value)
+                                {
+                                    cell.AlignCenter().AlignMiddle()
+                                        .Width(12).Height(12)
+                                        .Background("#10b981")
+                                        .AlignCenter().AlignMiddle()
+                                        .Text("v").FontSize(7).Bold().FontColor("#ffffff");
+                                }
+                                else
+                                {
+                                    cell.Text("");
+                                }
                             }
-                        });
+
+                            rowNum++;
+                        }
                     });
                 });
 
-                page.Footer().AlignCenter().Text($"Generated {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC")
-                    .FontSize(8).FontColor("#9ca3af");
+                page.Footer().AlignCenter().Text(t =>
+                {
+                    t.Span("Generated ").FontSize(8).FontColor("#9ca3af");
+                    t.Span($"{DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
+                    t.Span("  •  Page ").FontSize(8).FontColor("#9ca3af");
+                    t.CurrentPageNumber().FontSize(8).FontColor("#9ca3af");
+                    t.Span(" of ").FontSize(8).FontColor("#9ca3af");
+                    t.TotalPages().FontSize(8).FontColor("#9ca3af");
+                });
             });
         });
 
         return document.GeneratePdf();
+    }
+
+    private void Card(IContainer container, string label, string value, string color)
+    {
+        container
+            .Background("#f8fafc")
+            .Border(1)
+            .BorderColor("#cbd5e1")
+            .Row(row =>
+            {
+                row.ConstantItem(4).Background(color);
+                row.RelativeItem().Padding(6).Column(c =>
+                {
+                    c.Item().Text(label).FontSize(8).FontColor("#64748b").Bold();
+                    c.Item().Text(value).FontSize(12).Bold().FontColor(color);
+                });
+            });
     }
 }
 
