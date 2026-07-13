@@ -6,6 +6,7 @@ using socihr_backend.Models;
 using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
+using SkiaSharp;
 
 namespace socihr_backend.Controllers;
 
@@ -609,13 +610,13 @@ public class MonitoringSessionController : ControllerBase
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(0.4f);  // Rank
-                            columns.RelativeColumn(2.0f);  // Staff Name
-                            columns.RelativeColumn(1.2f);  // Department
+                            columns.RelativeColumn(0.3f);  // Rank
+                            columns.RelativeColumn(1.5f);  // Staff Name
+                            columns.RelativeColumn(0.9f);  // Department
                             
                             foreach (var _ in data.ActionColumns)
                             {
-                                columns.RelativeColumn(0.35f);
+                                columns.RelativeColumn(0.55f);
                             }
                         });
 
@@ -623,18 +624,18 @@ public class MonitoringSessionController : ControllerBase
                         table.Header(header =>
                         {
                             static IContainer BaseHeader(IContainer container, string bg) =>
-                                container.Background(bg).Border(1).BorderColor("#cbd5e1").PaddingHorizontal(4).AlignCenter().AlignMiddle();
+                                container.Background(bg).Border(1).BorderColor("#cbd5e1").PaddingHorizontal(2).AlignCenter().AlignMiddle();
 
                             // Column 1, 2, 3: Spanning 3 rows vertically
-                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("#").FontSize(8).Bold().FontColor("#475569");
-                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Staff Name").FontSize(8).Bold().FontColor("#475569");
-                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Dept").FontSize(8).Bold().FontColor("#475569");
+                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("#").FontSize(7.5f).Bold().FontColor("#475569");
+                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Staff Name").FontSize(7.5f).Bold().FontColor("#475569");
+                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Dept").FontSize(7.5f).Bold().FontColor("#475569");
 
                             // Row 1: Company groups
                             foreach (var coGroup in data.CompanyGroups)
                             {
                                 header.Cell().ColumnSpan((uint)coGroup.Span).Element(c => BaseHeader(c, "#dbeafe"))
-                                    .Text(coGroup.Name).FontSize(8).Bold().FontColor("#1e40af");
+                                    .Text(coGroup.Name).FontSize(7.5f).Bold().FontColor("#1e40af");
                             }
 
                             // Row 2: Platform groups
@@ -643,11 +644,11 @@ public class MonitoringSessionController : ControllerBase
                                 var cell = header.Cell().ColumnSpan((uint)platGroup.Span).Element(c => BaseHeader(c, "#e0f2fe"));
                                 if (!string.IsNullOrEmpty(platGroup.PostLink))
                                 {
-                                    cell.Hyperlink(platGroup.PostLink).Text(platGroup.PlatformName).FontSize(7).Bold().FontColor("#0369a1").Underline();
+                                    cell.Hyperlink(platGroup.PostLink).Text(platGroup.PlatformName).FontSize(6f).Bold().FontColor("#0369a1").Underline();
                                 }
                                 else
                                 {
-                                    cell.Text(platGroup.PlatformName).FontSize(7).Bold().FontColor("#0369a1");
+                                    cell.Text(platGroup.PlatformName).FontSize(6f).Bold().FontColor("#0369a1");
                                 }
                             }
 
@@ -655,7 +656,7 @@ public class MonitoringSessionController : ControllerBase
                             foreach (var col in data.ActionColumns)
                             {
                                 header.Cell().Element(c => BaseHeader(c, "#f0fdf4"))
-                                    .Text(col.ActionLabel).FontSize(7).Bold().FontColor("#15803d");
+                                    .Text(col.ActionLabel).FontSize(5.5f).Bold().FontColor("#15803d");
                             }
                         });
 
@@ -686,10 +687,10 @@ public class MonitoringSessionController : ControllerBase
                                 if (value)
                                 {
                                     cell.AlignCenter().AlignMiddle()
-                                        .Width(12).Height(12)
+                                        .Width(11).Height(11)
                                         .Background("#10b981")
                                         .AlignCenter().AlignMiddle()
-                                        .Text("v").FontSize(7).Bold().FontColor("#ffffff");
+                                        .Text("✓").FontSize(8).Bold().FontColor("#ffffff");
                                 }
                                 else
                                 {

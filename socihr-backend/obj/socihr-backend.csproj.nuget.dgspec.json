@@ -76,6 +76,10 @@
             "QuestPDF": {
               "target": "Package",
               "version": "[2026.6.1, )"
+            },
+            "SkiaSharp": {
+              "target": "Package",
+              "version": "[4.150.0, )"
             }
           },
           "imports": [

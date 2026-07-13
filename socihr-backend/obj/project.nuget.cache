@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "w0iUlCbudTI=",
+  "dgSpecHash": "zIfyu/RnxMg=",
   "success": true,
   "projectFilePath": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\socihr-backend.csproj",
   "expectedPackageFiles": [
@@ -50,6 +50,9 @@
     "C:\\Users\\mfsbm\\.nuget\\packages\\questpdf\\2026.6.1\\questpdf.2026.6.1.nupkg.sha512",
     "C:\\Users\\mfsbm\\.nuget\\packages\\rbush.signed\\4.0.0\\rbush.signed.4.0.0.nupkg.sha512",
     "C:\\Users\\mfsbm\\.nuget\\packages\\sixlabors.fonts\\1.0.0\\sixlabors.fonts.1.0.0.nupkg.sha512",
+    "C:\\Users\\mfsbm\\.nuget\\packages\\skiasharp\\4.150.0\\skiasharp.4.150.0.nupkg.sha512",
+    "C:\\Users\\mfsbm\\.nuget\\packages\\skiasharp.nativeassets.macos\\4.150.0\\skiasharp.nativeassets.macos.4.150.0.nupkg.sha512",
+    "C:\\Users\\mfsbm\\.nuget\\packages\\skiasharp.nativeassets.win32\\4.150.0\\skiasharp.nativeassets.win32.4.150.0.nupkg.sha512",
     "C:\\Users\\mfsbm\\.nuget\\packages\\system.codedom\\4.4.0\\system.codedom.4.4.0.nupkg.sha512",
     "C:\\Users\\mfsbm\\.nuget\\packages\\system.collections.immutable\\6.0.0\\system.collections.immutable.6.0.0.nupkg.sha512",
     "C:\\Users\\mfsbm\\.nuget\\packages\\system.composition\\6.0.0\\system.composition.6.0.0.nupkg.sha512",
