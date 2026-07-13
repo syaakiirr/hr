@@ -20,6 +20,8 @@ export default function ArchivedPage() {
     message: string;
     onConfirm: () => void;
     isLoading?: boolean;
+    confirmLabel?: string;
+    danger?: boolean;
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   useEffect(() => {
@@ -48,6 +50,8 @@ export default function ArchivedPage() {
       isOpen: true,
       title: "Restore Staff",
       message: `Restore ${name}? Status will be set back to Active.`,
+      confirmLabel: "Restore",
+      danger: false,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -67,6 +71,8 @@ export default function ArchivedPage() {
       isOpen: true,
       title: "⚠️ Permanently Delete — Staff",
       message: `Permanently delete ${name}? All of their engagement data will also be deleted. This action CANNOT be undone.`,
+      confirmLabel: "Delete Permanently",
+      danger: true,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -86,6 +92,8 @@ export default function ArchivedPage() {
       isOpen: true,
       title: "Restore Session",
       message: `Restore session ${date}? The session will reappear on the Monitoring page.`,
+      confirmLabel: "Restore",
+      danger: false,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -105,6 +113,8 @@ export default function ArchivedPage() {
       isOpen: true,
       title: "⚠️ Permanently Delete — Session",
       message: `Permanently delete session ${date}? All engagements and audit trail entries will also be deleted. This action CANNOT be undone.`,
+      confirmLabel: "Delete Permanently",
+      danger: true,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -355,6 +365,8 @@ export default function ArchivedPage() {
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
         isLoading={confirmDialog.isLoading}
+        confirmLabel={confirmDialog.confirmLabel}
+        danger={confirmDialog.danger}
       />
     </Layout>
   );

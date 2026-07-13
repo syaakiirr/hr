@@ -101,6 +101,8 @@ export default function MonitoringPage() {
     message: string;
     onConfirm: () => void;
     isLoading?: boolean;
+    confirmLabel?: string;
+    danger?: boolean;
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   // Debounced filter for name (avoids re-render on every keystroke)
@@ -226,6 +228,8 @@ export default function MonitoringPage() {
       isOpen: true,
       title: "Delete Session",
       message: "Are you sure you want to delete this session? This action cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -249,6 +253,8 @@ export default function MonitoringPage() {
       isOpen: true,
       title: "Archive Session",
       message: "Archive this session? It can be restored later from the Archive page.",
+      confirmLabel: "Archive",
+      danger: false,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
@@ -283,8 +289,10 @@ export default function MonitoringPage() {
     }
     setConfirmDialog({
       isOpen: true,
-      title: `Update ke "${status}"`,
-      message: `Update ${selectedEngagements.size} engagement(s) kepada "${status}"?`,
+      title: `Update to "${status}"`,
+      message: `Update ${selectedEngagements.size} engagement(s) to "${status}"?`,
+      confirmLabel: "Update",
+      danger: false,
       onConfirm: async () => {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         setBulkUpdating(true);
@@ -1213,6 +1221,8 @@ export default function MonitoringPage() {
         onConfirm={confirmDialog.onConfirm}
         onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
         isLoading={confirmDialog.isLoading}
+        confirmLabel={confirmDialog.confirmLabel}
+        danger={confirmDialog.danger}
       />
     </Layout>
   );

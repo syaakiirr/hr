@@ -40,7 +40,9 @@ export default function StaffPage() {
     message: string;
     onConfirm: () => Promise<void> | void;
     isLoading: boolean;
-  }>({ isOpen: false, title: "", message: "", onConfirm: () => {}, isLoading: false });
+    confirmLabel: string;
+    danger: boolean;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {}, isLoading: false, confirmLabel: "Confirm", danger: true });
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -79,12 +81,12 @@ export default function StaffPage() {
     }
   }
 
-  function openConfirmDialog(title: string, message: string, onConfirm: () => Promise<void> | void) {
-    setConfirmDialog({ isOpen: true, title, message, onConfirm, isLoading: false });
+  function openConfirmDialog(title: string, message: string, onConfirm: () => Promise<void> | void, confirmLabel = "Confirm", danger = true) {
+    setConfirmDialog({ isOpen: true, title, message, onConfirm, isLoading: false, confirmLabel, danger });
   }
 
   function closeConfirmDialog() {
-    setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {}, isLoading: false });
+    setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {}, isLoading: false, confirmLabel: "Confirm", danger: true });
   }
 
   function handleToggle(staff: Staff) {
@@ -102,7 +104,9 @@ export default function StaffPage() {
         } finally {
           closeConfirmDialog();
         }
-      }
+      },
+      action.charAt(0).toUpperCase() + action.slice(1),
+      false
     );
   }
 
@@ -121,7 +125,9 @@ export default function StaffPage() {
         } finally {
           closeConfirmDialog();
         }
-      }
+      },
+      "Archive",
+      false
     );
   }
 
@@ -140,7 +146,9 @@ export default function StaffPage() {
         } finally {
           closeConfirmDialog();
         }
-      }
+      },
+      "Delete",
+      true
     );
   }
 
@@ -358,6 +366,8 @@ export default function StaffPage() {
         onConfirm={confirmDialog.onConfirm}
         onCancel={closeConfirmDialog}
         isLoading={confirmDialog.isLoading}
+        confirmLabel={confirmDialog.confirmLabel}
+        danger={confirmDialog.danger}
       />
     </Layout>
   );
