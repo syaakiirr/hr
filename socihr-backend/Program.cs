@@ -7,8 +7,12 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using AspNetCoreRateLimit;
 using BCrypt.Net;
+using QuestPDF.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// QuestPDF License Activation (Community/Eval mode)
+QuestPDF.Settings.License = LicenseType.Community;
 
 // Database — support both URI format (postgres://...) and key=value format
 var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")

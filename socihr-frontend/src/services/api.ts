@@ -385,11 +385,24 @@ export async function getArchivedSessions(): Promise<MonitoringSession[]> {
 
 export async function downloadSessionReportPdf(sessionId: string, sessionDate: string): Promise<void> {
   try {
-    const res = await fetch(`${BASE_URL}/monitoringsession/${sessionId}/report-pdf`, {
-      headers: authHeaders(),
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated. Please login again.");
+    
+    const res = await fetch(`${BASE_URL}/monitoringsession/${sessionId}/report`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
     });
-    if (!res.ok) throw new Error("Failed to download report.");
+    
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("PDF response error:", res.status, errText);
+      throw new Error(`Server error: ${res.status}`);
+    }
+    
     const blob = await res.blob();
+    if (blob.size === 0) throw new Error("Empty PDF received.");
+    
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -398,8 +411,11 @@ export async function downloadSessionReportPdf(sessionId: string, sessionDate: s
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
+    console.log("PDF downloaded successfully:", a.download);
   } catch (err) {
-    throw new Error(err instanceof Error ? err.message : "Failed to download PDF report.");
+    const msg = err instanceof Error ? err.message : "Failed to download PDF report.";
+    console.error("Download error:", msg);
+    throw new Error(msg);
   }
 }
 

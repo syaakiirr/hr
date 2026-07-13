@@ -362,8 +362,8 @@ public class MonitoringSessionController : ControllerBase
         return Ok(new { post.PostID, post.PostLink });
     }
 
-    // GET /api/monitoringsession/{id}/report-pdf
-    [HttpGet("{id:guid}/report-pdf")]
+    // GET /api/monitoringsession/{id}/report
+    [HttpGet("{id:guid}/report")]
     public async Task<IActionResult> GenerateReportPdf(Guid id)
     {
         try
