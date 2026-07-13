@@ -434,21 +434,23 @@ export default function DashboardPage() {
     },
     visualMap: {
       min: 0, max: 100, show: true,
-      orient: 'horizontal', left: 'center', top: 0,
-      text: ['100%', '0%'],
-      textStyle: { color: '#7b7b96', fontSize: 10 },
-      inRange: { color: ['#f0f0ff', '#6366f1'] },
-      itemWidth: 10, itemHeight: 10,
+      orient: 'horizontal', right: 10, top: 8,
+      align: 'right',
+      text: ['High', 'Low'],
+      textStyle: { color: '#9ca3af', fontSize: 9.5 },
+      inRange: { color: ['#f0f0ff', '#a5b4fc', '#6366f1'] },
+      itemWidth: 60, itemHeight: 10,
+      calculable: false,
     },
     calendar: {
-      top: 40, left: 30, right: 20,
+      top: 56, left: 40, right: 20, bottom: 10,
       range: `${currentYear}`,
-      cellSize: ['auto', 13],
-      splitLine: { lineStyle: { color: '#e5e5f0' } },
+      cellSize: ['auto', 14],
+      splitLine: { lineStyle: { color: '#e5e5f0', width: 1 } },
       yearLabel: { show: false },
-      dayLabel: { nameMap: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], color: '#9ca3af', fontSize: 9 },
-      monthLabel: { color: '#7b7b96', fontSize: 10 },
-      itemStyle: { borderWidth: 2, borderColor: '#fff' }
+      dayLabel: { nameMap: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], color: '#9ca3af', fontSize: 9.5 },
+      monthLabel: { color: '#6b6b85', fontSize: 10.5, fontWeight: 600 },
+      itemStyle: { borderWidth: 2.5, borderColor: '#fff', color: '#f8f8fc' }
     },
     series: [{
       type: 'heatmap',
@@ -456,7 +458,8 @@ export default function DashboardPage() {
       data: heatmapData.map(d => [
         d.date.split('T')[0],
         d.total > 0 ? Math.round(d.completed / d.total * 100) : 0
-      ])
+      ]),
+      itemStyle: { borderRadius: 3 }
     }]
   }), [heatmapData, currentYear]);
 
@@ -720,7 +723,7 @@ export default function DashboardPage() {
               <p className="chart-label" style={{ color: "#6366f1" }}>📅 Daily Engagement Activity — {currentYear}</p>
               <ReactECharts
                 option={heatmapOption}
-                style={{ height: 160 }}
+                style={{ height: 190 }}
                 opts={{ renderer: 'canvas' }}
                 notMerge={true}
                 lazyUpdate={true}
