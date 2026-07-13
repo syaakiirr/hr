@@ -594,58 +594,88 @@ public class MonitoringSessionController : ControllerBase
                         });
                     });
 
-                    // Engagement Matrix Table
-                    col.Item().PaddingTop(8).Table(table =>
+                    // Engagement Matrix - 3 header rows + data table
+                    col.Item().PaddingTop(8).Column(tableCol =>
                     {
-                        // Define columns: # + Staff Name + Department + Action columns
-                        table.ColumnsDefinition(columns =>
+                        var colW = 0.35f;
+                        
+                        // Row 1: Company Headers
+                        tableCol.Item().Height(20).Row(row =>
                         {
-                            columns.RelativeColumn(0.4f);  // #
-                            columns.RelativeColumn(1.8f);  // Staff Name
-                            columns.RelativeColumn(1.2f);  // Department
-                            
-                            // One column per action
-                            foreach (var _ in data.ActionColumns)
-                            {
-                                columns.RelativeColumn(0.35f);
-                            }
-                        });
-
-                        // Header Row: Staff/Dept + Company Headers
-                        table.Header(header =>
-                        {
-                            header.Cell().Background("#f3f4f6").Padding(4).Text("#").FontSize(8).AlignCenter().Bold();
-                            header.Cell().Background("#f3f4f6").Padding(4).Text("Staff Name").FontSize(8).AlignCenter().Bold();
-                            header.Cell().Background("#f3f4f6").Padding(4).Text("Department").FontSize(8).AlignCenter().Bold();
+                            row.RelativeItem(0.4f).Background("#f3f4f6").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text("#").FontSize(8).Bold();
+                            row.RelativeItem(1.8f).Background("#f3f4f6").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text("Staff Name").FontSize(8).Bold();
+                            row.RelativeItem(1.2f).Background("#f3f4f6").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text("Dept").FontSize(8).Bold();
                             
                             foreach (var coGroup in data.CompanyGroups)
                             {
-                                header.Cell().ColumnSpan((uint)coGroup.Span).Background("#dbeafe").Padding(4)
-                                    .Text(coGroup.Name).FontSize(8).AlignCenter().Bold();
+                                var w = colW * coGroup.Span;
+                                row.RelativeItem(w).Background("#dbeafe").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text(coGroup.Name).FontSize(8).Bold();
                             }
                         });
 
-                        // Data Rows
-                        int rowNum = 1;
-                        foreach (var staffRow in data.StaffRows)
+                        // Row 2: Platform Headers
+                        tableCol.Item().Height(18).Row(row =>
                         {
-                            table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
-                                .Text(rowNum.ToString()).FontSize(8).AlignCenter();
-                            table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
-                                .Text(staffRow.StaffName).FontSize(7);
-                            table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
-                                .Text(staffRow.Department).FontSize(7);
+                            row.RelativeItem(0.4f).Background("#e0f2fe");
+                            row.RelativeItem(1.8f).Background("#e0f2fe");
+                            row.RelativeItem(1.2f).Background("#e0f2fe");
                             
-                            for (int i = 0; i < staffRow.EngagementValues.Count; i++)
+                            foreach (var platGroup in data.PlatformGroups)
                             {
-                                var value = staffRow.EngagementValues[i];
-                                table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(2)
-                                    .Text(value ? "✓" : "").FontSize(9).AlignCenter()
-                                    .FontColor(value ? "#059669" : "#d1d5db");
+                                var w = colW * platGroup.Span;
+                                row.RelativeItem(w).Background("#e0f2fe").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text(platGroup.PlatformName).FontSize(7).Bold();
                             }
+                        });
 
-                            rowNum++;
-                        }
+                        // Row 3: Action Labels
+                        tableCol.Item().Height(18).Row(row =>
+                        {
+                            row.RelativeItem(0.4f).Background("#f0fdf4");
+                            row.RelativeItem(1.8f).Background("#f0fdf4");
+                            row.RelativeItem(1.2f).Background("#f0fdf4");
+                            
+                            foreach (var col in data.ActionColumns)
+                            {
+                                row.RelativeItem(colW).Background("#f0fdf4").PaddingHorizontal(4).AlignCenter().AlignMiddle().Text(col.ActionLabel).FontSize(7).Bold();
+                            }
+                        });
+
+                        // Data Table
+                        tableCol.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.RelativeColumn(0.4f);
+                                columns.RelativeColumn(1.8f);
+                                columns.RelativeColumn(1.2f);
+                                
+                                foreach (var _ in data.ActionColumns)
+                                {
+                                    columns.RelativeColumn(0.35f);
+                                }
+                            });
+
+                            int rowNum = 1;
+                            foreach (var staffRow in data.StaffRows)
+                            {
+                                table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
+                                    .Text(rowNum.ToString()).FontSize(8).AlignCenter();
+                                table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
+                                    .Text(staffRow.StaffName).FontSize(7);
+                                table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(4)
+                                    .Text(staffRow.Department).FontSize(7);
+                                
+                                for (int i = 0; i < staffRow.EngagementValues.Count; i++)
+                                {
+                                    var value = staffRow.EngagementValues[i];
+                                    table.Cell().Background(rowNum % 2 == 0 ? "#f9fafb" : Colors.White).Padding(2)
+                                        .Text(value ? "✓" : "").FontSize(9).AlignCenter()
+                                        .FontColor(value ? "#059669" : "#d1d5db");
+                                }
+
+                                rowNum++;
+                            }
+                        });
                     });
                 });
 
