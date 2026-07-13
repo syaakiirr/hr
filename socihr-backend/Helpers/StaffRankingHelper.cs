@@ -66,10 +66,11 @@ public class StaffRankingHelper
             })
             .ToList();
 
-        // Apply ordering
+        // Apply ordering.
+        // Tiebreak priority: CompletionRate -> Completed ticks -> Total ticks handled (workload) -> Name (stable fallback only).
         IOrderedEnumerable<StaffRankingDto> ordered = order == "bottom"
-            ? data.OrderBy(d => d.CompletionRate).ThenBy(d => d.Completed).ThenBy(d => d.FullName)
-            : data.OrderByDescending(d => d.CompletionRate).ThenByDescending(d => d.Completed).ThenBy(d => d.FullName);
+            ? data.OrderBy(d => d.CompletionRate).ThenBy(d => d.Completed).ThenBy(d => d.Total).ThenBy(d => d.FullName)
+            : data.OrderByDescending(d => d.CompletionRate).ThenByDescending(d => d.Completed).ThenByDescending(d => d.Total).ThenBy(d => d.FullName);
 
         // Apply limit if specified
         return limit.HasValue ? ordered.Take(limit.Value).ToList() : ordered.ToList();
