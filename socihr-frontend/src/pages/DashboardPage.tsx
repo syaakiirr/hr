@@ -421,64 +421,54 @@ export default function DashboardPage() {
     }],
   }), [companyPerf]);
 
-  // Daily engagement trend — one bar-pair per actual session date (not a full-year grid)
-  const dailyOption = useMemo(() => {
-    const sorted = [...heatmapData].sort((a, b) => a.date.localeCompare(b.date));
-    const labels = sorted.map(d => new Date(d.date).toLocaleDateString('en-MY', { day: '2-digit', month: 'short' }));
-    const completed = sorted.map(d => d.completed);
-    const missed = sorted.map(d => Math.max(d.total - d.completed, 0));
-    const rate = sorted.map(d => d.total > 0 ? Math.round((d.completed / d.total) * 100) : 0);
-
-    return {
-      ...lightChartTheme,
-      animation: true,
-      animationDuration: 400,
-      animationEasing: "cubicOut",
-      tooltip: { trigger: "axis" as const, ...customTooltip },
-      legend: { data: ["Completed", "Missed", "Rate %"], textStyle: { color: "#7b7b96" }, right: 10, top: 0 },
-      grid: { left: 10, right: 10, bottom: 0, top: 36, containLabel: true },
-      xAxis: {
-        type: "category" as const, data: labels,
-        axisLine: { lineStyle: { color: "#e4e4ed" } },
-        axisLabel: { color: "#7b7b96", rotate: labels.length > 8 ? 30 : 0 },
-      },
-      yAxis: [
-        { type: "value" as const, name: "Ticks", nameTextStyle: { color: "#9ca3af", fontSize: 10 }, axisLine: { show: false }, axisLabel: { color: "#7b7b96" }, splitLine: { lineStyle: { color: "#f1f1f6" } } },
-        { type: "value" as const, name: "Rate %", nameTextStyle: { color: "#9ca3af", fontSize: 10 }, max: 100, axisLine: { show: false }, axisLabel: { color: "#7b7b96", formatter: "{value}%" }, splitLine: { show: false } },
-      ],
-      series: [
-        {
-          name: "Completed", type: "bar" as const, stack: "total", barMaxWidth: 26,
-          data: completed,
-          itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: "#4ade80" },
-              { offset: 1, color: "#16a34a" }
-            ]),
-            borderRadius: [4, 4, 0, 0]
-          },
-        },
-        {
-          name: "Missed", type: "bar" as const, stack: "total", barMaxWidth: 26,
-          data: missed,
-          itemStyle: {
-            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-              { offset: 0, color: "#f87171" },
-              { offset: 1, color: "#dc2626" }
-            ]),
-            borderRadius: [4, 4, 0, 0]
-          },
-        },
-        {
-          name: "Rate %", type: "line" as const, yAxisIndex: 1, smooth: true,
-          data: rate,
-          lineStyle: { color: "#6366f1", width: 2.5 },
-          symbol: "circle", symbolSize: 7,
-          itemStyle: { color: "#6366f1", borderWidth: 2, borderColor: "#fff" },
-        },
-      ],
-    };
+  // Daily engagement heatmap — calendar grid auto-scoped to the actual data range
+  // (instead of a full empty year) so activity is dense and easy to read at a glance.
+  const heatmapRange = useMemo(() => {
+    if (heatmapData.length === 0) return null;
+    const dates = heatmapData.map(d => d.date.split('T')[0]).sort();
+    const minD = new Date(dates[0]);
+    const maxD = new Date(dates[dates.length - 1]);
+    const startOfMonth = new Date(minD.getFullYear(), minD.getMonth(), 1);
+    const endOfMonth = new Date(maxD.getFullYear(), maxD.getMonth() + 1, 0);
+    const fmt = (d: Date) => d.toISOString().split('T')[0];
+    return { from: fmt(startOfMonth), to: fmt(endOfMonth) };
   }, [heatmapData]);
+
+  const heatmapOption = useMemo(() => ({
+    ...lightChartTheme,
+    tooltip: {
+      ...customTooltip,
+      formatter: (p: { data: [string, number] }) => {
+        if (!p.data) return "No session";
+        const [dateStr, rate] = p.data;
+        return `${dateStr}<br/>Completion: <strong>${rate}%</strong>`;
+      }
+    },
+    visualMap: {
+      show: false,
+      min: 0, max: 100,
+      inRange: { color: ['#eef2ff', '#a5b4fc', '#6366f1'] },
+    },
+    calendar: {
+      top: 30, left: 40, right: 20, bottom: 10,
+      range: heatmapRange ? [heatmapRange.from, heatmapRange.to] : `${currentYear}`,
+      cellSize: ['auto', 18],
+      splitLine: { lineStyle: { color: '#e5e5f0', width: 1 } },
+      yearLabel: { show: false },
+      dayLabel: { nameMap: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], color: '#9ca3af', fontSize: 9.5 },
+      monthLabel: { color: '#6b6b85', fontSize: 10.5, fontWeight: 600 },
+      itemStyle: { borderWidth: 3, borderColor: '#fff', color: '#f8f8fc' }
+    },
+    series: [{
+      type: 'heatmap',
+      coordinateSystem: 'calendar',
+      data: heatmapData.map(d => [
+        d.date.split('T')[0],
+        d.total > 0 ? Math.round(d.completed / d.total * 100) : 0
+      ]),
+      itemStyle: { borderRadius: 4 }
+    }]
+  }), [heatmapData, heatmapRange, currentYear]);
 
   return (
     <>
@@ -734,16 +724,28 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Daily Engagement Trend */}
+          {/* Daily Engagement Activity Heatmap */}
           {heatmapData.length > 0 && (
             <div className="chart-wrap" style={{ marginTop: 16 }}>
-              <p className="chart-label" style={{ color: "#6366f1" }}>📅 Daily Engagement Trend — {currentYear}</p>
-              <p style={{ fontSize: 11, color: "var(--text-4)", marginTop: -6, marginBottom: 8 }}>
-                Each bar is a day with a monitoring session — completed vs. missed ticks, with completion rate (%) as the line.
-              </p>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                <div>
+                  <p className="chart-label" style={{ color: "#6366f1", marginBottom: 2 }}>📅 Daily Engagement Activity</p>
+                  <p style={{ fontSize: 11, color: "var(--text-4)" }}>
+                    Each cell is a day with a monitoring session, colored by completion rate.
+                  </p>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "var(--text-4)" }}>
+                  <span>Low</span>
+                  <span style={{
+                    width: 70, height: 8, borderRadius: 4,
+                    background: "linear-gradient(90deg, #eef2ff, #a5b4fc, #6366f1)"
+                  }} />
+                  <span>High</span>
+                </div>
+              </div>
               <ReactECharts
-                option={dailyOption}
-                style={{ height: 220 }}
+                option={heatmapOption}
+                style={{ height: 190, marginTop: 8 }}
                 opts={{ renderer: 'canvas' }}
                 notMerge={true}
                 lazyUpdate={true}
