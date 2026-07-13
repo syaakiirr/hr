@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import StaffForm from "../components/StaffForm";
 import ConfirmationDialog from "../components/ConfirmationDialog";
+import Toast, { type ToastState } from "../components/Toast";
 import type { Staff } from "../services/api";
 import { getStaffList, createStaff, updateStaff, toggleStaffStatus, archiveStaff, deleteStaff } from "../services/api";
 
@@ -43,6 +44,11 @@ export default function StaffPage() {
     confirmLabel: string;
     danger: boolean;
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {}, isLoading: false, confirmLabel: "Confirm", danger: true });
+  const [toast, setToast] = useState<ToastState>({ isOpen: false, message: "", type: "success" });
+
+  function showToast(message: string, type: "success" | "error" = "success") {
+    setToast({ isOpen: true, message, type });
+  }
 
   const fetchStaff = useCallback(async () => {
     setLoading(true);
@@ -98,9 +104,10 @@ export default function StaffPage() {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
           await toggleStaffStatus(staff.staffID);
+          showToast(`Staff ${action}d successfully`);
           fetchStaff();
         } catch (err: unknown) {
-          alert(err instanceof Error ? err.message : "An error occurred.");
+          showToast(err instanceof Error ? err.message : "An error occurred.", "error");
         } finally {
           closeConfirmDialog();
         }
@@ -118,10 +125,10 @@ export default function StaffPage() {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
           await archiveStaff(staff.staffID);
-          alert("Staff archived successfully");
+          showToast("Staff archived successfully");
           fetchStaff();
         } catch (err: unknown) {
-          alert(err instanceof Error ? err.message : "An error occurred.");
+          showToast(err instanceof Error ? err.message : "An error occurred.", "error");
         } finally {
           closeConfirmDialog();
         }
@@ -139,10 +146,10 @@ export default function StaffPage() {
         setConfirmDialog(prev => ({ ...prev, isLoading: true }));
         try {
           await deleteStaff(staff.staffID);
-          alert("Staff deleted successfully");
+          showToast("Staff deleted successfully");
           fetchStaff();
         } catch (err: unknown) {
-          alert(err instanceof Error ? err.message : "An error occurred.");
+          showToast(err instanceof Error ? err.message : "An error occurred.", "error");
         } finally {
           closeConfirmDialog();
         }
@@ -368,6 +375,13 @@ export default function StaffPage() {
         isLoading={confirmDialog.isLoading}
         confirmLabel={confirmDialog.confirmLabel}
         danger={confirmDialog.danger}
+      />
+
+      <Toast
+        isOpen={toast.isOpen}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
       />
     </Layout>
   );
