@@ -47,17 +47,29 @@ if (rawConnectionString.StartsWith("postgres://") || rawConnectionString.StartsW
     var host     = colonIdx >= 0 ? hostPort[..colonIdx] : hostPort;
     var port     = colonIdx >= 0 ? hostPort[(colonIdx + 1)..] : "5432";
 
-    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true";
+    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Pooling=true;MaxPoolSize=30;MinPoolSize=1;CommandTimeout=30;Timeout=30;";
     Console.WriteLine($"✅ Converted URI → Host={host};Port={port};Database={database};Username={username}");
 }
 else
 {
-    connectionString = rawConnectionString;
+    // Add pooling settings to the existing connection string
+    if (!rawConnectionString.ToLower().Contains("pooling="))
+    {
+        connectionString = rawConnectionString.TrimEnd(';') + ";Pooling=true;MaxPoolSize=30;MinPoolSize=1;CommandTimeout=30;Timeout=30;";
+    }
+    else
+    {
+        connectionString = rawConnectionString;
+    }
     Console.WriteLine("✅ Using key=value connection string.");
 }
 
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(connectionString)
+    options.UseNpgsql(connectionString, npgsqlOptions =>
+    {
+        npgsqlOptions.EnableRetryOnFailure(5); // Enable automatic retries (max 5 attempts)
+        // Increase pool size (Npgsql default is 100, but let's make it explicit)
+    })
 );
 
 

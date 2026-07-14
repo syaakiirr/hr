@@ -25,11 +25,13 @@ public class StaffRankingHelper
     {
         // Get active staff only
         var activeStaffIds = await db.Staff
+            .AsNoTracking()
             .Where(s => !s.IsArchived)
             .Select(s => s.StaffID)
             .ToListAsync();
 
         var query = db.Engagements
+            .AsNoTracking()
             .Include(e => e.Staff)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => activeStaffIds.Contains(e.StaffID)); // Filter to active staff only

@@ -77,6 +77,7 @@ public class DashboardController : ControllerBase
         var y = year ?? DateTime.UtcNow.Year;
 
         var engagements = await _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Session)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate.Year == y)
@@ -101,7 +102,7 @@ public class DashboardController : ControllerBase
     [HttpGet("weekly")]
     public async Task<IActionResult> GetWeekly([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var sessionsQuery = _db.MonitoringSessions.AsQueryable();
+        var sessionsQuery = _db.MonitoringSessions.AsNoTracking().AsQueryable();
 
         if (from.HasValue || to.HasValue)
         {
@@ -128,6 +129,7 @@ public class DashboardController : ControllerBase
 
         var sessionIds = sessions.Select(s => s.SessionID).ToList();
         var engagements = await _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => sessionIds.Contains(e.SessionID))
             .ToListAsync();
@@ -163,6 +165,7 @@ public class DashboardController : ControllerBase
     public async Task<IActionResult> GetPlatformComparison([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
         var query = _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Post)
                 .ThenInclude(p => p!.Platform)
             .Include(e => e.Session)
@@ -212,6 +215,7 @@ public class DashboardController : ControllerBase
         var endDate = new DateOnly(y, 12, 31);
 
         var engagements = await _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Session)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate >= startDate && e.Session.SessionDate <= endDate)
@@ -237,11 +241,13 @@ public class DashboardController : ControllerBase
     {
         // Get all companies
         var companies = await _db.Companies
+            .AsNoTracking()
             .OrderBy(c => c.CompanyName)
             .ToListAsync();
 
         // Get all engagements grouped by post's company
         var companyEngQuery = _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Include(e => e.Session)
             .Where(e => e.Post!.CompanyID != null)
@@ -446,6 +452,7 @@ public class DashboardController : ControllerBase
         var totalPlatforms = await _db.Platforms.CountAsync();
 
         var engQuery = _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .AsQueryable();
 
@@ -481,6 +488,7 @@ public class DashboardController : ControllerBase
     private async Task<object> GetMonthlyData(int year)
     {
         var engagements = await _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Session)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate.Year == year)
@@ -504,6 +512,7 @@ public class DashboardController : ControllerBase
     private async Task<object> GetPlatformData()
     {
         var engagements = await _db.Engagements
+            .AsNoTracking()
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .ToListAsync();
 

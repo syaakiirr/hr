@@ -47,7 +47,9 @@ export async function getStaffList(params?: { search?: string; department?: stri
   if (params?.search) q.set("search", params.search);
   if (params?.department) q.set("department", params.department);
   if (params?.status) q.set("status", params.status);
-  const res = await fetch(`${BASE_URL}/staff?${q}`, { headers: authHeaders() });
+  const queryString = q.toString();
+  const url = queryString ? `${BASE_URL}/staff?${queryString}` : `${BASE_URL}/staff`;
+  const res = await fetch(url, { headers: authHeaders() });
   return handleResponse<Staff[]>(res);
 }
 
@@ -84,7 +86,9 @@ export async function getStaffEngagementStats(params?: { search?: string; depart
   if (params?.search) q.set("search", params.search);
   if (params?.department) q.set("department", params.department);
   if (params?.status) q.set("status", params.status);
-  const res = await fetch(`${BASE_URL}/staff/engagement-stats?${q}`, { headers: authHeaders() });
+  const queryString = q.toString();
+  const url = queryString ? `${BASE_URL}/staff/engagement-stats?${queryString}` : `${BASE_URL}/staff/engagement-stats`;
+  const res = await fetch(url, { headers: authHeaders() });
   return handleResponse<StaffEngagementStats[]>(res);
 }
 
@@ -245,7 +249,9 @@ export async function getDashboardKpi(from?: string, to?: string): Promise<KpiDa
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
-  const res = await fetch(`${BASE_URL}/dashboard/kpi?${q}`, { headers: authHeaders() });
+  const queryString = q.toString();
+  const url = queryString ? `${BASE_URL}/dashboard/kpi?${queryString}` : `${BASE_URL}/dashboard/kpi`;
+  const res = await fetch(url, { headers: authHeaders() });
   return handleResponse<KpiData>(res);
 }
 
@@ -259,7 +265,9 @@ export async function getWeeklyTrend(from?: string, to?: string) {
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
-  const res = await fetch(`${BASE_URL}/dashboard/weekly?${q}`, { headers: authHeaders() });
+  const queryString = q.toString();
+  const url = queryString ? `${BASE_URL}/dashboard/weekly?${queryString}` : `${BASE_URL}/dashboard/weekly`;
+  const res = await fetch(url, { headers: authHeaders() });
   return handleResponse<{ week: string; completed: number; missed: number; total: number }[]>(res);
 }
 
@@ -267,7 +275,9 @@ export async function getPlatformComparison(from?: string, to?: string) {
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
-  const res = await fetch(`${BASE_URL}/dashboard/platform-comparison?${q}`, { headers: authHeaders() });
+  const queryString = q.toString();
+  const url = queryString ? `${BASE_URL}/dashboard/platform-comparison?${queryString}` : `${BASE_URL}/dashboard/platform-comparison`;
+  const res = await fetch(url, { headers: authHeaders() });
   return handleResponse<{ platform: string; completed: number; missed: number; total: number }[]>(res);
 }
 
@@ -275,7 +285,9 @@ export async function getCompanyPerformance(from?: string, to?: string) {
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
-  const res = await fetch(`${BASE_URL}/dashboard/company-performance?${q}`, { headers: authHeaders() });
+  const queryString = q.toString();
+  const url = queryString ? `${BASE_URL}/dashboard/company-performance?${queryString}` : `${BASE_URL}/dashboard/company-performance`;
+  const res = await fetch(url, { headers: authHeaders() });
   return handleResponse<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>(res);
 }
 
@@ -285,7 +297,9 @@ export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 1
   q.set("limit", String(limit));
   if (from) q.set("from", from);
   if (to) q.set("to", to);
-  const res = await fetch(`${BASE_URL}/dashboard/staff-ranking?${q}`, { headers: authHeaders() });
+  const queryString = q.toString();
+  const url = queryString ? `${BASE_URL}/dashboard/staff-ranking?${queryString}` : `${BASE_URL}/dashboard/staff-ranking`;
+  const res = await fetch(url, { headers: authHeaders() });
   return handleResponse<{ staffID: string; fullName: string; department: string; completed: number; total: number; completionRate: number }[]>(res);
 }
 
@@ -424,8 +438,9 @@ export async function getDashboardInsights(fromDate?: string, toDate?: string): 
   const params = new URLSearchParams();
   if (fromDate) params.append('fromDate', fromDate);
   if (toDate) params.append('toDate', toDate);
-  
-  const res = await fetch(`${BASE_URL}/aiinsights/dashboard-insights?${params}`, {
+  const queryString = params.toString();
+  const url = queryString ? `${BASE_URL}/aiinsights/dashboard-insights?${queryString}` : `${BASE_URL}/aiinsights/dashboard-insights`;
+  const res = await fetch(url, {
     headers: authHeaders()
   });
   return handleResponse<{ insights: string; generatedAt: string }>(res);
@@ -459,7 +474,8 @@ export function buildReportUrl(format: "excel" | "pdf", from?: string, to?: stri
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
-  return `${BASE_URL}/reports/${format}?${q}`;
+  const queryString = q.toString();
+  return queryString ? `${BASE_URL}/reports/${format}?${queryString}` : `${BASE_URL}/reports/${format}`;
 }
 
 // ─── Audit Trail ────────────────────────────────────

@@ -323,7 +323,28 @@ export default function MonitoringPage() {
           const engagementIDs = Array.from(selectedEngagements);
           await bulkUpdateEngagementStatus(engagementIDs, status);
           setEngagements((prev) =>
-            prev.map((e) => selectedEngagements.has(e.engagementID) ? { ...e, status } : e)
+            prev.map((e) => {
+              if (!selectedEngagements.has(e.engagementID)) return e;
+              
+              const platform = e.platformName.toLowerCase();
+              let isLiked = e.isLiked, isCommented = e.isCommented, isShared = e.isShared;
+              
+              if (status === "Completed") {
+                if (platform === "facebook") {
+                  isLiked = true; isCommented = true; isShared = false;
+                } else if (platform === "instagram") {
+                  isLiked = true; isCommented = true; isShared = false;
+                } else if (platform === "tiktok") {
+                  isLiked = false; isCommented = true; isShared = false;
+                } else {
+                  isLiked = true; isCommented = true; isShared = true;
+                }
+              } else if (status === "Missed") {
+                isLiked = false; isCommented = false; isShared = false;
+              }
+              
+              return { ...e, status, isLiked, isCommented, isShared };
+            })
           );
           setSelectedEngagements(new Set());
         } catch (err) {
