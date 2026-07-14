@@ -145,6 +145,7 @@ try
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.CanConnectAsync();
+    await EnsureDepartmentInfrastructureAsync(db);
     Console.WriteLine("✅ Database connection: OK");
 }
 catch (Exception ex)
@@ -157,6 +158,60 @@ catch (Exception ex)
 
 // ── SEED ADMIN USER automatically if not exists ──
 await SeedAdminUserAsync(app, args);
+
+static async Task EnsureDepartmentInfrastructureAsync(AppDbContext db)
+{
+    await db.Database.ExecuteSqlRawAsync("""
+        CREATE TABLE IF NOT EXISTS "Department" (
+            "DepartmentID" UUID PRIMARY KEY,
+            "DepartmentName" TEXT NOT NULL,
+            "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        """);
+
+    await db.Database.ExecuteSqlRawAsync("""
+        CREATE UNIQUE INDEX IF NOT EXISTS "IX_Department_DepartmentName"
+        ON "Department" ("DepartmentName");
+        """);
+
+    // Seed initial departments
+    var initialDepartments = new[] 
+    { 
+        "AGEING", "ACCOUNT AND FINANCE", "HUMAN RESOURCE", 
+        "INTERN / HUMAN RESOURCE", "PAYMENT", "ACCOUNT (LEMBAH KLANG)", 
+        "ACCOUNT", "INTERN / AGEING", "INTERN / ACCOUNT" 
+    };
+
+    foreach (var deptName in initialDepartments)
+    {
+        var exists = await db.Departments.AnyAsync(d => 
+            d.DepartmentName.ToLower() == deptName.ToLower());
+        if (!exists)
+        {
+            await db.Departments.AddAsync(new socihr_backend.Models.Department 
+            {
+                DepartmentID = Guid.NewGuid(),
+                DepartmentName = deptName,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+    }
+    await db.SaveChangesAsync();
+
+    // Also import any departments from existing Staff that aren't already there
+    await db.Database.ExecuteSqlRawAsync("""
+        INSERT INTO "Department" ("DepartmentID", "DepartmentName", "CreatedAt")
+        SELECT DISTINCT gen_random_uuid(), TRIM("Department"), NOW()
+        FROM "Staff"
+        WHERE "Department" IS NOT NULL
+          AND BTRIM("Department") <> ''
+          AND NOT EXISTS (
+              SELECT 1
+              FROM "Department" d
+              WHERE LOWER(d."DepartmentName") = LOWER(TRIM("Staff"."Department"))
+          );
+        """);
+}
 
 async Task SeedAdminUserAsync(WebApplication app, string[] args)
 {

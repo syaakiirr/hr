@@ -363,6 +363,61 @@ public class MonitoringSessionController : ControllerBase
         return Ok(new { post.PostID, post.PostLink });
     }
 
+    // POST /api/monitoringsession/{sessionId}/add-staff
+    [HttpPost("{sessionId:guid}/add-staff")]
+    public async Task<IActionResult> AddStaffToSession(Guid sessionId, [FromBody] AddStaffToSessionRequest req)
+    {
+        // Validate session exists
+        var session = await _db.MonitoringSessions.FindAsync(sessionId);
+        if (session == null) return NotFound(new { message = "Session not found." });
+
+        // Get posts for the session
+        var posts = await _db.SessionPosts.Where(p => p.SessionID == sessionId).ToListAsync();
+        if (!posts.Any()) return BadRequest(new { message = "Session has no posts." });
+
+        // Get existing staff IDs in the session
+        var existingStaffIds = await _db.Engagements
+            .Where(e => e.SessionID == sessionId)
+            .Select(e => e.StaffID)
+            .Distinct()
+            .ToListAsync();
+
+        // Get valid staff: active, not archived, and not already in the session
+        var staffIdsToAdd = req.StaffIds.Distinct().ToList();
+        var validStaff = await _db.Staff
+            .Where(s => staffIdsToAdd.Contains(s.StaffID) 
+                        && s.Status == "Active" 
+                        && !s.IsArchived
+                        && !existingStaffIds.Contains(s.StaffID))
+            .ToListAsync();
+
+        if (!validStaff.Any()) return BadRequest(new { message = "No valid staff to add (either not active, archived, or already in session)." });
+
+        // Create engagements for each new staff and each post
+        foreach (var staff in validStaff)
+        {
+            foreach (var post in posts)
+            {
+                _db.Engagements.Add(new Engagement
+                {
+                    EngagementID = Guid.NewGuid(),
+                    SessionID = sessionId,
+                    PostID = post.PostID,
+                    StaffID = staff.StaffID,
+                    Status = "Missed"
+                });
+            }
+        }
+
+        await _db.SaveChangesAsync();
+
+        return Ok(new 
+        { 
+            message = $"Successfully added {validStaff.Count} staff to the session.",
+            addedStaffCount = validStaff.Count 
+        });
+    }
+
     // GET /api/monitoringsession/{id}/report
     [HttpGet("{id:guid}/report")]
     public async Task<IActionResult> GenerateReportPdf(Guid id)
@@ -751,3 +806,4 @@ public class MonitoringSessionController : ControllerBase
 public record PostRequest(Guid PlatformID, string PostLink);
 public record CreateSessionRequest(DateOnly SessionDate, List<PostRequest> Posts, List<Guid>? CompanyIDs);
 public record UpdatePostLinkRequest(string? PostLink);
+public record AddStaffToSessionRequest(List<Guid> StaffIds);

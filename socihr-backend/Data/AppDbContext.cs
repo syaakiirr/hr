@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<AuditTrail> AuditTrails { get; set; }
     public DbSet<DashboardSnapshot> DashboardSnapshots { get; set; }
     public DbSet<Company> Companies { get; set; }
+    public DbSet<Department> Departments { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -149,6 +150,17 @@ public class AppDbContext : DbContext
             e.Property(x => x.CompanyID).HasColumnName("CompanyID");
             e.Property(x => x.CompanyName).HasColumnName("CompanyName");
             e.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
+        });
+        
+        // ── Department ──
+        modelBuilder.Entity<Department>(e =>
+        {
+            e.ToTable("Department");
+            e.HasKey(x => x.DepartmentID);
+            e.Property(x => x.DepartmentID).HasColumnName("DepartmentID");
+            e.Property(x => x.DepartmentName).HasColumnName("DepartmentName");
+            e.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
+            e.HasIndex(x => x.DepartmentName).IsUnique();
         });
     }
 }

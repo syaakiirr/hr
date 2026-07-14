@@ -51,6 +51,8 @@ public class StaffController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] StaffRequest req)
     {
+        await EnsureDepartmentExistsAsync(req.Department);
+
         var staff = new Staff
         {
             StaffID = Guid.NewGuid(),
@@ -70,6 +72,9 @@ public class StaffController : ControllerBase
     {
         var staff = await _db.Staff.FindAsync(id);
         if (staff == null) return NotFound(new { message = "Staff not found." });
+
+        await EnsureDepartmentExistsAsync(req.Department);
+
         staff.FullName = req.FullName;
         staff.Department = req.Department;
         staff.Position = req.Position;
@@ -231,6 +236,26 @@ public class StaffController : ControllerBase
         {
             return StatusCode(500, new { message = ex.Message });
         }
+    }
+
+    private async Task EnsureDepartmentExistsAsync(string? departmentName)
+    {
+        if (string.IsNullOrWhiteSpace(departmentName))
+            return;
+
+        var trimmedName = departmentName.Trim();
+        var exists = await _db.Departments
+            .AnyAsync(d => d.DepartmentName.ToLower() == trimmedName.ToLower());
+
+        if (exists)
+            return;
+
+        _db.Departments.Add(new Department
+        {
+            DepartmentID = Guid.NewGuid(),
+            DepartmentName = trimmedName,
+            CreatedAt = DateTime.UtcNow
+        });
     }
 }
 

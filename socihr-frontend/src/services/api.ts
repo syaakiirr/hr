@@ -123,6 +123,25 @@ export async function createCompany(name: string): Promise<Company> {
   return handleResponse<Company>(res);
 }
 
+export interface Department {
+  departmentID: string;
+  departmentName: string;
+}
+
+export async function getDepartments(): Promise<Department[]> {
+  const res = await fetch(`${BASE_URL}/department`, { headers: authHeaders() });
+  return handleResponse<Department[]>(res);
+}
+
+export async function createDepartment(name: string): Promise<Department> {
+  const res = await fetch(`${BASE_URL}/department`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ DepartmentName: name })
+  });
+  return handleResponse<Department>(res);
+}
+
 
 // ─── Monitoring Session ──────────────────────────────
 export interface SessionPost {
@@ -232,6 +251,15 @@ export async function bulkUpdateEngagementStatus(engagementIDs: string[], status
     body: JSON.stringify({ EngagementIDs: engagementIDs, Status: status }),
   });
   return handleResponse<{ message: string; updatedCount: number; status: string }>(res);
+}
+
+export async function addStaffToSession(sessionID: string, staffIDs: string[]): Promise<{ message: string; addedStaffCount: number }> {
+  const res = await fetch(`${BASE_URL}/monitoringsession/${sessionID}/add-staff`, {
+    method: "POST",
+    headers: authHeaders(),
+    body: JSON.stringify({ StaffIds: staffIDs }),
+  });
+  return handleResponse<{ message: string; addedStaffCount: number }>(res);
 }
 
 // ─── Dashboard ──────────────────────────────────────

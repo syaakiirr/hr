@@ -15,6 +15,7 @@ const MonitoringPage      = lazy(() => import("./pages/MonitoringPage"));
 const ReportsPage         = lazy(() => import("./pages/ReportsPage"));
 const AuditPage           = lazy(() => import("./pages/AuditPage"));
 const CompanyPage         = lazy(() => import("./pages/CompanyPage"));
+const DepartmentPage      = lazy(() => import("./pages/DepartmentPage"));
 
 
 function PageLoader() {
@@ -56,6 +57,11 @@ function AnimatedRoutes() {
         <Route path="/company" element={
           <ProtectedRoute>
             <PageTransition><CompanyPage /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/departments" element={
+          <ProtectedRoute>
+            <PageTransition><DepartmentPage /></PageTransition>
           </ProtectedRoute>
         } />
         <Route path="/staff-engagement" element={

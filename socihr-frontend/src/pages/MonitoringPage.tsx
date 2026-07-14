@@ -5,8 +5,8 @@ import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
   getSessions, getPlatforms, getCompanies, createSession, deleteSession, archiveSession,
   getEngagements, updateEngagementAction, updateEngagementReason, bulkUpdateEngagementStatus,
-  downloadSessionReportPdf, updatePostLink,
-  type MonitoringSession, type Platform, type Engagement, type Company
+  downloadSessionReportPdf, updatePostLink, addStaffToSession, getStaffList,
+  type MonitoringSession, type Platform, type Engagement, type Company, type Staff
 } from "../services/api";
 
 // Simple debounce hook
@@ -105,6 +105,12 @@ export default function MonitoringPage() {
     confirmLabel?: string;
     danger?: boolean;
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+  
+  // Add Staff Modal
+  const [showAddStaffModal, setShowAddStaffModal] = useState(false);
+  const [allStaff, setAllStaff] = useState<Staff[]>([]);
+  const [selectedStaffForAdd, setSelectedStaffForAdd] = useState<Set<string>>(new Set());
+  const [addingStaff, setAddingStaff] = useState(false);
 
   // Debounced filter for name (avoids re-render on every keystroke)
   const debouncedFilterName = useDebounce(filterName, 300);
@@ -115,6 +121,16 @@ export default function MonitoringPage() {
       .catch(console.error)
       .finally(() => setLoading(false));
   }, []);
+  
+  // Load all staff when add staff modal opens
+  useEffect(() => {
+    if (showAddStaffModal) {
+      getStaffList()
+        .then(setAllStaff)
+        .catch(console.error);
+      setSelectedStaffForAdd(new Set());
+    }
+  }, [showAddStaffModal]);
 
   function openCreateModal() {
     setWizardStep(1);
@@ -294,6 +310,23 @@ export default function MonitoringPage() {
         }
       }
     });
+  }
+  
+  async function handleAddStaffToSession() {
+    if (!selectedSession || selectedStaffForAdd.size === 0) return;
+    setAddingStaff(true);
+    try {
+      const result = await addStaffToSession(selectedSession.sessionID, Array.from(selectedStaffForAdd));
+      alert(`${result.addedStaffCount} staff added successfully!`);
+      // Refresh engagements
+      const eng = await getEngagements(selectedSession.sessionID);
+      setEngagements(eng);
+      setShowAddStaffModal(false);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "Failed to add staff.");
+    } finally {
+      setAddingStaff(false);
+    }
   }
 
   function toggleSelectAll() {
@@ -763,6 +796,15 @@ export default function MonitoringPage() {
                     <span className="stat-chip chip-g">✓ {totalTicks.completed}</span>
                     <span className="stat-chip chip-r">✗ {totalTicks.missed}</span>
                     <button
+                      onClick={() => setShowAddStaffModal(true)}
+                      className="btn btn-primary btn-sm"
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                      title="Add Staff to Session"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
+                      Add Staff
+                    </button>
+                    <button
                       onClick={() => {
                         try {
                           downloadSessionReportPdf(selectedSession.sessionID, selectedSession.sessionDate);
@@ -771,7 +813,7 @@ export default function MonitoringPage() {
                         }
                       }}
                       className="btn btn-secondary btn-sm"
-                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, marginLeft: "auto" }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
                       title="Download as PDF"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
@@ -1281,6 +1323,99 @@ export default function MonitoringPage() {
           </div>
         </div>
       )}
+      
+      {/* ══════════════════════════════════════════════════════════════
+          ADD STAFF TO SESSION MODAL
+         ══════════════════════════════════════════════════════════════ */}
+      {showAddStaffModal && selectedSession && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowAddStaffModal(false)}>
+          <div className="modal-box" style={{ maxWidth: 520 }}>
+            <div className="modal-head">
+              <h2 className="modal-title">Add Staff to Session</h2>
+              <button onClick={() => setShowAddStaffModal(false)} className="btn btn-ghost btn-icon btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+            
+            <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16 }}>
+              Select staff to add to this monitoring session (📅 {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })})
+            </p>
+            
+            <div style={{ maxHeight: 320, overflowY: "auto", border: "1px solid var(--line)", borderRadius: 10, padding: 8 }}>
+              {(() => {
+                // Filter to only show staff NOT already in the session
+                const availableStaff = allStaff.filter(staff => !allStaffRows.some(row => row.staffID === staff.staffID));
+                
+                if (availableStaff.length === 0) {
+                  return (
+                    <div style={{ textAlign: "center", padding: "24px 8px", color: "var(--text-4)" }}>
+                      No available staff to add (all staff are already in this session)
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {availableStaff.map((staff) => {
+                      const isChecked = selectedStaffForAdd.has(staff.staffID);
+                      
+                      return (
+                        <label
+                          key={staff.staffID}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "10px 12px", borderRadius: 8, cursor: "pointer",
+                            border: `1.5px solid ${isChecked ? "var(--accent)" : "var(--line)"}`,
+                            background: isChecked ? "var(--accent-soft)" : "var(--surface-2)",
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              setSelectedStaffForAdd((prev) => {
+                                const next = new Set(prev);
+                                e.target.checked ? next.add(staff.staffID) : next.delete(staff.staffID);
+                                return next;
+                              });
+                            }}
+                            style={{ accentColor: "var(--accent)", width: 15, height: 15 }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-1)" }}>
+                              {staff.fullName}
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--text-3)" }}>
+                              {staff.department || "No Department"} • {staff.status}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+            
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button type="button" onClick={() => setShowAddStaffModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
+              <button
+                type="button"
+                onClick={handleAddStaffToSession}
+                disabled={addingStaff || selectedStaffForAdd.size === 0}
+                className="btn btn-primary"
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              >
+                {addingStaff ? <><span className="spin" style={{ width: 12, height: 12 }} /> Adding...</> : `Add ${selectedStaffForAdd.size} Staff`}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* ── Reason Modal ── */}
       {reasonModal && (
         <div style={{
