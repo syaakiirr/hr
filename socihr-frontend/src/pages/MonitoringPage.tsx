@@ -725,7 +725,7 @@ export default function MonitoringPage() {
             <div className="sesh-panel-label">All Sessions</div>
             <div className="sesh-panel-count">{sessions.length}</div>
             <div style={{ flex: 1 }} />
-            <p style={{ fontSize: 12, color: "var(--text-4)", fontStyle: "italic" }}>← scroll to see more →</p>
+            <p style={{ fontSize: 12, color: "var(--text-4)", fontStyle: "italic" }}></p>
           </div>
           <div className="sesh-panel-list">
             {loading ? (
