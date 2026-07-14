@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { Staff } from "../services/api";
 
 const DEPARTMENTS = [
-  "AGEING", "ACCOUNT AND FINANCE","HUMAN RESOURCE","PAYMENT","ACCOUNT (LEMBAH KLANG)","ACCOUNT","INTERN / AGEING","INTERN / ACCOUNT"
+  "AGEING", "ACCOUNT AND FINANCE","HUMAN RESOURCE","INTERN / HUMAN RESOURCE","PAYMENT","ACCOUNT (LEMBAH KLANG)","ACCOUNT","INTERN / AGEING","INTERN / ACCOUNT"
 ];
 
 interface Props {

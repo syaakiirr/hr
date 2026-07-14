@@ -445,6 +445,7 @@ public class MonitoringSessionController : ControllerBase
         public string StaffName { get; set; } = "";
         public string Department { get; set; } = "";
         public List<bool> EngagementValues { get; set; } = new();  // Per column (like/comment/share)
+        public string? Reason { get; set; }  // Reason for missing engagements
     }
 
     private ReportData BuildReportData(MonitoringSession session, List<Engagement> engagements)
@@ -542,6 +543,9 @@ public class MonitoringSessionController : ControllerBase
                 Department = group.Key.Department ?? "N/A"
             };
 
+            // Get the reason (take the first non-null reason from the staff's engagements)
+            row.Reason = group.FirstOrDefault(e => !string.IsNullOrEmpty(e.Reason))?.Reason;
+
             // For each column, check if staff has this action for this post
             foreach (var col in data.ActionColumns)
             {
@@ -579,7 +583,7 @@ public class MonitoringSessionController : ControllerBase
         {
             container.Page(page =>
             {
-                page.Size(PageSizes.A4.Landscape());
+                page.Size(PageSizes.A3.Landscape());
                 page.Margin(16);
                 page.PageColor(Colors.White);
 
@@ -618,6 +622,8 @@ public class MonitoringSessionController : ControllerBase
                             {
                                 columns.RelativeColumn(0.55f);
                             }
+                            
+                            columns.RelativeColumn(1.5f);  // Reason
                         });
 
                         // Headers
@@ -637,6 +643,9 @@ public class MonitoringSessionController : ControllerBase
                                 header.Cell().ColumnSpan((uint)coGroup.Span).Element(c => BaseHeader(c, "#dbeafe"))
                                     .Text(coGroup.Name).FontSize(7.5f).Bold().FontColor("#1e40af");
                             }
+                            
+                            // Reason header (spans 3 rows)
+                            header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#fef3c7")).Text("Reason").FontSize(7.5f).Bold().FontColor("#92400e");
 
                             // Row 2: Platform groups
                             foreach (var platGroup in data.PlatformGroups)
@@ -697,6 +706,9 @@ public class MonitoringSessionController : ControllerBase
                                     cell.Text("");
                                 }
                             }
+                            
+                            // Reason
+                            table.Cell().Element(c => DataCell(c, bgColor)).Text(staffRow.Reason ?? "").FontSize(6).FontColor("#475569");
 
                             rowNum++;
                         }

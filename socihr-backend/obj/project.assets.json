@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "targets": {
     "net8.0": {
       "AspNetCoreRateLimit/5.0.0": {
@@ -3455,19 +3455,19 @@
     ]
   },
   "packageFolders": {
-    "C:\\Users\\mfsbm\\.nuget\\packages\\": {}
+    "C:\\Users\\syakir\\.nuget\\packages\\": {}
   },
   "project": {
     "version": "1.0.0",
     "restore": {
-      "projectUniqueName": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\socihr-backend.csproj",
+      "projectUniqueName": "C:\\Users\\syakir\\hr\\socihr-backend\\socihr-backend.csproj",
       "projectName": "socihr-backend",
-      "projectPath": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\socihr-backend.csproj",
-      "packagesPath": "C:\\Users\\mfsbm\\.nuget\\packages\\",
-      "outputPath": "C:\\Users\\mfsbm\\Downloads\\syakir\\hr_project_final_shark_final_part_laggy\\hr_project_final_shark\\hr_project_final\\hr_project\\socihr-backend\\obj\\",
+      "projectPath": "C:\\Users\\syakir\\hr\\socihr-backend\\socihr-backend.csproj",
+      "packagesPath": "C:\\Users\\syakir\\.nuget\\packages\\",
+      "outputPath": "C:\\Users\\syakir\\hr\\socihr-backend\\obj\\",
       "projectStyle": "PackageReference",
       "configFilePaths": [
-        "C:\\Users\\mfsbm\\AppData\\Roaming\\NuGet\\NuGet.Config"
+        "C:\\Users\\syakir\\AppData\\Roaming\\NuGet\\NuGet.Config"
       ],
       "originalTargetFrameworks": [
         "net8.0"
@@ -3477,6 +3477,7 @@
       },
       "frameworks": {
         "net8.0": {
+          "framework": "net8.0",
           "targetAlias": "net8.0",
           "projectReferences": {}
         }
@@ -3490,10 +3491,12 @@
         "enableAudit": "true",
         "auditLevel": "low",
         "auditMode": "direct"
-      }
+      },
+      "SdkAnalysisLevel": "10.0.300"
     },
     "frameworks": {
       "net8.0": {
+        "framework": "net8.0",
         "targetAlias": "net8.0",
         "dependencies": {
           "AspNetCoreRateLimit": {
@@ -3554,7 +3557,7 @@
             "privateAssets": "all"
           }
         },
-        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\8.0.422/PortableRuntimeIdentifierGraph.json"
+        "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.301/PortableRuntimeIdentifierGraph.json"
       }
     }
   }
