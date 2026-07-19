@@ -631,3 +631,11 @@ C:\Users\syakir\hr\socihr-backend\obj\Debug\net8.0\refint\socihr-backend.dll
 C:\Users\syakir\hr\socihr-backend\obj\Debug\net8.0\socihr-backend.pdb
 C:\Users\syakir\hr\socihr-backend\obj\Debug\net8.0\socihr-backend.genruntimeconfig.cache
 C:\Users\syakir\hr\socihr-backend\obj\Debug\net8.0\ref\socihr-backend.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\SkiaSharp.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\runtimes\osx\native\libSkiaSharp.dylib
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\runtimes\win-arm64\native\libSkiaSharp.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\runtimes\win-arm64\native\libSkiaSharp.pdb
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\runtimes\win-x64\native\libSkiaSharp.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\runtimes\win-x64\native\libSkiaSharp.pdb
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\runtimes\win-x86\native\libSkiaSharp.dll
+C:\Users\mfsbm\Downloads\syakir\hr_project_final_shark_final_part_laggy\hr_project_final_shark\hr_project_final\hr_project\socihr-backend\bin\Debug\net8.0\runtimes\win-x86\native\libSkiaSharp.pdb

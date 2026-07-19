@@ -501,6 +501,10 @@ public class MonitoringSessionController : ControllerBase
         public string Department { get; set; } = "";
         public List<bool> EngagementValues { get; set; } = new();  // Per column (like/comment/share)
         public string? Reason { get; set; }  // Reason for missing engagements
+        // Tick stats for consistent sorting (matches TickHelper / StaffRankingHelper logic)
+        public int CompletedTicks { get; set; }
+        public int TotalTicks { get; set; }
+        public double CompletionRate => TotalTicks > 0 ? Math.Round((double)CompletedTicks / TotalTicks * 100, 1) : 0;
     }
 
     private ReportData BuildReportData(MonitoringSession session, List<Engagement> engagements)
@@ -617,7 +621,7 @@ public class MonitoringSessionController : ControllerBase
 
                 row.EngagementValues.Add(value);
 
-                // Count totals
+                // Count totals (for session summary cards)
                 if (value)
                 {
                     if (col.Action == "like") data.TotalLikes++;
@@ -626,8 +630,29 @@ public class MonitoringSessionController : ControllerBase
                 }
             }
 
+            // Calculate tick stats using TickHelper-equivalent logic (per engagement, not per column)
+            // This matches StaffRankingHelper / Dashboard / Reports ranking exactly:
+            //   Facebook: Like+Comment = 2 expected; Instagram: Like+Comment = 2; TikTok: Comment = 1
+            foreach (var eng in group)
+            {
+                var platformName = eng.Post?.Platform?.PlatformName ?? "";
+                row.CompletedTicks += socihr_backend.Helpers.TickHelper.Ticked(platformName, eng.IsLiked, eng.IsCommented, eng.IsShared);
+                row.TotalTicks += socihr_backend.Helpers.TickHelper.Expected(platformName);
+            }
+
+            // Bug fix: add the row to the list (was missing — staff rows were never added before)
             data.StaffRows.Add(row);
         }
+
+        // Sort by completion rate → completed ticks → total ticks → name
+        // This matches the canonical StaffRankingHelper tiebreak priority used by
+        // Dashboard Top 10, Snapshots, and PDF/Excel Reports for full consistency.
+        data.StaffRows = data.StaffRows
+            .OrderByDescending(r => r.CompletionRate)
+            .ThenByDescending(r => r.CompletedTicks)
+            .ThenByDescending(r => r.TotalTicks)
+            .ThenBy(r => r.StaffName)
+            .ToList();
 
         return data;
     }
@@ -750,11 +775,14 @@ public class MonitoringSessionController : ControllerBase
                                 
                                 if (value)
                                 {
+                                    // Use a filled green square with "v" to avoid ✓ rendering as ? 
+                                    // due to font glyph support limitations in QuestPDF's default font
                                     cell.AlignCenter().AlignMiddle()
-                                        .Width(11).Height(11)
+                                        .Width(12).Height(12)
                                         .Background("#10b981")
+                                        .Border(1).BorderColor("#059669")
                                         .AlignCenter().AlignMiddle()
-                                        .Text("✓").FontSize(8).Bold().FontColor("#ffffff");
+                                        .Text("v").FontSize(8).Bold().FontColor("#ffffff");
                                 }
                                 else
                                 {

@@ -4,7 +4,7 @@ import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
   getSessions, getPlatforms, getCompanies, createSession, deleteSession, archiveSession,
-  getEngagements, updateEngagementAction, updateEngagementReason, bulkUpdateEngagementStatus,
+  getEngagements, updateEngagementAction, updateEngagementReason,
   downloadSessionReportPdf, updatePostLink, addStaffToSession, getStaffList,
   type MonitoringSession, type Platform, type Engagement, type Company, type Staff
 } from "../services/api";
@@ -72,9 +72,11 @@ export default function MonitoringPage() {
   const [loadingEng, setLoadingEng] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Bulk selection state
-  const [selectedEngagements, setSelectedEngagements] = useState<Set<string>>(new Set());
-  const [bulkUpdating, setBulkUpdating] = useState(false);
+  // Track the current session ID to prevent stale async updates from a previous session
+  // bleeding into the current session's engagement state (Bug #2 fix)
+  const currentSessionIDRef = useRef<string | null>(null);
+
+
 
   // Filter state
   const [filterName, setFilterName] = useState("");
@@ -170,22 +172,38 @@ export default function MonitoringPage() {
   }
 
   async function handleSelectSession(session: MonitoringSession) {
+    // Record the session we're switching TO before any async work
+    const thisSessionID = session.sessionID;
+    currentSessionIDRef.current = thisSessionID;
+
     setSelectedSession(session);
-    setSelectedEngagements(new Set());
     setSelectedStaffID(null); // Reset selection
+    // Clear stale engagement data and reset filters so new session starts clean
+    setEngagements([]);
+    setFilterName("");
+    setFilterDept("");
+    setFilterCompany("");
     setLoadingEng(true);
     try {
-      const eng = await getEngagements(session.sessionID);
-      setEngagements(eng);
+      const eng = await getEngagements(thisSessionID);
+      // Only apply if the user hasn't switched to yet another session while we were loading
+      if (currentSessionIDRef.current === thisSessionID) {
+        setEngagements(eng);
+      }
     } catch (err) {
       console.error(err);
     } finally {
-      setLoadingEng(false);
+      if (currentSessionIDRef.current === thisSessionID) {
+        setLoadingEng(false);
+      }
     }
   }
 
 
   async function handleAction(eng: Engagement, action: "like" | "comment" | "share", value: boolean) {
+    // Capture the session at time of click to detect stale callbacks (Bug #2 fix)
+    const sessionAtClick = currentSessionIDRef.current;
+
     // Optimistic update: calculate new status as well
     setEngagements((prev) => prev.map((e) => {
       if (e.engagementID !== eng.engagementID) return e;
@@ -209,10 +227,28 @@ export default function MonitoringPage() {
     }));
     
     try {
-      await updateEngagementAction(eng.engagementID, action, value);
+      const result = await updateEngagementAction(eng.engagementID, action, value);
+      // Reconcile with server's authoritative response (only if still on same session)
+      if (currentSessionIDRef.current === sessionAtClick) {
+        setEngagements((prev) => prev.map((e) => {
+          if (e.engagementID !== result.engagementID) return e;
+          return {
+            ...e,
+            isLiked: result.isLiked,
+            isCommented: result.isCommented,
+            isShared: result.isShared,
+            status: result.status,
+          };
+        }));
+      }
     } catch (err) {
-      // Don't revert — keep optimistic state. Server didn't save, but UI stays consistent.
-      // Next page load will fetch ground-truth from server.
+      // Revert optimistic update ONLY if we're still on the same session
+      if (currentSessionIDRef.current === sessionAtClick) {
+        setEngagements((prev) => prev.map((e) => {
+          if (e.engagementID !== eng.engagementID) return e;
+          return { ...e }; // keep as-is; will be corrected on next session load
+        }));
+      }
       console.error("Failed to update engagement:", err);
     }
   }
@@ -276,7 +312,8 @@ export default function MonitoringPage() {
           setSessions((prev) => prev.filter((s) => s.sessionID !== id));
           if (selectedSession?.sessionID === id) {
             setSelectedSession(null);
-            setSelectedEngagements(new Set());
+            setEngagements([]);
+            currentSessionIDRef.current = null;
           }
         } catch (err: unknown) {
           alert(err instanceof Error ? err.message : "An error occurred.");
@@ -301,7 +338,8 @@ export default function MonitoringPage() {
           setSessions((prev) => prev.filter((s) => s.sessionID !== id));
           if (selectedSession?.sessionID === id) {
             setSelectedSession(null);
-            setSelectedEngagements(new Set());
+            setEngagements([]);
+            currentSessionIDRef.current = null;
           }
         } catch (err: unknown) {
           alert(err instanceof Error ? err.message : "An error occurred.");
@@ -314,13 +352,19 @@ export default function MonitoringPage() {
   
   async function handleAddStaffToSession() {
     if (!selectedSession || selectedStaffForAdd.size === 0) return;
+    // Capture session at call time to guard against session switch mid-request
+    const sessionIDAtCall = currentSessionIDRef.current;
     setAddingStaff(true);
     try {
       const result = await addStaffToSession(selectedSession.sessionID, Array.from(selectedStaffForAdd));
       alert(`${result.addedStaffCount} staff added successfully!`);
-      // Refresh engagements
-      const eng = await getEngagements(selectedSession.sessionID);
-      setEngagements(eng);
+      // Only refresh engagements if we're still on the same session
+      if (currentSessionIDRef.current === sessionIDAtCall && sessionIDAtCall) {
+        const eng = await getEngagements(sessionIDAtCall);
+        if (currentSessionIDRef.current === sessionIDAtCall) {
+          setEngagements(eng);
+        }
+      }
       setShowAddStaffModal(false);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "Failed to add staff.");
@@ -329,67 +373,7 @@ export default function MonitoringPage() {
     }
   }
 
-  function toggleSelectAll() {
-    if (selectedEngagements.size === engagements.length) {
-      setSelectedEngagements(new Set());
-    } else {
-      setSelectedEngagements(new Set(engagements.map((e) => e.engagementID)));
-    }
-  }
 
-
-  async function handleBulkUpdate(status: string) {
-    if (selectedEngagements.size === 0) {
-      alert("Please select at least one engagement.");
-      return;
-    }
-    setConfirmDialog({
-      isOpen: true,
-      title: `Update to "${status}"`,
-      message: `Update ${selectedEngagements.size} engagement(s) to "${status}"?`,
-      confirmLabel: "Update",
-      danger: false,
-      onConfirm: async () => {
-        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
-        setBulkUpdating(true);
-        try {
-          const engagementIDs = Array.from(selectedEngagements);
-          await bulkUpdateEngagementStatus(engagementIDs, status);
-          setEngagements((prev) =>
-            prev.map((e) => {
-              if (!selectedEngagements.has(e.engagementID)) return e;
-              
-              const platform = e.platformName.toLowerCase();
-              let isLiked = e.isLiked, isCommented = e.isCommented, isShared = e.isShared;
-              
-              if (status === "Completed") {
-                if (platform === "facebook") {
-                  isLiked = true; isCommented = true; isShared = false;
-                } else if (platform === "instagram") {
-                  isLiked = true; isCommented = true; isShared = false;
-                } else if (platform === "tiktok") {
-                  isLiked = false; isCommented = true; isShared = false;
-                } else {
-                  isLiked = true; isCommented = true; isShared = true;
-                }
-              } else if (status === "Missed") {
-                isLiked = false; isCommented = false; isShared = false;
-              }
-              
-              return { ...e, status, isLiked, isCommented, isShared };
-            })
-          );
-          setSelectedEngagements(new Set());
-        } catch (err) {
-          console.error(err);
-          alert("Failed to update engagements. Please try again.");
-        } finally {
-          setBulkUpdating(false);
-          setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
-        }
-      }
-    });
-  }
 
   // Type definition for staff row
   type StaffRow = { staffID: string; staffName: string; department: string; engagements: Engagement[] };
@@ -408,7 +392,27 @@ export default function MonitoringPage() {
       }
       staffMap.get(eng.staffID)!.engagements.push(eng);
     });
-    const allRows: StaffRow[] = Array.from(staffMap.values()).sort((a, b) => a.staffName.localeCompare(b.staffName));
+    const allRows: StaffRow[] = Array.from(staffMap.values()).sort((a, b) => {
+      let completedA = 0, expectedA = 0;
+      a.engagements.forEach(e => {
+        const { ticked, expected } = calculateTicks(e.platformName, e.isLiked, e.isCommented, e.isShared);
+        completedA += ticked;
+        expectedA += expected;
+      });
+      const rateA = expectedA > 0 ? (completedA / expectedA) : 0;
+
+      let completedB = 0, expectedB = 0;
+      b.engagements.forEach(e => {
+        const { ticked, expected } = calculateTicks(e.platformName, e.isLiked, e.isCommented, e.isShared);
+        completedB += ticked;
+        expectedB += expected;
+      });
+      const rateB = expectedB > 0 ? (completedB / expectedB) : 0;
+
+      if (rateB !== rateA) return rateB - rateA;
+      if (completedB !== completedA) return completedB - completedA;
+      return a.staffName.localeCompare(b.staffName);
+    });
     const depts: string[] = Array.from(new Set(allRows.map((r: StaffRow) => r.department).filter(Boolean)));
     const companies: { id: string; name: string }[] = Array.from(
       new Map(engagements.filter((e: Engagement) => e.companyID).map((e: Engagement) => [e.companyID!, e.companyName ?? "No Company"]))
@@ -845,24 +849,15 @@ export default function MonitoringPage() {
                   )}
                 </div>
 
-                {/* Bulk Bar */}
-                {selectedEngagements.size > 0 && (
-                  <div className="bulk-bar">
-                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-1)" }}>
-                      <span className="bulk-badge">{selectedEngagements.size}</span>
-                      selected
-                    </span>
-                    <div style={{ display: "flex", gap: 5 }}>
-                      <button onClick={() => handleBulkUpdate("Completed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--green)", color: "white", border: "none", fontSize: 12, height: 28 }}>✓ Done</button>
-                      <button onClick={() => handleBulkUpdate("Missed")} disabled={bulkUpdating} className="btn btn-sm" style={{ background: "var(--red)", color: "white", border: "none", fontSize: 12, height: 28 }}>✗ Missed</button>
-                      <button onClick={() => setSelectedEngagements(new Set())} disabled={bulkUpdating} className="btn btn-sm btn-ghost" style={{ fontSize: 12, height: 28 }}>Cancel</button>
-                    </div>
-                  </div>
-                )}
+
 
                 {/* ── Engagement Table ── */}
                 {loadingEng ? (
                   <div className="loader" style={{ padding: 32 }}><div className="spin" /> Loading...</div>
+                ) : engagements.length === 0 ? (
+                  <div style={{ padding: "32px 20px", textAlign: "center" }}>
+                    <p style={{ color: "var(--text-3)", fontSize: 13 }}>No staff found in this session.</p>
+                  </div>
                 ) : staffRows.length === 0 ? (
                   <div style={{ padding: "32px 20px", textAlign: "center" }}>
                     <p style={{ color: "var(--text-3)", fontSize: 13 }}>No staff match the current filter.</p>
@@ -906,16 +901,10 @@ export default function MonitoringPage() {
                           <thead>
                             {/* Row 1 — Company */}
                             <tr style={{ background: "#f1f5f9" }}>
-                              <th rowSpan={3} style={{ ...thStyle, width: 34, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>
-                                <input type="checkbox"
-                                  checked={selectedEngagements.size === engagements.length && engagements.length > 0}
-                                  onChange={toggleSelectAll}
-                                  style={{ cursor: "pointer", width: 14, height: 14 }}
-                                />
-                              </th>
+
                               <th rowSpan={3} style={{ ...thStyle, width: 28, fontSize: 11, color: "var(--text-4)", borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>#</th>
                               <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 120, fontSize: 12, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Staff Name</th>
-                                                            <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 80, fontSize: 11, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Department</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 80, fontSize: 11, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Department</th>
                               {coGroups.map((cg) => (
                                 <th key={cg.companyID} colSpan={cg.span} style={{
                                   padding: "5px 6px", textAlign: "center", fontWeight: 800,
@@ -1010,7 +999,7 @@ export default function MonitoringPage() {
                           </thead>
                           <tbody>
                             {staffRows.map((row, idx) => {
-                              const allChk = row.engagements.length > 0 && row.engagements.every(e => selectedEngagements.has(e.engagementID));
+                              
                               const reason = row.engagements.find(e => e.reason)?.reason;
                               const isRowSel = selectedStaffID === row.staffID;
 
@@ -1025,20 +1014,7 @@ export default function MonitoringPage() {
                                     transition: "background 0.1s"
                                   }}
                                 >
-                                  <td style={tdStyle}>
-                                    <input type="checkbox" checked={allChk}
-                                      onChange={() => {
-                                        const ids = row.engagements.map(e => e.engagementID);
-                                        setSelectedEngagements(prev => {
-                                          const next = new Set(prev);
-                                          if (allChk) ids.forEach(id => next.delete(id));
-                                          else ids.forEach(id => next.add(id));
-                                          return next;
-                                        });
-                                      }}
-                                      style={{ cursor: "pointer", width: 14, height: 14 }}
-                                    />
-                                  </td>
+
                                   <td style={{ ...tdStyle, color: "var(--text-4)", fontSize: 12 }}>{idx + 1}</td>
                                   <td style={{ ...tdStyle, textAlign: "left", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap" }}>
                                     {row.staffName}
