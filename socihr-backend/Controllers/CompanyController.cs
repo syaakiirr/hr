@@ -52,6 +52,32 @@ public class CompanyController : ControllerBase
             company.CompanyName
         });
     }
+
+    // DELETE /api/company/{id}
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        try
+        {
+            var company = await _db.Companies.FindAsync(id);
+            if (company == null)
+                return NotFound(new { message = "Company not found." });
+
+            // Check if still referenced in session posts
+            var inUse = await _db.SessionPosts.AnyAsync(p => p.CompanyID == id);
+            if (inUse)
+                return BadRequest(new { message = "Cannot delete company — it is still referenced in monitoring sessions. Remove it from all sessions first." });
+
+            _db.Companies.Remove(company);
+            await _db.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
 }
 
 public record CreateCompanyRequest(string CompanyName);

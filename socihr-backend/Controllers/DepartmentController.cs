@@ -58,6 +58,32 @@ public class DepartmentController : ControllerBase
             department.DepartmentName
         });
     }
+
+    // DELETE /api/department/{id}
+    [HttpDelete("{id:guid}")]
+    public async Task<IActionResult> Delete(Guid id)
+    {
+        try
+        {
+            var department = await _db.Departments.FindAsync(id);
+            if (department == null)
+                return NotFound(new { message = "Department not found." });
+
+            // Check if any staff still assigned to this department
+            var inUse = await _db.Staff.AnyAsync(s => s.Department == department.DepartmentName);
+            if (inUse)
+                return BadRequest(new { message = "Cannot delete department — staff members are still assigned to it. Reassign them first." });
+
+            _db.Departments.Remove(department);
+            await _db.SaveChangesAsync();
+
+            return NoContent();
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
 }
 
 public record CreateDepartmentRequest(string DepartmentName);

@@ -90,8 +90,28 @@ public class StaffController : ControllerBase
             var staff = await _db.Staff.FindAsync(id);
             if (staff == null) return NotFound(new { message = "Staff not found." });
 
+            // 1. Get all engagement IDs for this staff member
+            var engagementIds = await _db.Engagements
+                .Where(e => e.StaffID == id)
+                .Select(e => e.EngagementID)
+                .ToListAsync();
+
+            // 2. Delete all AuditTrail records referencing those engagements
+            var audits = await _db.AuditTrails
+                .Where(a => engagementIds.Contains(a.EngagementID))
+                .ToListAsync();
+            _db.AuditTrails.RemoveRange(audits);
+
+            // 3. Delete all Engagements for this staff member
+            var engagements = await _db.Engagements
+                .Where(e => e.StaffID == id)
+                .ToListAsync();
+            _db.Engagements.RemoveRange(engagements);
+
+            // 4. Delete the staff member
             _db.Staff.Remove(staff);
             await _db.SaveChangesAsync();
+
             return NoContent();
         }
         catch (Exception ex)
