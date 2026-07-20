@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import Layout from "../components/Layout";
+import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
   createDepartment,
+  deleteDepartment,
   getDepartments,
   getStaffList,
   type Department,
@@ -18,6 +20,9 @@ export default function DepartmentPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newDepartmentName, setNewDepartmentName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string; onConfirm: () => void; isLoading?: boolean; danger?: boolean;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   useEffect(() => {
     void fetchData();
@@ -54,6 +59,26 @@ export default function DepartmentPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleDeleteDepartment(id: string, name: string) {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete Department",
+      message: `Delete "${name}"? This cannot be undone. Will fail if staff members are still assigned to this department.`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          await deleteDepartment(id);
+          await fetchData();
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "Failed to delete department.");
+        } finally {
+          setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+        }
+      }
+    });
   }
 
   const displayDepartments = useMemo(() => {
@@ -133,12 +158,31 @@ export default function DepartmentPage() {
                           Available for staff forms and filters
                         </p>
                       </div>
-                      <span
-                        className="badge badge-neutral"
-                        style={{ whiteSpace: "nowrap", fontSize: 11, fontWeight: 700 }}
-                      >
-                        {department.staffCount} staff
-                      </span>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                        <span
+                          className="badge badge-neutral"
+                          style={{ whiteSpace: "nowrap", fontSize: 11, fontWeight: 700 }}
+                        >
+                          {department.staffCount} staff
+                        </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteDepartment(department.departmentID, department.departmentName); }}
+                          title="Delete Department"
+                          style={{
+                            background: "none", border: "none", cursor: "pointer", padding: "4px",
+                            color: "var(--red)", opacity: 0.6, borderRadius: 6,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            transition: "opacity 0.15s",
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = "0.6")}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
                   </motion.div>
                 ))}
@@ -187,6 +231,16 @@ export default function DepartmentPage() {
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+        isLoading={confirmDialog.isLoading}
+        danger={confirmDialog.danger}
+      />
     </Layout>
   );
 }

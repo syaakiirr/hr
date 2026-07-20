@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
-  getSessions, getPlatforms, getCompanies, createSession, deleteSession, archiveSession,
+  getSessions, getPlatforms, getCompanies, createSession, updateSession, deleteSession, archiveSession,
   getEngagements, updateEngagementAction, updateEngagementReason,
   downloadSessionReportPdf, updatePostLink, addStaffToSession, getStaffList,
   type MonitoringSession, type Platform, type Engagement, type Company, type Staff
@@ -113,6 +113,15 @@ export default function MonitoringPage() {
   const [allStaff, setAllStaff] = useState<Staff[]>([]);
   const [selectedStaffForAdd, setSelectedStaffForAdd] = useState<Set<string>>(new Set());
   const [addingStaff, setAddingStaff] = useState(false);
+
+  // Edit session state (reuses wizard UI)
+  const [showEdit, setShowEdit] = useState(false);
+  const [editSession, setEditSession] = useState<MonitoringSession | null>(null);
+  const [editDate, setEditDate] = useState("");
+  const [editCompanies, setEditCompanies] = useState<Set<string>>(new Set());
+  const [editPlatforms, setEditPlatforms] = useState<Set<string>>(new Set());
+  const [editWizardStep, setEditWizardStep] = useState<1 | 2 | 3>(1);
+  const [editSaving, setEditSaving] = useState(false);
 
   // Debounced filter for name (avoids re-render on every keystroke)
   const debouncedFilterName = useDebounce(filterName, 300);
@@ -373,9 +382,49 @@ export default function MonitoringPage() {
     }
   }
 
+  function openEditModal(session: MonitoringSession, e: React.MouseEvent) {
+    e.stopPropagation();
+    setEditSession(session);
+    setEditDate(session.sessionDate);
+    // Pre-select currently active companies from session
+    const coIDs = new Set(session.companies?.map(c => c.companyID) ?? []);
+    setEditCompanies(coIDs);
+    // Pre-select platforms from session posts (unique platform IDs)
+    const platIDs = new Set(session.posts.map(p => p.platformID));
+    setEditPlatforms(platIDs);
+    setEditWizardStep(1);
+    setShowEdit(true);
+  }
+
+  async function handleEditSession(e: React.FormEvent) {
+    e.preventDefault();
+    if (!editSession) return;
+    setEditSaving(true);
+    try {
+      const updated = await updateSession(editSession.sessionID, {
+        sessionDate: editDate,
+        companyIDs: Array.from(editCompanies),
+        platformIDs: Array.from(editPlatforms),
+      });
+      // Update local state
+      setSessions(prev => prev.map(s => s.sessionID === updated.sessionID ? updated : s));
+      if (selectedSession?.sessionID === updated.sessionID) {
+        setSelectedSession(updated);
+        // Reload engagements for the updated session
+        const eng = await getEngagements(updated.sessionID);
+        setEngagements(eng);
+      }
+      setShowEdit(false);
+      setEditSession(null);
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : "An error occurred.");
+    } finally {
+      setEditSaving(false);
+    }
+  }
 
 
-  // Type definition for staff row
+
   type StaffRow = { staffID: string; staffName: string; department: string; engagements: Engagement[] };
 
   // Group engagements by staff (memoized)
@@ -758,6 +807,9 @@ export default function MonitoringPage() {
                       </div>
                     </div>
                     <div className="sesh-item-acts" onClick={e => e.stopPropagation()}>
+                      <button onClick={(e) => openEditModal(s, e)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--accent)", width: 22, height: 22, padding: 0 }} title="Edit Session">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                      </button>
                       <button onClick={() => handleArchiveSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--text-3)", width: 22, height: 22, padding: 0 }} title="Archive">
                         <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
                       </button>
@@ -1301,9 +1353,223 @@ export default function MonitoringPage() {
       )}
       
       {/* ══════════════════════════════════════════════════════════════
+          EDIT SESSION WIZARD MODAL
+         ══════════════════════════════════════════════════════════════ */}
+      {showEdit && editSession && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowEdit(false)}>
+          <div className="modal-box" style={{ maxWidth: 520 }}>
+            <div className="modal-head">
+              <h2 className="modal-title">✏️ Edit Session</h2>
+              <button onClick={() => setShowEdit(false)} className="btn btn-ghost btn-icon btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            {/* Step Progress */}
+            <div style={{ display: "flex", alignItems: "center", gap: 0, marginBottom: 24, padding: "0 4px" }}>
+              {(["Date", "Company", "Platform"] as const).map((label, i) => {
+                const stepNum = (i + 1) as 1 | 2 | 3;
+                const isActive = editWizardStep === stepNum;
+                const isDone = editWizardStep > stepNum;
+                return (
+                  <div key={i} style={{ display: "flex", alignItems: "center", flex: i < 2 ? 1 : 0 }}>
+                    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                      <div style={{
+                        width: 32, height: 32, borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center",
+                        fontWeight: 700, fontSize: 13, transition: "all 0.2s",
+                        background: isDone ? "var(--green)" : isActive ? "var(--accent)" : "var(--surface-2)",
+                        color: isDone || isActive ? "white" : "var(--text-3)",
+                        border: `2px solid ${isDone ? "var(--green)" : isActive ? "var(--accent)" : "var(--line)"}`,
+                      }}>
+                        {isDone ? "✓" : stepNum}
+                      </div>
+                      <span style={{ fontSize: 11, fontWeight: 600, color: isActive ? "var(--accent)" : isDone ? "var(--green)" : "var(--text-4)", textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        {label}
+                      </span>
+                    </div>
+                    {i < 2 && (
+                      <div style={{ flex: 1, height: 2, margin: "0 8px", marginBottom: 18, background: editWizardStep > i + 1 ? "var(--green)" : "var(--line)", transition: "background 0.2s" }} />
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* STEP 1: Date */}
+            {editWizardStep === 1 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <label className="input-label">Session Date</label>
+                  <input
+                    className="input"
+                    type="date"
+                    value={editDate}
+                    onChange={(e) => setEditDate(e.target.value)}
+                    required
+                    autoFocus
+                  />
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 6, fontStyle: "italic" }}>
+                    * Adjust the date for this session.
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button type="button" onClick={() => setShowEdit(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
+                  <button
+                    type="button"
+                    onClick={() => setEditWizardStep(2)}
+                    disabled={!editDate}
+                    className="btn btn-primary"
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                  >
+                    Next: Companies
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 2: Company */}
+            {editWizardStep === 2 && (
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                    Select Companies
+                  </p>
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+                    {companies.map((c, ci) => {
+                      const checked = editCompanies.has(c.companyID);
+                      const color = COMPANY_COLORS[ci % COMPANY_COLORS.length];
+                      return (
+                        <label
+                          key={c.companyID}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "12px 14px", borderRadius: 10, cursor: "pointer",
+                            border: `1.5px solid ${checked ? color : "var(--line)"}`,
+                            background: checked ? `${color}12` : "var(--surface-2)",
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setEditCompanies((prev) => {
+                                const next = new Set(prev);
+                                e.target.checked ? next.add(c.companyID) : next.delete(c.companyID);
+                                return next;
+                              });
+                            }}
+                            style={{ accentColor: color, width: 15, height: 15 }}
+                          />
+                          <div style={{ display: "flex", alignItems: "center", gap: 7 }}>
+                            <div style={{ width: 10, height: 10, borderRadius: "50%", background: color, flexShrink: 0 }} />
+                            <span style={{ fontWeight: 700, fontSize: 13, color: checked ? color : "var(--text-2)" }}>
+                              {c.companyName}
+                            </span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", fontStyle: "italic", marginTop: 8 }}>
+                    * Untick companies to remove them. Tick to add new ones.
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button type="button" onClick={() => setEditWizardStep(1)} className="btn btn-secondary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+                    Back
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEditWizardStep(3)}
+                    disabled={editCompanies.size === 0}
+                    className="btn btn-primary"
+                    style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                  >
+                    Next: Platforms
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M9 18l6-6-6-6" /></svg>
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* STEP 3: Platform */}
+            {editWizardStep === 3 && (
+              <form onSubmit={handleEditSession} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: 10 }}>
+                    Select Platforms
+                  </p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {platforms.filter((p) => CREATE_PLATFORMS.some(cp => cp.toLowerCase() === p.platformName.toLowerCase().trim())).map((p) => {
+                      const checked = editPlatforms.has(p.platformID);
+                      return (
+                        <label
+                          key={p.platformID}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 8,
+                            padding: "10px 16px", borderRadius: 8, cursor: "pointer",
+                            border: `1.5px solid ${checked ? PLATFORM_COLORS[p.platformName] : "var(--line)"}`,
+                            background: checked ? `${PLATFORM_COLORS[p.platformName]}14` : "var(--surface-2)",
+                            transition: "var(--t)", flex: 1, minWidth: 120,
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setEditPlatforms((prev) => {
+                                const next = new Set(prev);
+                                e.target.checked ? next.add(p.platformID) : next.delete(p.platformID);
+                                return next;
+                              });
+                            }}
+                            style={{ accentColor: PLATFORM_COLORS[p.platformName] }}
+                          />
+                          <span style={{ fontWeight: 600, fontSize: 13, color: checked ? PLATFORM_COLORS[p.platformName] : "var(--text-2)" }}>
+                            {p.platformName}
+                          </span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", fontStyle: "italic", marginTop: 8 }}>
+                    * Untick to remove a platform, tick to add. Existing engagement data for kept platforms is preserved.
+                  </p>
+                </div>
+
+                {/* Summary */}
+                <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, padding: "10px 14px" }}>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 4 }}>Changes Summary</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)" }}>📅 {new Date(editDate + "T00:00:00").toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>🏢 {editCompanies.size} company selected</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>📱 {editPlatforms.size} platform selected</p>
+                </div>
+
+                <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+                  <button type="button" onClick={() => setEditWizardStep(2)} className="btn btn-secondary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M15 18l-6-6 6-6" /></svg>
+                    Back
+                  </button>
+                  <button type="submit" disabled={editSaving || editPlatforms.size === 0} className="btn btn-primary" style={{ flex: 1 }}>
+                    {editSaving ? <><span className="spin" style={{ width: 12, height: 12 }} /> Saving...</> : "💾 Save Changes"}
+                  </button>
+                </div>
+              </form>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ══════════════════════════════════════════════════════════════
           ADD STAFF TO SESSION MODAL
          ══════════════════════════════════════════════════════════════ */}
       {showAddStaffModal && selectedSession && (
+
         <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowAddStaffModal(false)}>
           <div className="modal-box" style={{ maxWidth: 520 }}>
             <div className="modal-head">

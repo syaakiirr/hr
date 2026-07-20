@@ -3,9 +3,11 @@ import { motion } from "framer-motion";
 import ReactECharts from "echarts-for-react";
 import * as echarts from "echarts";
 import Layout from "../components/Layout";
+import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
   getCompanies,
   createCompany,
+  deleteCompany,
   getCompanyPerformance,
   type Company
 } from "../services/api";
@@ -32,6 +34,9 @@ export default function CompanyPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [newCompanyName, setNewCompanyName] = useState("");
   const [saving, setSaving] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    isOpen: boolean; title: string; message: string; onConfirm: () => void; isLoading?: boolean; danger?: boolean;
+  }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   useEffect(() => {
     fetchData();
@@ -67,6 +72,26 @@ export default function CompanyPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  function handleDeleteCompany(id: string, name: string) {
+    setConfirmDialog({
+      isOpen: true,
+      title: "Delete Company",
+      message: `Delete "${name}"? This cannot be undone. Will fail if the company is still used in monitoring sessions.`,
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          await deleteCompany(id);
+          await fetchData();
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "Failed to delete company.");
+        } finally {
+          setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+        }
+      }
+    });
   }
 
   // Memoized company chart options
@@ -220,10 +245,27 @@ export default function CompanyPage() {
                       </div>
 
                       {/* Score/Rate */}
-                      <div style={{ textAlign: "right" }}>
+                      <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 8 }}>
                         <span className={`badge ${c.rate >= 75 ? "badge-green" : c.rate >= 50 ? "badge-amber" : "badge-red"}`} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 8, fontWeight: 800 }}>
                           {c.rate}%
                         </span>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDeleteCompany(c.companyID, c.companyName); }}
+                          title="Delete Company"
+                          style={{
+                            background: "none", border: "none", cursor: "pointer", padding: "4px",
+                            color: "var(--red)", opacity: 0.6, borderRadius: 6,
+                            display: "flex", alignItems: "center", justifyContent: "center",
+                            transition: "opacity 0.15s",
+                          }}
+                          onMouseEnter={e => (e.currentTarget.style.opacity = "1")}
+                          onMouseLeave={e => (e.currentTarget.style.opacity = "0.6")}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                            <polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" />
+                            <path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" />
+                          </svg>
+                        </button>
                       </div>
                     </motion.div>
                   ))
@@ -293,6 +335,16 @@ export default function CompanyPage() {
           </div>
         </div>
       )}
+
+      <ConfirmationDialog
+        isOpen={confirmDialog.isOpen}
+        title={confirmDialog.title}
+        message={confirmDialog.message}
+        onConfirm={confirmDialog.onConfirm}
+        onCancel={() => setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} })}
+        isLoading={confirmDialog.isLoading}
+        danger={confirmDialog.danger}
+      />
     </Layout>
   );
 }

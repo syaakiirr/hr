@@ -123,6 +123,14 @@ export async function createCompany(name: string): Promise<Company> {
   return handleResponse<Company>(res);
 }
 
+export async function deleteCompany(id: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/company/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) {
+    const text = await res.text();
+    try { const err = JSON.parse(text); throw new Error(err.message || "Failed to delete company."); } catch { throw new Error(text || "Failed to delete company."); }
+  }
+}
+
 export interface Department {
   departmentID: string;
   departmentName: string;
@@ -140,6 +148,14 @@ export async function createDepartment(name: string): Promise<Department> {
     body: JSON.stringify({ DepartmentName: name })
   });
   return handleResponse<Department>(res);
+}
+
+export async function deleteDepartment(id: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/department/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) {
+    const text = await res.text();
+    try { const err = JSON.parse(text); throw new Error(err.message || "Failed to delete department."); } catch { throw new Error(text || "Failed to delete department."); }
+  }
 }
 
 
@@ -170,6 +186,15 @@ export async function getSessions(): Promise<MonitoringSession[]> {
 export async function createSession(data: { sessionDate: string; posts: { platformID: string; postLink: string }[]; companyIDs?: string[] }): Promise<{ sessionID: string }> {
   const res = await fetch(`${BASE_URL}/monitoringsession`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<{ sessionID: string }>(res);
+}
+
+export async function updateSession(id: string, data: { sessionDate: string; companyIDs: string[]; platformIDs: string[] }): Promise<MonitoringSession> {
+  const res = await fetch(`${BASE_URL}/monitoringsession/${id}`, {
+    method: "PUT",
+    headers: authHeaders(),
+    body: JSON.stringify({ SessionDate: data.sessionDate, CompanyIDs: data.companyIDs, PlatformIDs: data.platformIDs }),
+  });
+  return handleResponse<MonitoringSession>(res);
 }
 
 export async function deleteSession(id: string): Promise<void> {

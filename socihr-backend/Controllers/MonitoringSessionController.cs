@@ -194,6 +194,136 @@ public class MonitoringSessionController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = session.SessionID }, new { session.SessionID });
     }
 
+    // PUT /api/monitoringsession/{id}
+    [HttpPut("{id:guid}")]
+    public async Task<IActionResult> Update(Guid id, [FromBody] UpdateSessionRequest req)
+    {
+        try
+        {
+            var session = await _db.MonitoringSessions.FindAsync(id);
+            if (session == null) return NotFound(new { message = "Session not found." });
+
+            // 1. Update session date
+            session.SessionDate = req.SessionDate;
+
+            // 2. Load current posts
+            var currentPosts = await _db.SessionPosts
+                .Where(p => p.SessionID == id)
+                .ToListAsync();
+
+            // Build desired set of (companyID, platformID) pairs
+            var desiredPairs = new HashSet<(Guid? companyID, Guid platformID)>();
+            if (req.CompanyIDs != null && req.CompanyIDs.Count > 0 && req.PlatformIDs != null && req.PlatformIDs.Count > 0)
+            {
+                foreach (var cId in req.CompanyIDs)
+                    foreach (var pId in req.PlatformIDs)
+                        desiredPairs.Add((cId, pId));
+            }
+            else if (req.PlatformIDs != null && req.PlatformIDs.Count > 0)
+            {
+                foreach (var pId in req.PlatformIDs)
+                    desiredPairs.Add((null, pId));
+            }
+
+            // 3. Find posts to remove
+            var postsToRemove = currentPosts.Where(p =>
+                !desiredPairs.Contains((p.CompanyID, p.PlatformID))).ToList();
+
+            // 4. Find pairs to add
+            var currentPairs = currentPosts.Select(p => (p.CompanyID, p.PlatformID)).ToHashSet();
+            var pairsToAdd = desiredPairs.Where(d => !currentPairs.Contains(d)).ToList();
+
+            if (postsToRemove.Any())
+            {
+                var removePostIds = postsToRemove.Select(p => p.PostID).ToList();
+
+                var removeEngIds = await _db.Engagements
+                    .Where(e => removePostIds.Contains(e.PostID))
+                    .Select(e => e.EngagementID)
+                    .ToListAsync();
+
+                var audits = await _db.AuditTrails
+                    .Where(a => removeEngIds.Contains(a.EngagementID))
+                    .ToListAsync();
+                _db.AuditTrails.RemoveRange(audits);
+
+                var engsToRemove = await _db.Engagements
+                    .Where(e => removePostIds.Contains(e.PostID))
+                    .ToListAsync();
+                _db.Engagements.RemoveRange(engsToRemove);
+                _db.SessionPosts.RemoveRange(postsToRemove);
+            }
+
+            if (pairsToAdd.Any())
+            {
+                var activeStaff = await _db.Staff
+                    .Where(s => s.Status == "Active" && !s.IsArchived)
+                    .ToListAsync();
+
+                foreach (var (companyID, platformID) in pairsToAdd)
+                {
+                    var post = new SessionPost
+                    {
+                        PostID = Guid.NewGuid(),
+                        SessionID = id,
+                        PlatformID = platformID,
+                        CompanyID = companyID,
+                        PostLink = ""
+                    };
+                    _db.SessionPosts.Add(post);
+
+                    foreach (var staff in activeStaff)
+                    {
+                        _db.Engagements.Add(new Engagement
+                        {
+                            EngagementID = Guid.NewGuid(),
+                            SessionID = id,
+                            PostID = post.PostID,
+                            StaffID = staff.StaffID,
+                            Status = "Missed"
+                        });
+                    }
+                }
+            }
+
+            await _db.SaveChangesAsync();
+
+            var updatedPosts = await _db.SessionPosts
+                .AsNoTracking()
+                .Include(p => p.Platform)
+                .Include(p => p.Company)
+                .Where(p => p.SessionID == id)
+                .ToListAsync();
+
+            return Ok(new
+            {
+                session.SessionID,
+                session.SessionDate,
+                session.CreatedBy,
+                session.CreatedAt,
+                session.IsArchived,
+                Posts = updatedPosts.Select(p => new
+                {
+                    p.PostID,
+                    p.PlatformID,
+                    PlatformName = p.Platform!.PlatformName,
+                    p.PostLink,
+                    p.CompanyID,
+                    CompanyName = p.Company != null ? p.Company.CompanyName : "No Company"
+                }),
+                Companies = updatedPosts
+                    .Where(p => p.Company != null)
+                    .Select(p => new { p.CompanyID, CompanyName = p.Company!.CompanyName })
+                    .GroupBy(c => c.CompanyID)
+                    .Select(g => g.First())
+            });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -835,3 +965,4 @@ public record PostRequest(Guid PlatformID, string PostLink);
 public record CreateSessionRequest(DateOnly SessionDate, List<PostRequest> Posts, List<Guid>? CompanyIDs);
 public record UpdatePostLinkRequest(string? PostLink);
 public record AddStaffToSessionRequest(List<Guid> StaffIds);
+public record UpdateSessionRequest(DateOnly SessionDate, List<Guid>? CompanyIDs, List<Guid>? PlatformIDs);
