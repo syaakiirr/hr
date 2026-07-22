@@ -80,7 +80,7 @@ const lightChartTheme = {
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState("month");
+  const [filter, setFilter] = useState("all");
   const [kpi, setKpi] = useState<KpiData | null>(null);
   const [monthly, setMonthly] = useState<{ month: number; completed: number; missed: number; total: number }[]>([]);
   const [weekly, setWeekly] = useState<{ week: string; completed: number; missed: number; total: number }[]>([]);

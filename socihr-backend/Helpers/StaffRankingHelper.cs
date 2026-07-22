@@ -33,8 +33,9 @@ public class StaffRankingHelper
         var query = db.Engagements
             .AsNoTracking()
             .Include(e => e.Staff)
+            .Include(e => e.Session)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .Where(e => activeStaffIds.Contains(e.StaffID)); // Filter to active staff only
+            .Where(e => activeStaffIds.Contains(e.StaffID) && !e.Session!.IsArchived); 
 
         if (from.HasValue)
         {

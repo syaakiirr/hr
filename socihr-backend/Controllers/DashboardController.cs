@@ -22,14 +22,15 @@ public class DashboardController : ControllerBase
     [HttpGet("kpi")]
     public async Task<IActionResult> GetKpi([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active");
-        var totalSessions = await _db.MonitoringSessions.CountAsync();
+        var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active" && !s.IsArchived);
+        var totalSessions = await _db.MonitoringSessions.CountAsync(s => !s.IsArchived);
         var totalPlatforms = await _db.Platforms.CountAsync();
 
         var engQuery = _db.Engagements
             .AsNoTracking()
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Include(e => e.Session)
+            .Where(e => !e.Session!.IsArchived)
             .AsQueryable();
 
         if (from.HasValue)
@@ -75,7 +76,7 @@ public class DashboardController : ControllerBase
             .AsNoTracking()
             .Include(e => e.Session)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .Where(e => e.Session!.SessionDate.Year == y)
+            .Where(e => e.Session!.SessionDate.Year == y && !e.Session.IsArchived)
             .ToListAsync();
 
         var data = engagements
@@ -97,7 +98,9 @@ public class DashboardController : ControllerBase
     [HttpGet("weekly")]
     public async Task<IActionResult> GetWeekly([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var sessionsQuery = _db.MonitoringSessions.AsNoTracking().AsQueryable();
+        var sessionsQuery = _db.MonitoringSessions.AsNoTracking()
+            .Where(s => !s.IsArchived)  // exclude archived sessions
+            .AsQueryable();
 
         if (from.HasValue || to.HasValue)
         {
@@ -164,6 +167,7 @@ public class DashboardController : ControllerBase
             .Include(e => e.Post)
                 .ThenInclude(p => p!.Platform)
             .Include(e => e.Session)
+            .Where(e => !e.Session!.IsArchived)  // exclude archived sessions
             .AsQueryable();
 
         if (from.HasValue)
@@ -213,7 +217,7 @@ public class DashboardController : ControllerBase
             .AsNoTracking()
             .Include(e => e.Session)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .Where(e => e.Session!.SessionDate >= startDate && e.Session.SessionDate <= endDate)
+            .Where(e => e.Session!.SessionDate >= startDate && e.Session.SessionDate <= endDate && !e.Session.IsArchived)
             .ToListAsync();
 
         var data = engagements
@@ -245,7 +249,7 @@ public class DashboardController : ControllerBase
             .AsNoTracking()
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Include(e => e.Session)
-            .Where(e => e.Post!.CompanyID != null)
+            .Where(e => e.Post!.CompanyID != null && !e.Session!.IsArchived)  // exclude archived sessions
             .AsQueryable();
 
         if (from.HasValue)
@@ -442,13 +446,15 @@ public class DashboardController : ControllerBase
 
     private async Task<object> GetKpiData(string? fromDate, string? toDate)
     {
-        var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active");
-        var totalSessions = await _db.MonitoringSessions.CountAsync();
+        var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active" && !s.IsArchived);
+        var totalSessions = await _db.MonitoringSessions.CountAsync(s => !s.IsArchived);
         var totalPlatforms = await _db.Platforms.CountAsync();
 
         var engQuery = _db.Engagements
             .AsNoTracking()
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .Include(e => e.Session)
+            .Where(e => !e.Session!.IsArchived)
             .AsQueryable();
 
         if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var from))
@@ -486,7 +492,7 @@ public class DashboardController : ControllerBase
             .AsNoTracking()
             .Include(e => e.Session)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .Where(e => e.Session!.SessionDate.Year == year)
+            .Where(e => e.Session!.SessionDate.Year == year && !e.Session.IsArchived)
             .ToListAsync();
 
         var data = engagements
@@ -508,7 +514,9 @@ public class DashboardController : ControllerBase
     {
         var engagements = await _db.Engagements
             .AsNoTracking()
+            .Include(e => e.Session)
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .Where(e => !e.Session!.IsArchived)
             .ToListAsync();
 
         var data = engagements
