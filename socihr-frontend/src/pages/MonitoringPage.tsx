@@ -441,24 +441,6 @@ export default function MonitoringPage() {
       staffMap.get(eng.staffID)!.engagements.push(eng);
     });
     const allRows: StaffRow[] = Array.from(staffMap.values()).sort((a, b) => {
-      let completedA = 0, expectedA = 0;
-      a.engagements.forEach(e => {
-        const { ticked, expected } = calculateTicks(e.platformName, e.isLiked, e.isCommented, e.isShared);
-        completedA += ticked;
-        expectedA += expected;
-      });
-      const rateA = expectedA > 0 ? (completedA / expectedA) : 0;
-
-      let completedB = 0, expectedB = 0;
-      b.engagements.forEach(e => {
-        const { ticked, expected } = calculateTicks(e.platformName, e.isLiked, e.isCommented, e.isShared);
-        completedB += ticked;
-        expectedB += expected;
-      });
-      const rateB = expectedB > 0 ? (completedB / expectedB) : 0;
-
-      if (rateB !== rateA) return rateB - rateA;
-      if (completedB !== completedA) return completedB - completedA;
       return a.staffName.localeCompare(b.staffName);
     });
     const depts: string[] = Array.from(new Set(allRows.map((r: StaffRow) => r.department).filter(Boolean)));
