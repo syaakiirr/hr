@@ -210,7 +210,6 @@ export default function MonitoringPage() {
 
 
   async function handleAction(eng: Engagement, action: "like" | "comment" | "share", value: boolean) {
-    // Capture the session at time of click to detect stale callbacks (Bug #2 fix)
     const sessionAtClick = currentSessionIDRef.current;
 
     // Snapshot original values for revert on error
@@ -229,28 +228,17 @@ export default function MonitoringPage() {
       (newLiked && newCommented);
     const newStatus = completed ? "Completed" : "Missed";
 
-    // Optimistic update — single render, no reconciliation on success
+    // Immediate optimistic state update
     setEngagements((prev) => prev.map((e) => {
       if (e.engagementID !== eng.engagementID) return e;
       return { ...e, isLiked: newLiked, isCommented: newCommented, isShared: newShared, status: newStatus };
     }));
     
     try {
-      const result = await updateEngagementAction(eng.engagementID, action, value);
-      // Only reconcile if server returned values that differ from what we optimistically set
-      // (prevents double-render blink when optimistic prediction matched server truth)
-      if (
-        currentSessionIDRef.current === sessionAtClick &&
-        (result.isLiked !== newLiked || result.isCommented !== newCommented ||
-         result.isShared !== newShared || result.status !== newStatus)
-      ) {
-        setEngagements((prev) => prev.map((e) => {
-          if (e.engagementID !== result.engagementID) return e;
-          return { ...e, isLiked: result.isLiked, isCommented: result.isCommented, isShared: result.isShared, status: result.status };
-        }));
-      }
+      // Fire-and-forget update to backend; optimistic state is already exact
+      await updateEngagementAction(eng.engagementID, action, value);
     } catch (err) {
-      // Revert to original values on error
+      // Revert to original values and notify user on error
       if (currentSessionIDRef.current === sessionAtClick) {
         setEngagements((prev) => prev.map((e) => {
           if (e.engagementID !== eng.engagementID) return e;
@@ -258,6 +246,7 @@ export default function MonitoringPage() {
         }));
       }
       console.error("Failed to update engagement:", err);
+      alert(err instanceof Error ? err.message : "Gagal mengemaskini status tick.");
     }
   }
 
@@ -1076,6 +1065,7 @@ export default function MonitoringPage() {
                                             <input
                                               type="checkbox"
                                               checked={isTicked}
+                                              onClick={(e) => e.stopPropagation()}
                                               onChange={(e) => { e.stopPropagation(); handleAction(eng, col.actionKey, e.target.checked); }}
                                               style={{ cursor: "pointer", width: 15, height: 15, accentColor: PLATFORM_COLORS[col.platformName] || "var(--accent)" }}
                                               title={`${col.label}`}
