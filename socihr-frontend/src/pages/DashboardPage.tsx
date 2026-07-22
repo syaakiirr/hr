@@ -680,7 +680,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Engagement Metrics Component */}
-          <EngagementMetrics />
+          <EngagementMetrics filter={filter} />
 
           {/* Company Performance Chart */}
           {companyPerf.length > 0 && (

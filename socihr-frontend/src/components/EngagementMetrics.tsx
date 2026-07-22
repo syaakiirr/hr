@@ -82,31 +82,61 @@ const MetricTableRow = memo(({ metric, idx }: { metric: MetricRow; idx: number }
   </motion.tr>
 ));
 
-export default function EngagementMetrics() {
+
+function getDateRange(filter: string): { from?: string; to?: string } {
+  const now = new Date();
+  const fmt = (d: Date) => d.toISOString().split("T")[0];
+  const today = fmt(now);
+
+  switch (filter) {
+    case "today": return { from: today, to: today };
+    case "week": {
+      const start = new Date(now); start.setDate(now.getDate() - now.getDay());
+      return { from: fmt(start), to: today };
+    }
+    case "month": {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { from: fmt(start), to: today };
+    }
+    case "3months": {
+      const start = new Date(now); start.setMonth(now.getMonth() - 3);
+      return { from: fmt(start), to: today };
+    }
+    case "6months": {
+      const start = new Date(now); start.setMonth(now.getMonth() - 6);
+      return { from: fmt(start), to: today };
+    }
+    case "year": {
+      const start = new Date(now); start.setFullYear(now.getFullYear() - 1);
+      return { from: fmt(start), to: today };
+    }
+    default: return {};
+  }
+}
+
+export default function EngagementMetrics({ filter = "month" }: { filter?: string }) {
   const [mode, setMode] = useState<"session" | "overall">("overall");
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadData();
-  }, [mode]);
+  }, [mode, filter]);
 
   async function loadData() {
     setLoading(true);
     try {
       if (mode === "overall") {
-        // Use dashboard KPI endpoint — only 1 API call (fixes N+1 bug)
-        const kpiData = await getDashboardKpi();
-        const total = kpiData.totalCompleted + kpiData.totalMissed;
-        const rate = total > 0 ? Math.round((kpiData.totalCompleted / total) * 100) : 0;
+        const { from, to } = getDateRange(filter);
+        const kpiData = await getDashboardKpi(from, to);
         setMetrics([
           {
             id: "overall",
             label: "All Sessions Combined",
             completed: kpiData.totalCompleted,
             missed: kpiData.totalMissed,
-            total,
-            rate,
+            total: kpiData.totalExpected,
+            rate: kpiData.completionRate,
           },
         ]);
       } else {
