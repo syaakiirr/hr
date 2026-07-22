@@ -213,49 +213,48 @@ export default function MonitoringPage() {
     // Capture the session at time of click to detect stale callbacks (Bug #2 fix)
     const sessionAtClick = currentSessionIDRef.current;
 
-    // Optimistic update: calculate new status as well
+    // Snapshot original values for revert on error
+    const originalLiked = eng.isLiked;
+    const originalCommented = eng.isCommented;
+    const originalShared = eng.isShared;
+    const originalStatus = eng.status;
+
+    // Compute optimistic new values
+    const newLiked = action === "like" ? value : eng.isLiked;
+    const newCommented = action === "comment" ? value : eng.isCommented;
+    const newShared = action === "share" ? value : eng.isShared;
+    const platform = eng.platformName.toLowerCase();
+    const completed =
+      platform === "tiktok" ? newCommented :
+      (newLiked && newCommented);
+    const newStatus = completed ? "Completed" : "Missed";
+
+    // Optimistic update — single render, no reconciliation on success
     setEngagements((prev) => prev.map((e) => {
       if (e.engagementID !== eng.engagementID) return e;
-      
-      const newEngagement = {
-        ...e,
-        isLiked: action === "like" ? value : e.isLiked,
-        isCommented: action === "comment" ? value : e.isCommented,
-        isShared: action === "share" ? value : e.isShared,
-      };
-      
-      // Auto-calculate status
-      const platform = e.platformName.toLowerCase();
-      const completed = 
-        platform === "tiktok" ? newEngagement.isCommented : 
-        (newEngagement.isLiked && newEngagement.isCommented);
-      
-      newEngagement.status = completed ? "Completed" : "Missed";
-      
-      return newEngagement;
+      return { ...e, isLiked: newLiked, isCommented: newCommented, isShared: newShared, status: newStatus };
     }));
     
     try {
       const result = await updateEngagementAction(eng.engagementID, action, value);
-      // Reconcile with server's authoritative response (only if still on same session)
-      if (currentSessionIDRef.current === sessionAtClick) {
+      // Only reconcile if server returned values that differ from what we optimistically set
+      // (prevents double-render blink when optimistic prediction matched server truth)
+      if (
+        currentSessionIDRef.current === sessionAtClick &&
+        (result.isLiked !== newLiked || result.isCommented !== newCommented ||
+         result.isShared !== newShared || result.status !== newStatus)
+      ) {
         setEngagements((prev) => prev.map((e) => {
           if (e.engagementID !== result.engagementID) return e;
-          return {
-            ...e,
-            isLiked: result.isLiked,
-            isCommented: result.isCommented,
-            isShared: result.isShared,
-            status: result.status,
-          };
+          return { ...e, isLiked: result.isLiked, isCommented: result.isCommented, isShared: result.isShared, status: result.status };
         }));
       }
     } catch (err) {
-      // Revert optimistic update ONLY if we're still on the same session
+      // Revert to original values on error
       if (currentSessionIDRef.current === sessionAtClick) {
         setEngagements((prev) => prev.map((e) => {
           if (e.engagementID !== eng.engagementID) return e;
-          return { ...e }; // keep as-is; will be corrected on next session load
+          return { ...e, isLiked: originalLiked, isCommented: originalCommented, isShared: originalShared, status: originalStatus };
         }));
       }
       console.error("Failed to update engagement:", err);

@@ -22,10 +22,6 @@ public class DashboardController : ControllerBase
     [HttpGet("kpi")]
     public async Task<IActionResult> GetKpi([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var cacheKey = $"kpi_{from:yyyyMMdd}_{to:yyyyMMdd}";
-        if (_cache.TryGetValue(cacheKey, out object? cached))
-            return Ok(cached);
-
         var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active");
         var totalSessions = await _db.MonitoringSessions.CountAsync();
         var totalPlatforms = await _db.Platforms.CountAsync();
@@ -66,7 +62,6 @@ public class DashboardController : ControllerBase
             completionRate
         };
 
-        _cache.Set(cacheKey, result, TimeSpan.FromSeconds(60));
         return Ok(result);
     }
 
