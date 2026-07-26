@@ -486,6 +486,101 @@ export async function downloadSessionReportPdf(sessionId: string, sessionDate: s
   }
 }
 
+export async function downloadMultiSessionReportPdf(sessionIds: string[]): Promise<void> {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated. Please login again.");
+
+    const res = await fetch(`${BASE_URL}/monitoringsession/multi-report`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ SessionIDs: sessionIds }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Multi PDF response error:", res.status, errText);
+      alert(`Server error (${res.status}): ${errText}`);
+      throw new Error(`Server error: ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    if (blob.size === 0) throw new Error("Empty PDF received.");
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `combined-monitoring-report-${sessionIds.length}-sessions.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to download multi-session PDF report.";
+    console.error("Download error:", msg);
+    throw new Error(msg);
+  }
+}
+
+export async function downloadCustomReportPdf(
+  from: string,
+  to: string,
+  options: {
+    showCards?: boolean;
+    showRanking?: boolean;
+    showPlatformCompany?: boolean;
+    showDaily?: boolean;
+    showMonitoringSessions?: boolean;
+    showStaffTable?: boolean;
+  }
+): Promise<void> {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated. Please login again.");
+
+    const params = new URLSearchParams();
+    if (from) params.append("from", from);
+    if (to) params.append("to", to);
+    params.append("showCards", (options.showCards ?? true).toString());
+    params.append("showRanking", (options.showRanking ?? true).toString());
+    params.append("showPlatformCompany", (options.showPlatformCompany ?? true).toString());
+    params.append("showDaily", (options.showDaily ?? true).toString());
+    params.append("showMonitoringSessions", (options.showMonitoringSessions ?? true).toString());
+    params.append("showStaffTable", (options.showStaffTable ?? true).toString());
+
+    const res = await fetch(`${BASE_URL}/reports/pdf?${params}`, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Custom PDF response error:", res.status, errText);
+      alert(`Server error (${res.status}): ${errText}`);
+      throw new Error(`Server error: ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    if (blob.size === 0) throw new Error("Empty PDF received.");
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SociHR_Custom_Report_${from}_to_${to}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to generate custom report.";
+    console.error("Download error:", msg);
+    throw new Error(msg);
+  }
+}
+
 // ─── AI Insights ────────────────────────────────────
 export async function getDashboardInsights(fromDate?: string, toDate?: string): Promise<{ insights: string; generatedAt: string }> {
   const params = new URLSearchParams();

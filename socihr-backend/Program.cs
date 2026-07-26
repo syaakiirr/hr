@@ -13,6 +13,7 @@ var builder = WebApplication.CreateBuilder(args);
 
 // QuestPDF License Activation (Community/Eval mode)
 QuestPDF.Settings.License = LicenseType.Community;
+QuestPDF.Settings.EnableDebugging = true;
 
 // Database — support both URI format (postgres://...) and key=value format
 var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
@@ -221,6 +222,10 @@ async Task SeedAdminUserAsync(WebApplication app, string[] args)
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
         // Seed admin user
+        var adminCreds = app.Configuration.GetSection("AdminCredentials");
+        var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
+            ?? adminCreds["Password"]
+            ?? "admin";
         var admin = await db.Users.FirstOrDefaultAsync(u => u.Username == "admin");
         if (admin == null)
         {
@@ -228,12 +233,12 @@ async Task SeedAdminUserAsync(WebApplication app, string[] args)
             {
                 UserID = Guid.NewGuid(),
                 Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
                 Role = "Admin"
             };
             await db.Users.AddAsync(adminUser);
             await db.SaveChangesAsync();
-            Console.WriteLine("✅ Admin user created! Username: admin, Password: admin");
+            Console.WriteLine("✅ Admin user created.");
         }
         else
         {

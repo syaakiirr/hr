@@ -4,6 +4,7 @@ import { motion } from "framer-motion";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import { getArchivedStaff, getArchivedSessions, restoreStaff, restoreSession, deleteStaff, deleteSession, type Staff, type MonitoringSession } from "../services/api";
+import { downloadPageAsPDF } from "../utils/pdf";
 
 export default function ArchivedPage() {
   const navigate = useNavigate();
@@ -137,6 +138,12 @@ export default function ArchivedPage() {
             <h1 className="page-title">Archived Items</h1>
             <p className="page-sub">View, restore or permanently delete archived staff and monitoring sessions</p>
           </div>
+          <button onClick={() => downloadPageAsPDF("Archived")} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3" />
+            </svg>
+            Download PDF
+          </button>
           <button onClick={() => navigate(-1)} className="btn btn-secondary">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: 6 }}>
               <path d="M19 12H5M12 19l-7-7 7-7" />

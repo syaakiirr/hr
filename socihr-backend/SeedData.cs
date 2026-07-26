@@ -13,16 +13,17 @@ public static class SeedData
         var adminExists = await db.Users.AnyAsync(u => u.Username == "admin");
         if (!adminExists)
         {
+            var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD") ?? "admin";
             var adminUser = new AppUser
             {
                 UserID = Guid.NewGuid(),
                 Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("admin"),
+                PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
                 Role = "Admin"
             };
             await db.Users.AddAsync(adminUser);
             await db.SaveChangesAsync();
-            Console.WriteLine("✅ Admin user created! Username: admin, Password: admin");
+            Console.WriteLine("✅ Admin user created.");
         }
         
         // Try to run seed SQL if it exists

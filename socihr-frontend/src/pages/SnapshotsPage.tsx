@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import Layout from "../components/Layout";
 import { getSnapshots, getSnapshot, deleteSnapshot, type DashboardSnapshot } from "../services/api";
+import { downloadPageAsPDF } from "../utils/pdf";
 
 export default function SnapshotsPage() {
   const navigate = useNavigate();
@@ -68,6 +69,14 @@ export default function SnapshotsPage() {
             <h1 className="page-title">Dashboard Snapshots</h1>
             <p className="page-sub">Historical dashboard states saved for comparison and reporting</p>
           </div>
+              <button onClick={() => downloadPageAsPDF("Snapshots")} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download PDF
+              </button>
           <button onClick={() => navigate('/dashboard')} className="btn btn-secondary">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ marginRight: 6 }}>
               <path d="M19 12H5M12 19l-7-7 7-7" />
@@ -139,7 +148,7 @@ export default function SnapshotsPage() {
               <div style={{ display: 'flex', gap: 8 }}>
                 <button 
                   onClick={() => handleViewSnapshot(snapshot.snapshotID)}
-                  className="btn btn-primary btn-sm"
+                  className="btn btn-secondary btn-sm"
                   style={{ flex: 1 }}
                 >
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ marginRight: 4 }}>

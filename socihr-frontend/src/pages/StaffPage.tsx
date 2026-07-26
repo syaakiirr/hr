@@ -1,12 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import Layout from "../components/Layout";
 import StaffForm from "../components/StaffForm";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import Toast, { type ToastState } from "../components/Toast";
 import type { Staff } from "../services/api";
 import { getStaffList, createStaff, updateStaff, toggleStaffStatus, archiveStaff, deleteStaff } from "../services/api";
+import { downloadPageAsPDF } from "../utils/pdf";
 
 function Avatar({ name }: { name: string }) {
   const initials = name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
@@ -27,11 +28,12 @@ function Avatar({ name }: { name: string }) {
 
 export default function StaffPage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [staffList, setStaffList] = useState<Staff[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
-  const [filterDept, setFilterDept] = useState("");
+  const [filterDept, setFilterDept] = useState(searchParams.get("department") ?? "");
   const [showForm, setShowForm] = useState(false);
   const [editingStaff, setEditingStaff] = useState<Staff | null>(null);
   const [saving, setSaving] = useState(false);
@@ -182,6 +184,18 @@ export default function StaffPage() {
                 <path d="M9 12h6" />
               </svg>
               View Archived
+            </button>
+            <button
+              onClick={() => downloadPageAsPDF("Staff_List")}
+               className="btn btn-primary"
+              style={{ display: "flex", alignItems: "center", gap: 6 }}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download PDF
             </button>
             <motion.button
               id="add-staff-btn"

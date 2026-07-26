@@ -5,7 +5,7 @@ import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
   getSessions, getPlatforms, getCompanies, createSession, updateSession, deleteSession, archiveSession,
   getEngagements, updateEngagementAction, updateEngagementReason,
-  downloadSessionReportPdf, updatePostLink, addStaffToSession, getStaffList,
+  downloadSessionReportPdf, downloadMultiSessionReportPdf, updatePostLink, addStaffToSession, getStaffList,
   type MonitoringSession, type Platform, type Engagement, type Company, type Staff
 } from "../services/api";
 
@@ -27,29 +27,12 @@ const PLATFORM_COLORS: Record<string, string> = {
 const COMPANY_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b"];
 
 // Frontend implementation of TickHelper.cs to calculate ticks at action level
-const calculateTicks = (platformName: string, isLiked: boolean, isCommented: boolean, isShared: boolean) => {
-  const platform = platformName.toLowerCase();
+const calculateTicks = (_platformName: string, isLiked: boolean, isCommented: boolean, isShared: boolean) => {
+  const expected = 3;
   let ticked = 0;
-  let expected = 0;
-  
-  if (platform === "facebook") {
-    expected = 2;
-    if (isLiked) ticked++;
-    if (isCommented) ticked++;
-  } else if (platform === "instagram") {
-    expected = 2;
-    if (isLiked) ticked++;
-    if (isCommented) ticked++;
-  } else if (platform === "tiktok") {
-    expected = 1;
-    if (isCommented) ticked++;
-  } else {
-    expected = 3;
-    if (isLiked) ticked++;
-    if (isCommented) ticked++;
-    if (isShared) ticked++;
-  }
-  
+  if (isLiked) ticked++;
+  if (isCommented) ticked++;
+  if (isShared) ticked++;
   return { ticked, missed: expected - ticked, expected };
 };
 
@@ -71,6 +54,7 @@ export default function MonitoringPage() {
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [loadingEng, setLoadingEng] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [selectedForReport, setSelectedForReport] = useState<Set<string>>(new Set());
 
   // Track the current session ID to prevent stale async updates from a previous session
   // bleeding into the current session's engagement state (Bug #2 fix)
@@ -222,10 +206,7 @@ export default function MonitoringPage() {
     const newLiked = action === "like" ? value : eng.isLiked;
     const newCommented = action === "comment" ? value : eng.isCommented;
     const newShared = action === "share" ? value : eng.isShared;
-    const platform = eng.platformName.toLowerCase();
-    const completed =
-      platform === "tiktok" ? newCommented :
-      (newLiked && newCommented);
+    const completed = newLiked && newCommented && newShared;
     const newStatus = completed ? "Completed" : "Missed";
 
     // Immediate optimistic state update
@@ -493,14 +474,11 @@ export default function MonitoringPage() {
       const plat = p.platformName;
       const coID = p.companyID ?? "";
       const coName = (p.companyName || "No Company").trim();
-      const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] =
-        plat.toLowerCase() === "facebook"
-          ? [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }, { key: "share", label: "Share", icon: "🔁", disabled: true }]
-          : plat.toLowerCase() === "instagram"
-          ? [{ key: "like", label: "Like", icon: "❤️" }, { key: "comment", label: "Komen", icon: "💬" }]
-          : plat.toLowerCase() === "tiktok"
-          ? [{ key: "comment", label: "Komen", icon: "💬" }]
-          : [{ key: "like", label: "Like", icon: "👍" }, { key: "comment", label: "Komen", icon: "💬" }];
+      const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] = [
+        { key: "like", label: "Like", icon: plat.toLowerCase() === "instagram" ? "❤️" : "👍" },
+        { key: "comment", label: "Komen", icon: "💬" },
+        { key: "share", label: "Share", icon: "🔁" },
+      ];
 
       acts.forEach((a) =>
         actionCols.push({ ...a, postID: p.postID, platformName: plat, companyID: coID, companyName: coName, actionKey: a.key, label: a.label, icon: a.icon, disabled: a.disabled })
@@ -748,7 +726,61 @@ export default function MonitoringPage() {
             <div className="sesh-panel-label">All Sessions</div>
             <div className="sesh-panel-count">{sessions.length}</div>
             <div style={{ flex: 1 }} />
-            <p style={{ fontSize: 12, color: "var(--text-4)", fontStyle: "italic" }}></p>
+            <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+              {selectedForReport.size > 0 && (
+                <>
+                  <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
+                    {selectedForReport.size} selected
+                  </span>
+                  <button
+                    onClick={() => setSelectedForReport(new Set())}
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontSize: 11, color: "var(--text-3)", height: 26 }}
+                  >
+                    Clear
+                  </button>
+                </>
+              )}
+              <button
+                onClick={() => {
+                  const now = new Date();
+                  const thisMonth = sessions.filter(s => {
+                    const d = parseDateOnly(s.sessionDate);
+                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                  });
+                  const allSelected = thisMonth.every(s => selectedForReport.has(s.sessionID));
+                  if (allSelected) {
+                    setSelectedForReport(new Set());
+                  } else {
+                    setSelectedForReport(new Set(thisMonth.map(s => s.sessionID)));
+                  }
+                }}
+                className="btn btn-ghost btn-sm"
+                style={{ fontSize: 11, height: 26 }}
+              >
+                {sessions.filter(s => {
+                  const d = parseDateOnly(s.sessionDate);
+                  const now = new Date();
+                  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+                }).every(s => selectedForReport.has(s.sessionID)) ? "Deselect Month" : "Select Month"}
+              </button>
+              {selectedForReport.size > 0 && (
+                <button
+                  onClick={async () => {
+                    try {
+                      await downloadMultiSessionReportPdf(Array.from(selectedForReport));
+                    } catch (err) {
+                      alert(err instanceof Error ? err.message : "Failed to download PDF.");
+                    }
+                  }}
+                  className="btn btn-primary btn-sm"
+                  style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, height: 28 }}
+                >
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
+                  PDF ({selectedForReport.size})
+                </button>
+              )}
+            </div>
           </div>
           <div className="sesh-panel-list">
             {loading ? (
@@ -762,30 +794,48 @@ export default function MonitoringPage() {
                 const coSummary = s.companies?.map(c => c.companyName).join(", ") ?? "";
                 return (
                   <div key={s.sessionID} className={`sesh-item ${isActive ? "active" : ""}`} onClick={() => handleSelectSession(s)}>
-                    <div className="sesh-item-body">
-                      <div className="sesh-item-date">
-                        {parseDateOnly(s.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}
+                    <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
+                      <div onClick={e => e.stopPropagation()} style={{ paddingTop: 1 }}>
+                        <input
+                          type="checkbox"
+                          checked={selectedForReport.has(s.sessionID)}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            setSelectedForReport(prev => {
+                              const next = new Set(prev);
+                              if (next.has(s.sessionID)) next.delete(s.sessionID);
+                              else next.add(s.sessionID);
+                              return next;
+                            });
+                          }}
+                          style={{ accentColor: "var(--accent)", cursor: "pointer", width: 13, height: 13 }}
+                        />
                       </div>
-                      {coSummary && <div className="sesh-item-co" title={coSummary}>🏢 {coSummary}</div>}
-                      <div className="sesh-item-plats">
-                        {uniquePlats.map(pl => (
-                          <span key={pl} className="plat-pip" style={{ background: PLATFORM_COLORS[pl] || "var(--accent)" }} title={pl} />
-                        ))}
-                        {uniquePlats.length > 0 && (
-                          <span style={{ fontSize: 9.5, color: "var(--text-4)", fontWeight: 600 }}>{uniquePlats.join(" · ")}</span>
-                        )}
+                      <div className="sesh-item-body" style={{ flex: 1, minWidth: 0 }}>
+                        <div className="sesh-item-date">
+                          {parseDateOnly(s.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}
+                        </div>
+                        {coSummary && <div className="sesh-item-co" title={coSummary}>🏢 {coSummary}</div>}
+                        <div className="sesh-item-plats">
+                          {uniquePlats.map(pl => (
+                            <span key={pl} className="plat-pip" style={{ background: PLATFORM_COLORS[pl] || "var(--accent)" }} title={pl} />
+                          ))}
+                          {uniquePlats.length > 0 && (
+                            <span style={{ fontSize: 9.5, color: "var(--text-4)", fontWeight: 600 }}>{uniquePlats.join(" · ")}</span>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                    <div className="sesh-item-acts" onClick={e => e.stopPropagation()}>
-                      <button onClick={(e) => openEditModal(s, e)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--accent)", width: 22, height: 22, padding: 0 }} title="Edit Session">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                      </button>
-                      <button onClick={() => handleArchiveSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--text-3)", width: 22, height: 22, padding: 0 }} title="Archive">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
-                      </button>
-                      <button onClick={() => handleDeleteSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)", width: 22, height: 22, padding: 0 }} title="Delete">
-                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-                      </button>
+                      <div className="sesh-item-acts" onClick={e => e.stopPropagation()}>
+                        <button onClick={(e) => openEditModal(s, e)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--accent)", width: 22, height: 22, padding: 0 }} title="Edit Session">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                        </button>
+                        <button onClick={() => handleArchiveSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--text-3)", width: 22, height: 22, padding: 0 }} title="Archive">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
+                        </button>
+                        <button onClick={() => handleDeleteSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)", width: 22, height: 22, padding: 0 }} title="Delete">
+                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );

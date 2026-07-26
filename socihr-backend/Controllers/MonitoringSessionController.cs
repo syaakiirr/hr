@@ -7,6 +7,7 @@ using QuestPDF.Fluent;
 using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using SkiaSharp;
+using socihr_backend.Helpers;
 
 namespace socihr_backend.Controllers;
 
@@ -548,6 +549,98 @@ public class MonitoringSessionController : ControllerBase
         });
     }
 
+    // POST /api/monitoringsession/multi-report  — generate a combined PDF for multiple sessions
+    [HttpPost("multi-report")]
+    public async Task<IActionResult> GenerateMultiReportPdf([FromBody] MultiSessionReportRequest req)
+    {
+        try
+        {
+            if (req.SessionIDs == null || req.SessionIDs.Count == 0)
+                return BadRequest(new { message = "No session IDs provided." });
+
+            var sessions = await _db.MonitoringSessions
+                .AsNoTracking()
+                .Where(s => req.SessionIDs.Contains(s.SessionID))
+                .OrderBy(s => s.SessionDate)
+                .ToListAsync();
+
+            if (sessions.Count == 0)
+                return NotFound(new { message = "No sessions found." });
+
+            var sessionIds = sessions.Select(s => s.SessionID).ToList();
+
+            var engagements = await _db.Engagements
+                .AsNoTracking()
+                .Include(e => e.Staff)
+                .Include(e => e.Post)
+                .ThenInclude(p => p!.Platform)
+                .Include(e => e.Post)
+                .ThenInclude(p => p!.Company)
+                .Where(e => sessionIds.Contains(e.SessionID))
+                .ToListAsync();
+
+            var pdf = GenerateMultiPdfDocument(sessions, engagements);
+
+            var fileName = $"combined-monitoring-report-{sessions.Count}-sessions.pdf";
+            return File(pdf, "application/pdf", fileName);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
+    // POST /api/monitoringsession/custom-report
+    [HttpPost("custom-report")]
+    public async Task<IActionResult> GenerateCustomReportPdf([FromBody] CustomReportRequest req)
+    {
+        try
+        {
+            if (req.SessionIDs == null || req.SessionIDs.Count == 0)
+                return BadRequest(new { message = "No session IDs provided." });
+
+            var query = _db.MonitoringSessions.AsNoTracking()
+                .Where(s => req.SessionIDs.Contains(s.SessionID));
+
+            if (req.DateFrom.HasValue)
+                query = query.Where(s => s.SessionDate >= DateOnly.FromDateTime(req.DateFrom.Value));
+            if (req.DateTo.HasValue)
+                query = query.Where(s => s.SessionDate <= DateOnly.FromDateTime(req.DateTo.Value));
+
+            var sessions = await query.OrderBy(s => s.SessionDate).ToListAsync();
+
+            if (sessions.Count == 0)
+                return NotFound(new { message = "No sessions found." });
+
+            var sessionIds = sessions.Select(s => s.SessionID).ToList();
+
+            var engQuery = _db.Engagements
+                .AsNoTracking()
+                .Include(e => e.Staff)
+                .Include(e => e.Post)
+                .ThenInclude(p => p!.Platform)
+                .Include(e => e.Post)
+                .ThenInclude(p => p!.Company)
+                .Where(e => sessionIds.Contains(e.SessionID));
+
+            var engagements = await engQuery.ToListAsync();
+
+            if (req.SelectedCompanyIDs != null && req.SelectedCompanyIDs.Count > 0)
+                engagements = engagements.Where(e => e.Post != null && req.SelectedCompanyIDs.Any(id => id == e.Post.CompanyID)).ToList();
+            if (req.SelectedPlatformIDs != null && req.SelectedPlatformIDs.Count > 0)
+                engagements = engagements.Where(e => e.Post != null && req.SelectedPlatformIDs.Any(id => id == e.Post.PlatformID)).ToList();
+
+            var pdf = await GenerateCustomReportPdf(sessions, engagements, req);
+
+            var fileName = $"custom-report-{sessions.Count}-sessions.pdf";
+            return File(pdf, "application/pdf", fileName);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
     // GET /api/monitoringsession/{id}/report
     [HttpGet("{id:guid}/report")]
     public async Task<IActionResult> GenerateReportPdf(Guid id)
@@ -586,7 +679,7 @@ public class MonitoringSessionController : ControllerBase
         }
     }
 
-    private class ReportData
+    internal class ReportData
     {
         public DateOnly SessionDate { get; set; }
         public List<ColumnInfo> ActionColumns { get; set; } = new();  // Columns with company/platform/action info
@@ -598,7 +691,7 @@ public class MonitoringSessionController : ControllerBase
         public int TotalShares { get; set; }
     }
 
-    private class ColumnInfo
+    internal class ColumnInfo
     {
         public string PostID { get; set; } = "";
         public string PlatformName { get; set; } = "";
@@ -610,14 +703,14 @@ public class MonitoringSessionController : ControllerBase
         public string PostLink { get; set; } = "";
     }
 
-    private class CompanyGroup
+    internal class CompanyGroup
     {
         public string CompanyID { get; set; } = "";
         public string Name { get; set; } = "";
         public int Span { get; set; }
     }
 
-    private class PlatformGroup
+    internal class PlatformGroup
     {
         public string PostID { get; set; } = "";
         public string PlatformName { get; set; } = "";
@@ -625,7 +718,7 @@ public class MonitoringSessionController : ControllerBase
         public int Span { get; set; }
     }
 
-    private class StaffRowData
+    internal class StaffRowData
     {
         public string StaffName { get; set; } = "";
         public string Department { get; set; } = "";
@@ -637,7 +730,7 @@ public class MonitoringSessionController : ControllerBase
         public double CompletionRate => TotalTicks > 0 ? Math.Round((double)CompletedTicks / TotalTicks * 100, 1) : 0;
     }
 
-    private ReportData BuildReportData(MonitoringSession session, List<Engagement> engagements)
+    internal static ReportData BuildReportData(MonitoringSession session, List<Engagement> engagements)
     {
         var data = new ReportData { SessionDate = session.SessionDate };
 
@@ -653,20 +746,18 @@ public class MonitoringSessionController : ControllerBase
                 : 99)
             .ToList();
 
-        // Build action columns
+        // Build action columns — all platforms have Like + Comment + Share
         foreach (var post in uniquePosts)
         {
             var platform = post.Platform?.PlatformName?.ToLower() ?? "";
-            var actions = platform == "facebook"
-                ? new[] { ("like", "Like"), ("comment", "Comment") }
-                : platform == "instagram"
-                ? new[] { ("like", "Like"), ("comment", "Comment") }
-                : platform == "tiktok"
-                ? new[] { ("comment", "Comment") }
-                : new[] { ("like", "Like"), ("comment", "Comment"), ("share", "Share") };
+            var icon = platform == "instagram" ? "❤️" : "👍";
 
-            foreach (var (action, label) in actions)
+            foreach (var (action, label) in new[] { ("like", "Like"), ("comment", "Comment"), ("share", "Share") })
             {
+                var actionIcon = action == "like" ? icon
+                              : action == "comment" ? "💬"
+                              : "🔁";
+
                 data.ActionColumns.Add(new ColumnInfo
                 {
                     PostID = post.PostID.ToString(),
@@ -675,6 +766,7 @@ public class MonitoringSessionController : ControllerBase
                     CompanyName = post.Company?.CompanyName ?? "No Company",
                     Action = action,
                     ActionLabel = label,
+                    ActionIcon = actionIcon,
                     PostLink = post.PostLink ?? ""
                 });
             }
@@ -824,58 +916,54 @@ public class MonitoringSessionController : ControllerBase
                     {
                         table.ColumnsDefinition(columns =>
                         {
-                            columns.RelativeColumn(0.3f);  // Rank
-                            columns.RelativeColumn(1.5f);  // Staff Name
-                            columns.RelativeColumn(0.9f);  // Department
-                            
+                            columns.ConstantColumn(18);   // Rank
+                            columns.ConstantColumn(115);  // Staff Name
+
+                            columns.ConstantColumn(65);   // Department
                             foreach (var _ in data.ActionColumns)
                             {
-                                columns.RelativeColumn(0.55f);
+                                columns.RelativeColumn();
                             }
-                            
-                            columns.RelativeColumn(1.5f);  // Reason
+
+                            columns.ConstantColumn(50);   // Reason
                         });
 
                         // Headers
                         table.Header(header =>
                         {
                             static IContainer BaseHeader(IContainer container, string bg) =>
-                                container.Background(bg).Border(1).BorderColor("#cbd5e1").PaddingHorizontal(2).AlignCenter().AlignMiddle();
+                                container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignCenter().AlignMiddle();
 
                             // Column 1, 2, 3: Spanning 3 rows vertically
                             header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("#").FontSize(7.5f).Bold().FontColor("#475569");
                             header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Staff Name").FontSize(7.5f).Bold().FontColor("#475569");
                             header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Dept").FontSize(7.5f).Bold().FontColor("#475569");
 
-                            // Row 1: Company groups
                             foreach (var coGroup in data.CompanyGroups)
                             {
                                 header.Cell().ColumnSpan((uint)coGroup.Span).Element(c => BaseHeader(c, "#dbeafe"))
-                                    .Text(coGroup.Name).FontSize(7.5f).Bold().FontColor("#1e40af");
+                                    .Text(t => t.Span(coGroup.Name).FontSize(9f).Bold().FontColor("#1e40af"));
                             }
                             
-                            // Reason header (spans 3 rows)
                             header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#fef3c7")).Text("Reason").FontSize(7.5f).Bold().FontColor("#92400e");
 
-                            // Row 2: Platform groups
                             foreach (var platGroup in data.PlatformGroups)
                             {
                                 var cell = header.Cell().ColumnSpan((uint)platGroup.Span).Element(c => BaseHeader(c, "#e0f2fe"));
                                 if (!string.IsNullOrEmpty(platGroup.PostLink))
                                 {
-                                    cell.Hyperlink(platGroup.PostLink).Text(platGroup.PlatformName).FontSize(6f).Bold().FontColor("#0369a1").Underline();
+                                    cell.Hyperlink(platGroup.PostLink).Text(t => t.Span(platGroup.PlatformName).FontSize(8f).Bold().FontColor("#0369a1").Underline());
                                 }
                                 else
                                 {
-                                    cell.Text(platGroup.PlatformName).FontSize(6f).Bold().FontColor("#0369a1");
+                                    cell.Text(t => t.Span(platGroup.PlatformName).FontSize(8f).Bold().FontColor("#0369a1"));
                                 }
                             }
 
-                            // Row 3: Action columns
                             foreach (var col in data.ActionColumns)
                             {
                                 header.Cell().Element(c => BaseHeader(c, "#f0fdf4"))
-                                    .Text(col.ActionLabel).FontSize(5.5f).Bold().FontColor("#15803d");
+                                    .Text(t => t.Span(col.ActionLabel).FontSize(6.5f).Bold().FontColor("#15803d").WrapAnywhere());
                             }
                         });
 
@@ -891,28 +979,28 @@ public class MonitoringSessionController : ControllerBase
                             // Rank
                             table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter().Text(rowNum.ToString()).FontSize(7).FontColor("#64748b");
                             
-                            // Staff Name
-                            table.Cell().Element(c => DataCell(c, bgColor)).Text(staffRow.StaffName).FontSize(7).Bold().FontColor("#1e293b");
+                            table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.StaffName).FontSize(7).Bold().FontColor("#1e293b"));
                             
-                            // Department
-                            table.Cell().Element(c => DataCell(c, bgColor)).Text(staffRow.Department).FontSize(7).FontColor("#475569");
+                            table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Department).FontSize(7).FontColor("#475569"));
 
                             // Engagement Values
+                            static IContainer ActionCell(IContainer container, string bg) =>
+                                container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
+
                             for (int i = 0; i < staffRow.EngagementValues.Count; i++)
                             {
                                 var value = staffRow.EngagementValues[i];
-                                var cell = table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter();
+                                var cell = table.Cell().Element(c => ActionCell(c, bgColor)).AlignCenter();
                                 
                                 if (value)
                                 {
-                                    // Use a filled green square with "v" to avoid ✓ rendering as ? 
-                                    // due to font glyph support limitations in QuestPDF's default font
                                     cell.AlignCenter().AlignMiddle()
-                                        .Width(12).Height(12)
+                                        .Padding(1)
                                         .Background("#10b981")
                                         .Border(1).BorderColor("#059669")
                                         .AlignCenter().AlignMiddle()
-                                        .Text("v").FontSize(8).Bold().FontColor("#ffffff");
+                                        .Padding(1)
+                                        .Text("v").FontSize(6).Bold().FontColor("#ffffff");
                                 }
                                 else
                                 {
@@ -920,27 +1008,492 @@ public class MonitoringSessionController : ControllerBase
                                 }
                             }
                             
-                            // Reason
-                            table.Cell().Element(c => DataCell(c, bgColor)).Text(staffRow.Reason ?? "").FontSize(6).FontColor("#475569");
+                            table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Reason ?? "").FontSize(6).FontColor("#475569"));
 
                             rowNum++;
                         }
                     });
                 });
 
-                page.Footer().AlignCenter().Text(t =>
+                page.Footer().Column(f =>
                 {
-                    t.Span("Generated ").FontSize(8).FontColor("#9ca3af");
-                    t.Span($"{DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
-                    t.Span("  •  Page ").FontSize(8).FontColor("#9ca3af");
-                    t.CurrentPageNumber().FontSize(8).FontColor("#9ca3af");
-                    t.Span(" of ").FontSize(8).FontColor("#9ca3af");
-                    t.TotalPages().FontSize(8).FontColor("#9ca3af");
+                    f.Item().AlignCenter().Text("@syaakiirr").FontSize(7).FontColor("#94a3b8");
+                    f.Item().AlignCenter().Text(t =>
+                    {
+                        t.Span("Generated ").FontSize(8).FontColor("#9ca3af");
+                        t.Span($"{DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
+                        t.Span("  •  Page ").FontSize(8).FontColor("#9ca3af");
+                        t.CurrentPageNumber().FontSize(8).FontColor("#9ca3af");
+                        t.Span(" of ").FontSize(8).FontColor("#9ca3af");
+                        t.TotalPages().FontSize(8).FontColor("#9ca3af");
+                    });
                 });
             });
         });
 
         return document.GeneratePdf();
+    }
+
+    private byte[] GenerateMultiPdfDocument(List<MonitoringSession> sessions, List<Engagement> engagements)
+    {
+        int totalLikes = 0, totalComments = 0, totalShares = 0;
+        foreach (var eng in engagements)
+        {
+            if (eng.IsLiked) totalLikes++;
+            if (eng.IsCommented) totalComments++;
+            if (eng.IsShared) totalShares++;
+        }
+
+        var accentColors = new[] { "#1e40af", "#059669", "#d97706", "#7c3aed", "#dc2626" };
+
+        return Document.Create(container =>
+        {
+            for (int sIdx = 0; sIdx < sessions.Count; sIdx++)
+            {
+                var session = sessions[sIdx];
+                var accent = accentColors[sIdx % accentColors.Length];
+
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A3.Landscape());
+                    page.Margin(16);
+
+                    page.Header().Column(h =>
+                    {
+                        h.Item().Background(accent).Padding(6).Row(row =>
+                        {
+                            row.RelativeItem().Text($"SESSION {sIdx + 1} OF {sessions.Count}")
+                                .FontSize(11).Bold().FontColor("#ffffff");
+                            row.RelativeItem().AlignRight().Text($"{session.SessionDate:dd MMMM yyyy}")
+                                .FontSize(11).Bold().FontColor("#ffffff");
+                        });
+                        h.Item().PaddingTop(4).Row(row =>
+                        {
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("Combined Monitoring Report").FontSize(16).Bold().FontColor("#1e40af");
+                                c.Item().Text("System crafted by @syaakiirr").FontSize(8).FontColor("#9ca3af");
+                            });
+                        });
+                    });
+
+                    var sessionEngagements = engagements.Where(e => e.SessionID == session.SessionID).ToList();
+                    var reportData = BuildReportData(session, sessionEngagements);
+
+                    page.Content().Column(col =>
+                    {
+                        // Summary Totals cards
+                        col.Item().PaddingBottom(12).Row(row =>
+                        {
+                            row.RelativeItem().Element(c => Card(c, "Total Likes", reportData.TotalLikes.ToString(), "#3b82f6"));
+                            row.ConstantItem(12);
+                            row.RelativeItem().Element(c => Card(c, "Total Comments", reportData.TotalComments.ToString(), "#0ea5e9"));
+                            row.ConstantItem(12);
+                            row.RelativeItem().Element(c => Card(c, "Total Shares", reportData.TotalShares.ToString(), "#10b981"));
+                        });
+
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(columns =>
+                            {
+                                columns.ConstantColumn(18);   // Rank
+                                columns.ConstantColumn(115);  // Staff Name
+
+                                columns.ConstantColumn(65);   // Department
+                                foreach (var _ in reportData.ActionColumns)
+                                    columns.RelativeColumn();
+
+                                columns.ConstantColumn(50);   // Reason
+                            });
+
+                            table.Header(header =>
+                            {
+                                static IContainer BaseHeader(IContainer container, string bg) =>
+                                    container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignCenter().AlignMiddle();
+
+                                header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("#").FontSize(7.5f).Bold().FontColor("#475569");
+                                header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Staff Name").FontSize(7.5f).Bold().FontColor("#475569");
+                                header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Dept").FontSize(7.5f).Bold().FontColor("#475569");
+
+                                foreach (var coGroup in reportData.CompanyGroups)
+                                {
+                                    header.Cell().ColumnSpan((uint)coGroup.Span).Element(c => BaseHeader(c, "#dbeafe"))
+                                        .Text(t => t.Span(coGroup.Name).FontSize(9f).Bold().FontColor("#1e40af"));
+                                }
+
+                                header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#fef3c7")).Text("Reason").FontSize(7.5f).Bold().FontColor("#92400e");
+
+                                foreach (var platGroup in reportData.PlatformGroups)
+                                {
+                                    var cell = header.Cell().ColumnSpan((uint)platGroup.Span).Element(c => BaseHeader(c, "#e0f2fe"));
+                                    if (!string.IsNullOrEmpty(platGroup.PostLink))
+                                        cell.Hyperlink(platGroup.PostLink).Text(t => t.Span(platGroup.PlatformName).FontSize(8f).Bold().FontColor("#0369a1").Underline());
+                                    else
+                                        cell.Text(t => t.Span(platGroup.PlatformName).FontSize(8f).Bold().FontColor("#0369a1"));
+                                }
+
+                                foreach (var ac in reportData.ActionColumns)
+                                {
+                                    header.Cell().Element(c => BaseHeader(c, "#f0fdf4"))
+                                        .Text(t => t.Span(ac.ActionLabel).FontSize(6.5f).Bold().FontColor("#15803d").WrapAnywhere());
+                                }
+                            });
+
+                            int rowNum = 1;
+                            foreach (var staffRow in reportData.StaffRows)
+                            {
+                                var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
+
+                                static IContainer DataCell(IContainer container, string bg) =>
+                                    container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
+
+                                table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter().Text(rowNum.ToString()).FontSize(7).FontColor("#64748b");
+                                table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.StaffName).FontSize(7).Bold().FontColor("#1e293b"));
+                                table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Department).FontSize(7).FontColor("#475569"));
+
+                                static IContainer ActionCell(IContainer container, string bg) =>
+                                    container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
+
+                                for (int i = 0; i < staffRow.EngagementValues.Count; i++)
+                                {
+                                    var value = staffRow.EngagementValues[i];
+                                    var cell = table.Cell().Element(c => ActionCell(c, bgColor)).AlignCenter();
+                                    if (value)
+                                    {
+                                        cell.AlignCenter().AlignMiddle()
+                                            .Padding(1)
+                                            .Background("#10b981")
+                                            .Border(1).BorderColor("#059669")
+                                            .AlignCenter().AlignMiddle()
+                                            .Padding(1)
+                                            .Text("v").FontSize(6).Bold().FontColor("#ffffff");
+                                    }
+                                    else
+                                    {
+                                        cell.Text("");
+                                    }
+                                }
+
+                                table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Reason ?? "").FontSize(6).FontColor("#475569"));
+                                rowNum++;
+                            }
+                        });
+                    });
+
+                    page.Footer().Column(f =>
+                    {
+                        f.Item().AlignCenter().Text("@syaakiirr").FontSize(7).FontColor("#94a3b8");
+                        f.Item().AlignCenter().Text(t =>
+                        {
+                            t.Span("Generated ").FontSize(8).FontColor("#9ca3af");
+                            t.Span($"{DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
+                            t.Span("  •  Page ").FontSize(8).FontColor("#9ca3af");
+                            t.CurrentPageNumber().FontSize(8).FontColor("#9ca3af");
+                            t.Span(" of ").FontSize(8).FontColor("#9ca3af");
+                            t.TotalPages().FontSize(8).FontColor("#9ca3af");
+                        });
+                    });
+                });
+            }
+        }).GeneratePdf();
+    }
+
+    private async Task<byte[]> GenerateCustomReportPdf(List<MonitoringSession> sessions, List<Engagement> engagements, CustomReportRequest req)
+    {
+        var accentColors = new[] { "#1e40af", "#059669", "#d97706", "#7c3aed", "#dc2626" };
+        var dateLabel = "";
+        if (req.DateFrom.HasValue || req.DateTo.HasValue)
+            dateLabel = $"Period: {req.DateFrom:dd MMM yyyy} - {req.DateTo:dd MMM yyyy}";
+
+        // Load ranking data if needed
+        List<StaffRankingHelper.StaffRankingDto>? top10 = null;
+        List<StaffRankingHelper.StaffRankingDto>? bottom10 = null;
+        List<StaffRankingHelper.StaffRankingDto>? allStaff = null;
+        if (req.IncludeStaffRanking || req.IncludePerformanceStaff)
+        {
+            var allRanked = await StaffRankingHelper.GetRanking(_db, "top", null,
+                req.DateFrom, req.DateTo);
+            top10 = allRanked.Take(10).ToList();
+            bottom10 = allRanked.OrderBy(r => r.CompletionRate).ThenBy(r => r.Completed).Take(10).ToList();
+            if (req.IncludePerformanceStaff)
+                allStaff = allRanked;
+        }
+
+        return Document.Create(container =>
+        {
+            for (int sIdx = 0; sIdx < sessions.Count; sIdx++)
+            {
+                var session = sessions[sIdx];
+                var accent = accentColors[sIdx % accentColors.Length];
+                var sessionEngagements = engagements.Where(e => e.SessionID == session.SessionID).ToList();
+                var reportData = BuildReportData(session, sessionEngagements);
+
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A3.Landscape());
+                    page.Margin(16);
+
+                    page.Header().Column(h =>
+                    {
+                        h.Item().Background(accent).Padding(6).Row(row =>
+                        {
+                            row.RelativeItem().Text($"SESSION {sIdx + 1} OF {sessions.Count}")
+                                .FontSize(11).Bold().FontColor("#ffffff");
+                            row.RelativeItem().AlignRight().Text($"{session.SessionDate:dd MMMM yyyy}")
+                                .FontSize(11).Bold().FontColor("#ffffff");
+                        });
+                        h.Item().PaddingTop(4).Row(row =>
+                        {
+                            row.RelativeItem().Column(c =>
+                            {
+                                c.Item().Text("Custom Monitoring Report").FontSize(16).Bold().FontColor("#1e40af");
+                                if (!string.IsNullOrEmpty(dateLabel))
+                                    c.Item().Text(dateLabel).FontSize(9).FontColor("#64748b");
+                            });
+                        });
+                    });
+
+                    page.Content().Column(col =>
+                    {
+                        if (req.IncludeSummaryCards)
+                        {
+                            col.Item().PaddingBottom(12).Row(row =>
+                            {
+                                row.RelativeItem().Element(c => Card(c, "Total Likes", reportData.TotalLikes.ToString(), "#3b82f6"));
+                                row.ConstantItem(12);
+                                row.RelativeItem().Element(c => Card(c, "Total Comments", reportData.TotalComments.ToString(), "#0ea5e9"));
+                                row.ConstantItem(12);
+                                row.RelativeItem().Element(c => Card(c, "Total Shares", reportData.TotalShares.ToString(), "#10b981"));
+                            });
+                        }
+
+                        if (req.IncludeMonitoringTable && reportData.StaffRows.Count > 0)
+                        {
+                            col.Item().Table(table =>
+                            {
+                                table.ColumnsDefinition(columns =>
+                                {
+                                    columns.ConstantColumn(18);
+                                    columns.ConstantColumn(115);
+                                    columns.ConstantColumn(req.IncludeStaffPosition ? 55 : 65);
+
+                                    foreach (var _ in reportData.ActionColumns)
+                                        columns.RelativeColumn();
+
+                                    if (req.IncludeReasonColumn)
+                                        columns.ConstantColumn(50);
+                                });
+
+                                table.Header(header =>
+                                {
+                                    static IContainer BaseHeader(IContainer container, string bg) =>
+                                        container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignCenter().AlignMiddle();
+
+                                    uint headerRowSpan = (uint)(req.IncludeReasonColumn ? 3 : 2);
+
+                                    header.Cell().RowSpan(headerRowSpan).Element(c => BaseHeader(c, "#f1f5f9")).Text("#").FontSize(7.5f).Bold().FontColor("#475569");
+                                    header.Cell().RowSpan(headerRowSpan).Element(c => BaseHeader(c, "#f1f5f9")).Text("Staff Name").FontSize(7.5f).Bold().FontColor("#475569");
+                                    header.Cell().RowSpan(headerRowSpan).Element(c => BaseHeader(c, "#f1f5f9")).Text(req.IncludeStaffPosition ? "Position" : "Dept").FontSize(7.5f).Bold().FontColor("#475569");
+
+                                    foreach (var coGroup in reportData.CompanyGroups)
+                                    {
+                                        header.Cell().ColumnSpan((uint)coGroup.Span).Element(c => BaseHeader(c, "#dbeafe"))
+                                            .Text(t => t.Span(coGroup.Name).FontSize(9f).Bold().FontColor("#1e40af"));
+                                    }
+
+                                    if (req.IncludeReasonColumn)
+                                        header.Cell().RowSpan(headerRowSpan).Element(c => BaseHeader(c, "#fef3c7")).Text("Reason").FontSize(7.5f).Bold().FontColor("#92400e");
+
+                                    foreach (var platGroup in reportData.PlatformGroups)
+                                    {
+                                        var cell = header.Cell().ColumnSpan((uint)platGroup.Span).Element(c => BaseHeader(c, "#e0f2fe"));
+                                        if (!string.IsNullOrEmpty(platGroup.PostLink))
+                                            cell.Hyperlink(platGroup.PostLink).Text(t => t.Span(platGroup.PlatformName).FontSize(8f).Bold().FontColor("#0369a1").Underline());
+                                        else
+                                            cell.Text(t => t.Span(platGroup.PlatformName).FontSize(8f).Bold().FontColor("#0369a1"));
+                                    }
+
+                                    foreach (var ac in reportData.ActionColumns)
+                                    {
+                                        header.Cell().Element(c => BaseHeader(c, "#f0fdf4"))
+                                            .Text(t => t.Span(ac.ActionLabel).FontSize(6.5f).Bold().FontColor("#15803d"));
+                                    }
+                                });
+
+                                int rowNum = 1;
+                                foreach (var staffRow in reportData.StaffRows)
+                                {
+                                    var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
+
+                                    static IContainer DataCell(IContainer container, string bg) =>
+                                        container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
+                                    static IContainer ActionCell(IContainer container, string bg) =>
+                                        container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
+
+                                    table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter().Text(rowNum.ToString()).FontSize(7).FontColor("#64748b");
+                                    table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.StaffName).FontSize(7).Bold().FontColor("#1e293b"));
+                                    table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Department).FontSize(7).FontColor("#475569"));
+
+                                    for (int i = 0; i < staffRow.EngagementValues.Count; i++)
+                                    {
+                                        var value = staffRow.EngagementValues[i];
+                                        var cell = table.Cell().Element(c => ActionCell(c, bgColor)).AlignCenter();
+                                        if (value)
+                                        {
+                                            cell.AlignCenter().AlignMiddle()
+                                                .Padding(1)
+                                                .Background("#10b981")
+                                                .Border(1).BorderColor("#059669")
+                                                .AlignCenter().AlignMiddle()
+                                                .Padding(1)
+                                                .Text("v").FontSize(6).Bold().FontColor("#ffffff");
+                                        }
+                                        else
+                                        {
+                                            cell.Text("");
+                                        }
+                                    }
+
+                                    if (req.IncludeReasonColumn)
+                                        table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Reason ?? "").FontSize(6).FontColor("#475569"));
+
+                                    rowNum++;
+                                }
+                            });
+                        }
+                    });
+
+                    page.Footer().Column(f =>
+                    {
+                        f.Item().AlignCenter().Text("@syaakiirr").FontSize(7).FontColor("#94a3b8");
+                        f.Item().AlignCenter().Text(t =>
+                        {
+                            t.Span("Generated ").FontSize(8).FontColor("#9ca3af");
+                            t.Span($"{DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
+                            t.Span("  •  Page ").FontSize(8).FontColor("#9ca3af");
+                            t.CurrentPageNumber().FontSize(8).FontColor("#9ca3af");
+                            t.Span(" of ").FontSize(8).FontColor("#9ca3af");
+                            t.TotalPages().FontSize(8).FontColor("#9ca3af");
+                        });
+                    });
+                });
+            }
+
+            // Staff Ranking pages
+            if (req.IncludeStaffRanking && top10 != null && bottom10 != null)
+            {
+                container.Page(page =>
+                {
+                    page.Size(PageSizes.A3.Landscape());
+                    page.Margin(16);
+
+                    page.Header().Column(h =>
+                    {
+                        h.Item().Background("#1e40af").Padding(6).Row(row =>
+                        {
+                            row.RelativeItem().Text("STAFF RANKING").FontSize(11).Bold().FontColor("#ffffff");
+                            if (!string.IsNullOrEmpty(dateLabel))
+                                row.RelativeItem().AlignRight().Text(dateLabel).FontSize(11).Bold().FontColor("#ffffff");
+                        });
+                        h.Item().PaddingTop(4).Text("Top 10 Performers & Underperformers").FontSize(16).Bold().FontColor("#1e40af");
+                    });
+
+                    page.Content().Column(col =>
+                    {
+                        col.Item().PaddingBottom(16).Text("Top 10 Performers").FontSize(13).Bold().FontColor("#059669");
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.ConstantColumn(25); c.RelativeColumn(3); c.RelativeColumn(2); c.ConstantColumn(50);
+                            });
+                            table.Header(h =>
+                            {
+                                h.Cell().Background("#059669").Padding(4).Text("#").FontSize(8).Bold().FontColor("#ffffff");
+                                h.Cell().Background("#059669").Padding(4).Text("Name").FontSize(8).Bold().FontColor("#ffffff");
+                                h.Cell().Background("#059669").Padding(4).Text("Dept").FontSize(8).Bold().FontColor("#ffffff");
+                                h.Cell().Background("#059669").Padding(4).AlignRight().Text("Rate").FontSize(8).Bold().FontColor("#ffffff");
+                            });
+                            foreach (var (s, i) in top10.Select((s, i) => (s, i)))
+                            {
+                                var bg = i % 2 == 0 ? "#f0fdf4" : "#ffffff";
+                                table.Cell().Background(bg).Padding(3).Text((i + 1).ToString()).FontSize(7);
+                                table.Cell().Background(bg).Padding(3).Text(s.FullName).FontSize(7).Bold();
+                                table.Cell().Background(bg).Padding(3).Text(s.Department ?? "-").FontSize(7);
+                                table.Cell().Background(bg).Padding(3).AlignRight().Text($"{s.CompletionRate}%").FontSize(7).Bold().FontColor("#059669");
+                            }
+                        });
+
+                        col.Item().PaddingTop(16).PaddingBottom(16).Text("Bottom 10 Underperformers").FontSize(13).Bold().FontColor("#dc2626");
+                        col.Item().Table(table =>
+                        {
+                            table.ColumnsDefinition(c =>
+                            {
+                                c.ConstantColumn(25); c.RelativeColumn(3); c.RelativeColumn(2); c.ConstantColumn(50);
+                            });
+                            table.Header(h =>
+                            {
+                                h.Cell().Background("#dc2626").Padding(4).Text("#").FontSize(8).Bold().FontColor("#ffffff");
+                                h.Cell().Background("#dc2626").Padding(4).Text("Name").FontSize(8).Bold().FontColor("#ffffff");
+                                h.Cell().Background("#dc2626").Padding(4).Text("Dept").FontSize(8).Bold().FontColor("#ffffff");
+                                h.Cell().Background("#dc2626").Padding(4).AlignRight().Text("Rate").FontSize(8).Bold().FontColor("#ffffff");
+                            });
+                            foreach (var (s, i) in bottom10.Select((s, i) => (s, i)))
+                            {
+                                var bg = i % 2 == 0 ? "#fef2f2" : "#ffffff";
+                                table.Cell().Background(bg).Padding(3).Text((i + 1).ToString()).FontSize(7);
+                                table.Cell().Background(bg).Padding(3).Text(s.FullName).FontSize(7).Bold();
+                                table.Cell().Background(bg).Padding(3).Text(s.Department ?? "-").FontSize(7);
+                                table.Cell().Background(bg).Padding(3).AlignRight().Text($"{s.CompletionRate}%").FontSize(7).Bold().FontColor("#dc2626");
+                            }
+                        });
+
+                        if (req.IncludePerformanceStaff && allStaff != null)
+                        {
+                            col.Item().PaddingTop(24).Text("All Staff Performance").FontSize(13).Bold().FontColor("#1e40af");
+                            col.Item().Table(table =>
+                            {
+                                table.ColumnsDefinition(c =>
+                                {
+                                    c.ConstantColumn(25); c.RelativeColumn(2.5f); c.RelativeColumn(1.5f); c.ConstantColumn(50); c.ConstantColumn(50);
+                                });
+                                table.Header(h =>
+                                {
+                                    h.Cell().Background("#1e40af").Padding(4).Text("#").FontSize(8).Bold().FontColor("#ffffff");
+                                    h.Cell().Background("#1e40af").Padding(4).Text("Name").FontSize(8).Bold().FontColor("#ffffff");
+                                    h.Cell().Background("#1e40af").Padding(4).Text("Dept").FontSize(8).Bold().FontColor("#ffffff");
+                                    h.Cell().Background("#1e40af").Padding(4).AlignRight().Text("Done").FontSize(8).Bold().FontColor("#ffffff");
+                                    h.Cell().Background("#1e40af").Padding(4).AlignRight().Text("Rate").FontSize(8).Bold().FontColor("#ffffff");
+                                });
+                                foreach (var (s, i) in allStaff.Select((s, i) => (s, i)))
+                                {
+                                    var bg = i % 2 == 0 ? "#f8fafc" : "#ffffff";
+                                    var rateColor = s.CompletionRate >= 80 ? "#059669" : s.CompletionRate >= 50 ? "#d97706" : "#dc2626";
+                                    table.Cell().Background(bg).Padding(3).Text((i + 1).ToString()).FontSize(7);
+                                    table.Cell().Background(bg).Padding(3).Text(s.FullName).FontSize(7).Bold();
+                                    table.Cell().Background(bg).Padding(3).Text(s.Department ?? "-").FontSize(7);
+                                    table.Cell().Background(bg).Padding(3).AlignRight().Text(s.Completed.ToString()).FontSize(7);
+                                    table.Cell().Background(bg).Padding(3).AlignRight().Text($"{s.CompletionRate}%").FontSize(7).Bold().FontColor(rateColor);
+                                }
+                            });
+                        }
+                    });
+
+                    page.Footer().Column(f =>
+                    {
+                        f.Item().AlignCenter().Text(t =>
+                        {
+                            t.Span("Generated ").FontSize(8).FontColor("#9ca3af");
+                            t.Span($"{DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
+                            t.Span("  •  Page ").FontSize(8).FontColor("#9ca3af");
+                            t.CurrentPageNumber().FontSize(8).FontColor("#9ca3af");
+                            t.Span(" of ").FontSize(8).FontColor("#9ca3af");
+                            t.TotalPages().FontSize(8).FontColor("#9ca3af");
+                        });
+                    });
+                });
+            }
+        }).GeneratePdf();
     }
 
     private void Card(IContainer container, string label, string value, string color)
@@ -966,3 +1519,17 @@ public record CreateSessionRequest(DateOnly SessionDate, List<PostRequest> Posts
 public record UpdatePostLinkRequest(string? PostLink);
 public record AddStaffToSessionRequest(List<Guid> StaffIds);
 public record UpdateSessionRequest(DateOnly SessionDate, List<Guid>? CompanyIDs, List<Guid>? PlatformIDs);
+public record MultiSessionReportRequest(List<Guid> SessionIDs);
+public record CustomReportRequest(
+    List<Guid> SessionIDs,
+    DateTime? DateFrom,
+    DateTime? DateTo,
+    bool IncludeSummaryCards = true,
+    bool IncludeMonitoringTable = true,
+    bool IncludeReasonColumn = true,
+    bool IncludeStaffPosition = true,
+    bool IncludeStaffRanking = true,
+    bool IncludePerformanceStaff = true,
+    List<Guid>? SelectedCompanyIDs = null,
+    List<Guid>? SelectedPlatformIDs = null
+);

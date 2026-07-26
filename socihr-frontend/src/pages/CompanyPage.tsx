@@ -11,6 +11,7 @@ import {
   getCompanyPerformance,
   type Company
 } from "../services/api";
+import { downloadPageAsPDF } from "../utils/pdf";
 
 const COMPANY_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
 
@@ -175,7 +176,15 @@ export default function CompanyPage() {
             <h1 className="page-title">Company Management</h1>
             <p className="page-sub">View company rankings, check completion ticks, and register new companies</p>
           </div>
-          <div>
+          <div style={{ display: "flex", gap: 8 }}>
+                 <button onClick={() => downloadPageAsPDF("Company_Performance")} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                  </svg>
+                  Download PDF
+                </button>
             <button
               onClick={() => setShowAddModal(true)}
               className="btn btn-primary"

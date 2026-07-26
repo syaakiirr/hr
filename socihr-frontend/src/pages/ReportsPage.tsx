@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Layout from "../components/Layout";
-import { buildReportUrl } from "../services/api";
+import { buildReportUrl, downloadCustomReportPdf } from "../services/api";
 
 type ReportType = "daily" | "weekly" | "monthly" | "yearly" | "custom";
 
@@ -41,6 +41,15 @@ export default function ReportsPage() {
   const [customFrom, setCustomFrom] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split("T")[0]);
   const [customTo, setCustomTo] = useState(new Date().toISOString().split("T")[0]);
   const [downloading, setDownloading] = useState<"pdf" | "excel" | null>(null);
+
+  const [showCustomModal, setShowCustomModal] = useState(false);
+  const [customShowCards, setCustomShowCards] = useState(true);
+  const [customShowRanking, setCustomShowRanking] = useState(true);
+  const [customShowPlatformCompany, setCustomShowPlatformCompany] = useState(true);
+  const [customShowDaily, setCustomShowDaily] = useState(true);
+  const [customShowStaffTable, setCustomShowStaffTable] = useState(true);
+  const [customShowMonitoringSessions, setCustomShowMonitoringSessions] = useState(true);
+  const [generatingCustom, setGeneratingCustom] = useState(false);
 
   async function handleDownload(format: "pdf" | "excel") {
     const { from, to } = getRange(reportType, customFrom, customTo);
@@ -182,6 +191,22 @@ export default function ReportsPage() {
               </button>
             </div>
 
+            {/* Customizable Report */}
+            <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px" }}>
+              <div>
+                <p style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-1)" }}>Custom Report</p>
+                <p style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>Choose which sections to include</p>
+              </div>
+              <button
+                onClick={() => setShowCustomModal(true)}
+                disabled={downloading !== null}
+                className="btn btn-secondary"
+                style={{ border: "1px solid var(--purple-line, #7c3aed)", color: "#7c3aed" }}
+              >
+                Customize
+              </button>
+            </div>
+
             {/* Excel export */}
             <div className="card" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "16px 20px" }}>
               <div>
@@ -205,6 +230,85 @@ export default function ReportsPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Custom Report Modal */}
+      {showCustomModal && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 1000, background: "rgba(0,0,0,0.4)",
+          display: "flex", alignItems: "center", justifyContent: "center"
+        }} onClick={() => !generatingCustom && setShowCustomModal(false)}>
+          <div style={{
+            background: "#fff", borderRadius: 10, padding: 24, minWidth: 400, maxWidth: 480,
+            maxHeight: "90vh", overflow: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.2)"
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700 }}>Customize Report</h3>
+
+            <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14 }}>
+              Period: <strong>{from}</strong> to <strong>{to}</strong>
+            </p>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
+              {[
+                { label: "Summary Cards (totals & rate)", key: "cards" },
+                { label: "Staff Ranking (Top 10 / Bottom 10)", key: "ranking" },
+                { label: "Platform & Company Stats", key: "platformCompany" },
+                { label: "Daily Engagement Breakdown", key: "daily" },
+                { label: "Monitoring Sessions", key: "monitoringSessions" },
+                { label: "All Staff Performance Table", key: "staffTable" },
+              ].map(({ label, key }) => (
+                <label key={key} style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, cursor: "pointer", padding: "6px 8px", borderRadius: 6, background: "var(--bg-2)" }}>
+                  <input type="checkbox" checked={
+                    key === "cards" ? customShowCards :
+                    key === "ranking" ? customShowRanking :
+                    key === "platformCompany" ? customShowPlatformCompany :
+                    key === "daily" ? customShowDaily :
+                    key === "monitoringSessions" ? customShowMonitoringSessions :
+                    customShowStaffTable
+                  } onChange={() => {
+                    const setter =
+                      key === "cards" ? setCustomShowCards :
+                      key === "ranking" ? setCustomShowRanking :
+                      key === "platformCompany" ? setCustomShowPlatformCompany :
+                      key === "daily" ? setCustomShowDaily :
+                      key === "monitoringSessions" ? setCustomShowMonitoringSessions :
+                      setCustomShowStaffTable;
+                    setter((prev: boolean) => !prev);
+                  }} />
+                  {label}
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: "flex", gap: 8 }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} disabled={generatingCustom} onClick={() => setShowCustomModal(false)}>Cancel</button>
+              <button className="btn btn-primary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+                disabled={generatingCustom}
+                onClick={async () => {
+                  if (reportType === "custom" && from > to) { alert("Start date cannot be later than end date."); return; }
+                  if (reportType === "custom" && (!customFrom || !customTo)) { alert("Please select both dates."); return; }
+                  setGeneratingCustom(true);
+                  try {
+                    await downloadCustomReportPdf(from, to, {
+                      showCards: customShowCards,
+                      showRanking: customShowRanking,
+                      showPlatformCompany: customShowPlatformCompany,
+                      showDaily: customShowDaily,
+                      showMonitoringSessions: customShowMonitoringSessions,
+                      showStaffTable: customShowStaffTable,
+                    });
+                    setShowCustomModal(false);
+                  } catch (err) {
+                    alert(err instanceof Error ? err.message : "Failed to generate custom report.");
+                  } finally {
+                    setGeneratingCustom(false);
+                  }
+                }}>
+                {generatingCustom ? "Generating..." : "Generate Report"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 }

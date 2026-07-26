@@ -5,29 +5,12 @@ import { getDashboardKpi, getSessions, getEngagements } from "../services/api";
 const MAX_SESSIONS = 30; // Limit concurrent API calls
 
 // Frontend implementation of TickHelper.cs to calculate ticks at action level
-const calculateTicks = (platformName: string, isLiked: boolean, isCommented: boolean, isShared: boolean) => {
-  const platform = platformName.toLowerCase();
+const calculateTicks = (_platformName: string, isLiked: boolean, isCommented: boolean, isShared: boolean) => {
+  const expected = 3;
   let ticked = 0;
-  let expected = 0;
-  
-  if (platform === "facebook") {
-    expected = 2;
-    if (isLiked) ticked++;
-    if (isCommented) ticked++;
-  } else if (platform === "instagram") {
-    expected = 2;
-    if (isLiked) ticked++;
-    if (isCommented) ticked++;
-  } else if (platform === "tiktok") {
-    expected = 1;
-    if (isCommented) ticked++;
-  } else {
-    expected = 3;
-    if (isLiked) ticked++;
-    if (isCommented) ticked++;
-    if (isShared) ticked++;
-  }
-  
+  if (isLiked) ticked++;
+  if (isCommented) ticked++;
+  if (isShared) ticked++;
   return { ticked, missed: expected - ticked, expected };
 };
 

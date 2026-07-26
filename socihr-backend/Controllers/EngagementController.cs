@@ -95,18 +95,7 @@ public class EngagementController : ControllerBase
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
 
-        var platform = engagement.Post?.Platform?.PlatformName ?? "";
         var actionLower = req.Action.ToLower();
-
-        // Block invalid actions for specific platforms
-        if (platform.ToLower() == "tiktok" && (actionLower == "like" || actionLower == "share"))
-        {
-            return BadRequest(new { message = $"Action '{req.Action}' is not allowed for TikTok." });
-        }
-        if (platform.ToLower() == "facebook" && actionLower == "share")
-        {
-            return BadRequest(new { message = $"Action '{req.Action}' is not allowed for Facebook." });
-        }
 
         switch (actionLower)
         {
@@ -116,16 +105,10 @@ public class EngagementController : ControllerBase
             default: return BadRequest(new { message = "Invalid action. Must be like, comment, or share." });
         }
 
-        // Auto-calculate status based on platform rules
+        // Auto-calculate status: all 3 actions must be ticked for Completed
         var prevStatus = engagement.Status;
 
-        engagement.Status = platform.ToLower() switch
-        {
-            "facebook"  => (engagement.IsLiked && engagement.IsCommented) ? "Completed" : "Missed",
-            "instagram" => (engagement.IsLiked && engagement.IsCommented) ? "Completed" : "Missed",
-            "tiktok"    => engagement.IsCommented ? "Completed" : "Missed",
-            _           => engagement.Status
-        };
+        engagement.Status = (engagement.IsLiked && engagement.IsCommented && engagement.IsShared) ? "Completed" : "Missed";
 
         engagement.UpdatedBy = userId;
         engagement.UpdatedAt = DateTime.UtcNow;
@@ -206,35 +189,12 @@ public class EngagementController : ControllerBase
                 UpdatedAt = now
             });
 
-            var platform = engagement.Post?.Platform?.PlatformName?.ToLower() ?? "";
-
-            // When bulk marking Completed, also set only the appropriate sub-actions based on platform
+            // When bulk marking Completed, tick all 3 actions
             if (req.Status == "Completed")
             {
-                if (platform == "facebook")
-                {
-                    engagement.IsLiked = true;
-                    engagement.IsCommented = true;
-                    engagement.IsShared = false;
-                }
-                else if (platform == "instagram")
-                {
-                    engagement.IsLiked = true;
-                    engagement.IsCommented = true;
-                    engagement.IsShared = false;
-                }
-                else if (platform == "tiktok")
-                {
-                    engagement.IsLiked = false; // TikTok doesn't use like
-                    engagement.IsCommented = true;
-                    engagement.IsShared = false;
-                }
-                else
-                {
-                    engagement.IsLiked = true;
-                    engagement.IsCommented = true;
-                    engagement.IsShared = true;
-                }
+                engagement.IsLiked = true;
+                engagement.IsCommented = true;
+                engagement.IsShared = true;
             }
             else if (req.Status == "Missed")
             {
