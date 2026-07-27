@@ -40,6 +40,9 @@
   --accent-border:  #c7d2fe;      /* Indigo-200 */
   --accent-text:    #4f46e5;
 
+  /* Primary — for text/links needing WCAG AA 4.5:1 on white */
+  --primary:        #4f46e5;
+
   /* Semantic */
   --green:       #16a34a;
   --green-soft:  #f0fdf4;

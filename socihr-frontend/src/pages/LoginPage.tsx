@@ -519,7 +519,7 @@ export default function LoginPage() {
             <p style={{ fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.025em", marginBottom: 4 }}>
               Account Login
             </p>
-            <p style={{ fontSize: 13, color: "var(--text-3)" }}>Enter your credentials to access your account.</p>
+            <p style={{ fontSize: 13, color: "var(--text-2)" }}>Enter your credentials to access your account.</p>
           </div>
 
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
@@ -604,7 +604,7 @@ export default function LoginPage() {
             alignItems: "center",
             gap: 12
           }}>
-            <span style={{ fontSize: 9.5, fontWeight: 700, color: "var(--text-3)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Enterprise Security Standards</span>
+            <span style={{ fontSize: 10, fontWeight: 700, color: "var(--text-2)", letterSpacing: "0.08em", textTransform: "uppercase" }}>Enterprise Security Standards</span>
             <div style={{ display: "flex", gap: 16, alignItems: "center", opacity: 0.65 }}>
               {/* SOC 2 badge */}
               <div style={{ display: "flex", alignItems: "center", gap: 4, fontSize: 11, fontWeight: 600, color: "var(--text-2)" }}>
@@ -624,7 +624,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p style={{ fontSize: 11, color: "var(--text-4)", textAlign: "center", marginTop: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
+          <p style={{ fontSize: 11, color: "var(--text-2)", textAlign: "center", marginTop: 32, display: "flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
             <span>© 2026 SociHR</span>
             <span style={{ opacity: 0.5 }}>•</span>
             <span>Crafted by <span style={{ color: "var(--primary)", fontWeight: 600 }}>@syaakiirr</span></span>
