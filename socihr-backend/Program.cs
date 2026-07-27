@@ -9,7 +9,14 @@ using AspNetCoreRateLimit;
 using BCrypt.Net;
 using QuestPDF.Infrastructure;
 
-var builder = WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(new WebApplicationOptions { Args = args });
+
+// Disable file-watching for config (inotify limit exhausted on Render/Docker containers)
+builder.Configuration.Sources.Clear();
+builder.Configuration
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+    .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true, reloadOnChange: false)
+    .AddEnvironmentVariables();
 
 // QuestPDF License Activation (Community/Eval mode)
 QuestPDF.Settings.License = LicenseType.Community;
