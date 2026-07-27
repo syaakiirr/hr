@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import Layout from "../components/Layout";
-import { buildReportUrl, downloadCustomReportPdf } from "../services/api";
+import { buildReportUrl, downloadCustomReportPdf, downloadCustomReportExcel } from "../services/api";
 
 type ReportType = "daily" | "weekly" | "monthly" | "yearly" | "custom";
 
@@ -279,9 +279,9 @@ export default function ReportsPage() {
               ))}
             </div>
 
-            <div style={{ display: "flex", gap: 8 }}>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
               <button className="btn btn-ghost" style={{ flex: 1 }} disabled={generatingCustom} onClick={() => setShowCustomModal(false)}>Cancel</button>
-              <button className="btn btn-primary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              <button className="btn btn-secondary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: "1px solid var(--red-line)", color: "var(--red)" }}
                 disabled={generatingCustom}
                 onClick={async () => {
                   if (reportType === "custom" && from > to) { alert("Start date cannot be later than end date."); return; }
@@ -303,7 +303,31 @@ export default function ReportsPage() {
                     setGeneratingCustom(false);
                   }
                 }}>
-                {generatingCustom ? "Generating..." : "Generate Report"}
+                {generatingCustom ? "..." : "PDF"}
+              </button>
+              <button className="btn btn-secondary" style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, border: "1px solid var(--green-line)", color: "var(--green)" }}
+                disabled={generatingCustom}
+                onClick={async () => {
+                  if (reportType === "custom" && from > to) { alert("Start date cannot be later than end date."); return; }
+                  if (reportType === "custom" && (!customFrom || !customTo)) { alert("Please select both dates."); return; }
+                  setGeneratingCustom(true);
+                  try {
+                    await downloadCustomReportExcel(from, to, {
+                      showCards: customShowCards,
+                      showRanking: customShowRanking,
+                      showPlatformCompany: customShowPlatformCompany,
+                      showDaily: customShowDaily,
+                      showMonitoringSessions: customShowMonitoringSessions,
+                      showStaffTable: customShowStaffTable,
+                    });
+                    setShowCustomModal(false);
+                  } catch (err) {
+                    alert(err instanceof Error ? err.message : "Failed to generate custom Excel report.");
+                  } finally {
+                    setGeneratingCustom(false);
+                  }
+                }}>
+                {generatingCustom ? "..." : "Excel"}
               </button>
             </div>
           </div>

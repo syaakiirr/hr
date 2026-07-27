@@ -486,6 +486,81 @@ export async function downloadSessionReportPdf(sessionId: string, sessionDate: s
   }
 }
 
+export async function downloadSessionReportExcel(sessionId: string, sessionDate: string): Promise<void> {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated. Please login again.");
+
+    const res = await fetch(`${BASE_URL}/monitoringsession/${sessionId}/report-excel`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      },
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Excel response error:", res.status, errText);
+      throw new Error(`Server error: ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    if (blob.size === 0) throw new Error("Empty Excel received.");
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `monitoring-report-${sessionDate}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+    console.log("Excel downloaded successfully:", a.download);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to download Excel report.";
+    console.error("Download error:", msg);
+    throw new Error(msg);
+  }
+}
+
+export async function downloadMultiSessionReportExcel(sessionIds: string[]): Promise<void> {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated. Please login again.");
+
+    const res = await fetch(`${BASE_URL}/monitoringsession/multi-report-excel`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ SessionIDs: sessionIds }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Multi Excel response error:", res.status, errText);
+      alert(`Server error (${res.status}): ${errText}`);
+      throw new Error(`Server error: ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    if (blob.size === 0) throw new Error("Empty Excel received.");
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `combined-monitoring-report-${sessionIds.length}-sessions.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to download multi-session Excel report.";
+    console.error("Download error:", msg);
+    throw new Error(msg);
+  }
+}
+
 export async function downloadMultiSessionReportPdf(sessionIds: string[]): Promise<void> {
   try {
     const token = localStorage.getItem("token");
@@ -615,6 +690,65 @@ export async function getAIRecommendations(): Promise<{ recommendations: string 
     headers: authHeaders()
   });
   return handleResponse<{ recommendations: string }>(res);
+}
+
+export async function downloadCustomReportExcel(
+  from: string,
+  to: string,
+  options: {
+    showCards?: boolean;
+    showRanking?: boolean;
+    showPlatformCompany?: boolean;
+    showDaily?: boolean;
+    showMonitoringSessions?: boolean;
+    showStaffTable?: boolean;
+  }
+): Promise<void> {
+  try {
+    const token = localStorage.getItem("token");
+    if (!token) throw new Error("Not authenticated. Please login again.");
+
+    const res = await fetch(`${BASE_URL}/reports/custom-excel`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        DateFrom: from || null,
+        DateTo: to || null,
+        IncludeSummaryCards: options.showCards ?? true,
+        IncludeStaffRanking: options.showRanking ?? true,
+        IncludePlatformCompany: options.showPlatformCompany ?? true,
+        IncludeDaily: options.showDaily ?? true,
+        IncludeStaffTable: options.showStaffTable ?? true,
+        IncludeMonitoringSessions: options.showMonitoringSessions ?? true,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      console.error("Custom Excel response error:", res.status, errText);
+      alert(`Server error (${res.status}): ${errText}`);
+      throw new Error(`Server error: ${res.status}`);
+    }
+
+    const blob = await res.blob();
+    if (blob.size === 0) throw new Error("Empty Excel received.");
+
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `SociHR_Custom_Report_${from}_to_${to}.xlsx`;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : "Failed to generate custom Excel report.";
+    console.error("Download error:", msg);
+    throw new Error(msg);
+  }
 }
 
 // ─── Reports ────────────────────────────────────────

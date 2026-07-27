@@ -8,6 +8,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using SkiaSharp;
 using socihr_backend.Helpers;
+using ClosedXML.Excel;
 
 namespace socihr_backend.Controllers;
 
@@ -677,6 +678,302 @@ public class MonitoringSessionController : ControllerBase
         {
             return StatusCode(500, new { message = ex.Message });
         }
+    }
+
+    // GET /api/monitoringsession/{id}/report-excel
+    [HttpGet("{id:guid}/report-excel")]
+    public async Task<IActionResult> GenerateReportExcel(Guid id)
+    {
+        try
+        {
+            var session = await _db.MonitoringSessions
+                .AsNoTracking()
+                .FirstOrDefaultAsync(s => s.SessionID == id);
+
+            if (session == null)
+                return NotFound(new { message = "Session not found." });
+
+            var engagements = await _db.Engagements
+                .AsNoTracking()
+                .Include(e => e.Staff)
+                .Include(e => e.Post).ThenInclude(p => p!.Platform)
+                .Include(e => e.Post).ThenInclude(p => p!.Company)
+                .Where(e => e.SessionID == id)
+                .ToListAsync();
+
+            var reportData = BuildReportData(session, engagements);
+
+            using var workbook = new XLWorkbook();
+            var ws = workbook.Worksheets.Add("Session Report");
+            FillSessionSheet(ws, reportData, session, 1, 1);
+            ws.Columns().AdjustToContents();
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            ms.Seek(0, SeekOrigin.Begin);
+
+            return File(ms.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                $"monitoring-report-{session.SessionDate:yyyy-MM-dd}.xlsx");
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message });
+        }
+    }
+
+    // POST /api/monitoringsession/multi-report-excel
+    [HttpPost("multi-report-excel")]
+    public async Task<IActionResult> GenerateMultiReportExcel([FromBody] MultiSessionReportRequest req)
+    {
+        try
+        {
+            if (req.SessionIDs == null || req.SessionIDs.Count == 0)
+                return BadRequest(new { message = "No session IDs provided." });
+
+            var sessions = await _db.MonitoringSessions
+                .AsNoTracking()
+                .Where(s => req.SessionIDs.Contains(s.SessionID))
+                .OrderBy(s => s.SessionDate)
+                .ToListAsync();
+
+            if (sessions.Count == 0)
+                return NotFound(new { message = "No sessions found." });
+
+            var sessionIds = sessions.Select(s => s.SessionID).ToList();
+
+            var engagements = await _db.Engagements
+                .AsNoTracking()
+                .Include(e => e.Staff)
+                .Include(e => e.Post).ThenInclude(p => p!.Platform)
+                .Include(e => e.Post).ThenInclude(p => p!.Company)
+                .Where(e => sessionIds.Contains(e.SessionID))
+                .ToListAsync();
+
+            using var workbook = new XLWorkbook();
+
+            for (int i = 0; i < sessions.Count; i++)
+            {
+                var session = sessions[i];
+                var sessionEngagements = engagements.Where(e => e.SessionID == session.SessionID).ToList();
+                var reportData = BuildReportData(session, sessionEngagements);
+
+                var sheetName = $"Session {i + 1} - {session.SessionDate:yyyy-MM-dd}";
+                if (sheetName.Length > 31) sheetName = $"Session {i + 1} - {session.SessionDate:yyyy-MM-dd}";
+                sheetName = sheetName[..Math.Min(sheetName.Length, 31)];
+
+                var ws = workbook.Worksheets.Add(sheetName);
+                FillSessionSheet(ws, reportData, session, 1, 1);
+                ws.Columns().AdjustToContents();
+            }
+
+            using var ms = new MemoryStream();
+            workbook.SaveAs(ms);
+            ms.Seek(0, SeekOrigin.Begin);
+
+            var fileName = $"combined-monitoring-report-{sessions.Count}-sessions.xlsx";
+            return File(ms.ToArray(),
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                fileName);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = ex.Message, stackTrace = ex.StackTrace });
+        }
+    }
+
+    private void FillSessionSheet(IXLWorksheet ws, ReportData data, MonitoringSession session, int startRow, int startCol)
+    {
+        static XLColor Html(string hex) => XLColor.FromHtml(hex);
+
+        // ── Header ──
+        ws.Cell(startRow, startCol).Value = "Monitoring Session Report";
+        ws.Cell(startRow, startCol).Style.Font.Bold = true;
+        ws.Cell(startRow, startCol).Style.Font.FontSize = 16;
+        ws.Cell(startRow, startCol).Style.Font.FontColor = Html("#1e40af");
+        ws.Range(startRow, startCol, startRow, startCol + 2).Merge();
+        ws.Cell(startRow + 1, startCol).Value = $"Date: {session.SessionDate:dd MMMM yyyy}";
+        ws.Cell(startRow + 1, startCol).Style.Font.FontSize = 11;
+        ws.Cell(startRow + 1, startCol).Style.Font.FontColor = Html("#475569");
+        ws.Cell(startRow + 2, startCol).Value = "System crafted by @syaakiirr";
+        ws.Cell(startRow + 2, startCol).Style.Font.FontSize = 8;
+        ws.Cell(startRow + 2, startCol).Style.Font.FontColor = Html("#9ca3af");
+
+        // ── Summary Cards ──
+        int cardRow = startRow + 4;
+        var cards = new[] {
+            ("Total Likes", data.TotalLikes.ToString(), "#3b82f6"),
+            ("Total Comments", data.TotalComments.ToString(), "#0ea5e9"),
+            ("Total Shares", data.TotalShares.ToString(), "#10b981")
+        };
+        for (int ci = 0; ci < cards.Length; ci++)
+        {
+            var (label, val, color) = cards[ci];
+            var c = ws.Cell(cardRow, startCol + ci * 3);
+            c.Value = label;
+            c.Style.Font.Bold = true;
+            c.Style.Font.FontSize = 10;
+            c.Style.Font.FontColor = Html(color);
+            c.Style.Fill.BackgroundColor = Html("#f8fafc");
+            c = ws.Cell(cardRow + 1, startCol + ci * 3);
+            c.Value = val;
+            c.Style.Font.Bold = true;
+            c.Style.Font.FontSize = 14;
+            c.Style.Font.FontColor = Html(color);
+        }
+
+        // ── Table Headers ──
+        int tableRow = cardRow + 3;
+        int col = startCol;
+
+        // Fixed columns: #, Staff Name, Department
+        ws.Cell(tableRow, col).Value = "#";
+        StyleHeader(ws, tableRow, col, Html("#f1f5f9"), Html("#475569"), 7.5f);
+        ws.Range(tableRow, col, tableRow + 2, col).Merge();
+
+        col++;
+        ws.Cell(tableRow, col).Value = "Staff Name";
+        StyleHeader(ws, tableRow, col, Html("#f1f5f9"), Html("#475569"), 7.5f);
+        ws.Range(tableRow, col, tableRow + 2, col).Merge();
+
+        col++;
+        ws.Cell(tableRow, col).Value = "Dept";
+        StyleHeader(ws, tableRow, col, Html("#f1f5f9"), Html("#475569"), 7.5f);
+        ws.Range(tableRow, col, tableRow + 2, col).Merge();
+
+        int actionStartCol = col + 1;
+
+        // Company headers (row 1 of action header)
+        int companyRow = tableRow;
+        int platformRow = tableRow + 1;
+        int actionRow = tableRow + 2;
+
+        foreach (var coGroup in data.CompanyGroups)
+        {
+            var cell = ws.Cell(companyRow, col + 1);
+            cell.Value = coGroup.Name;
+            StyleHeader(ws, companyRow, col + 1, Html("#dbeafe"), Html("#1e40af"), 9f);
+            if (coGroup.Span > 1)
+                ws.Range(companyRow, col + 1, companyRow, col + coGroup.Span).Merge();
+            for (int s = 0; s < coGroup.Span; s++)
+            {
+                col++;
+            }
+        }
+
+        // Reason header
+        col++;
+        ws.Cell(tableRow, col).Value = "Reason";
+        StyleHeader(ws, tableRow, col, Html("#fef3c7"), Html("#92400e"), 7.5f);
+        ws.Range(tableRow, col, tableRow + 2, col).Merge();
+        int reasonCol = col;
+
+        // Platform headers (row 2)
+        col = actionStartCol;
+        foreach (var platGroup in data.PlatformGroups)
+        {
+            var cell = ws.Cell(platformRow, col);
+            cell.Value = platGroup.PlatformName;
+            StyleHeader(ws, platformRow, col, Html("#e0f2fe"), Html("#0369a1"), 8f);
+            if (platGroup.Span > 1)
+                ws.Range(platformRow, col, platformRow, col + platGroup.Span - 1).Merge();
+            col += platGroup.Span;
+        }
+
+        // Action headers (row 3)
+        col = actionStartCol;
+        foreach (var ac in data.ActionColumns)
+        {
+            ws.Cell(actionRow, col).Value = ac.ActionLabel;
+            StyleHeader(ws, actionRow, col, Html("#f0fdf4"), Html("#15803d"), 6.5f);
+            col++;
+        }
+
+        // ── Data Rows ──
+        int dataRow = tableRow + 3;
+        for (int ri = 0; ri < data.StaffRows.Count; ri++)
+        {
+            var staffRow = data.StaffRows[ri];
+            var bgColor = ri % 2 == 0 ? Html("#ffffff") : Html("#f8fafc");
+
+            int dc = startCol;
+            ws.Cell(dataRow, dc).Value = ri + 1;
+            StyleData(ws, dataRow, dc, bgColor, Html("#64748b"), 7);
+            ws.Cell(dataRow, dc).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+            dc++;
+            ws.Cell(dataRow, dc).Value = staffRow.StaffName;
+            StyleData(ws, dataRow, dc, bgColor, Html("#1e293b"), 7);
+            ws.Cell(dataRow, dc).Style.Font.Bold = true;
+
+            dc++;
+            ws.Cell(dataRow, dc).Value = staffRow.Department;
+            StyleData(ws, dataRow, dc, bgColor, Html("#475569"), 7);
+
+            dc++;
+            for (int ei = 0; ei < staffRow.EngagementValues.Count; ei++)
+            {
+                if (staffRow.EngagementValues[ei])
+                {
+                    ws.Cell(dataRow, dc).Value = "✓";
+                    ws.Cell(dataRow, dc).Style.Font.FontColor = Html("#ffffff");
+                    ws.Cell(dataRow, dc).Style.Fill.BackgroundColor = Html("#10b981");
+                    ws.Cell(dataRow, dc).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    ws.Cell(dataRow, dc).Style.Font.Bold = true;
+                }
+                else
+                {
+                    ws.Cell(dataRow, dc).Value = "";
+                }
+                ws.Cell(dataRow, dc).Style.Border.SetLeftBorder(XLBorderStyleValues.Thin).Border.SetLeftBorderColor(Html("#cbd5e1"));
+                ws.Cell(dataRow, dc).Style.Border.SetRightBorder(XLBorderStyleValues.Thin).Border.SetRightBorderColor(Html("#cbd5e1"));
+                ws.Cell(dataRow, dc).Style.Border.SetTopBorder(XLBorderStyleValues.Thin).Border.SetTopBorderColor(Html("#cbd5e1"));
+                ws.Cell(dataRow, dc).Style.Border.SetBottomBorder(XLBorderStyleValues.Thin).Border.SetBottomBorderColor(Html("#cbd5e1"));
+                dc++;
+            }
+
+            ws.Cell(dataRow, reasonCol).Value = staffRow.Reason ?? "";
+            StyleData(ws, dataRow, reasonCol, bgColor, Html("#475569"), 6);
+
+            dataRow++;
+        }
+
+        // ── Footer ──
+        int footerRow = dataRow + 2;
+        ws.Cell(footerRow, startCol).Value = "@syaakiirr";
+        ws.Cell(footerRow, startCol).Style.Font.FontColor = Html("#94a3b8");
+        ws.Cell(footerRow, startCol).Style.Font.FontSize = 7;
+        ws.Cell(footerRow + 1, startCol).Value = $"Generated {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC";
+        ws.Cell(footerRow + 1, startCol).Style.Font.FontColor = Html("#9ca3af");
+        ws.Cell(footerRow + 1, startCol).Style.Font.FontSize = 8;
+    }
+
+    private static void StyleHeader(IXLWorksheet ws, int row, int col, XLColor bg, XLColor fg, float fontSize)
+    {
+        var cell = ws.Cell(row, col);
+        cell.Style.Font.Bold = true;
+        cell.Style.Font.FontSize = fontSize;
+        cell.Style.Font.FontColor = fg;
+        cell.Style.Fill.BackgroundColor = bg;
+        cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        cell.Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+        cell.Style.Border.SetLeftBorder(XLBorderStyleValues.Thin).Border.SetLeftBorderColor(XLColor.FromHtml("#cbd5e1"));
+        cell.Style.Border.SetRightBorder(XLBorderStyleValues.Thin).Border.SetRightBorderColor(XLColor.FromHtml("#cbd5e1"));
+        cell.Style.Border.SetTopBorder(XLBorderStyleValues.Thin).Border.SetTopBorderColor(XLColor.FromHtml("#cbd5e1"));
+        cell.Style.Border.SetBottomBorder(XLBorderStyleValues.Thin).Border.SetBottomBorderColor(XLColor.FromHtml("#cbd5e1"));
+    }
+
+    private static void StyleData(IXLWorksheet ws, int row, int col, XLColor bg, XLColor fg, float fontSize)
+    {
+        var cell = ws.Cell(row, col);
+        cell.Style.Font.FontSize = fontSize;
+        cell.Style.Font.FontColor = fg;
+        cell.Style.Fill.BackgroundColor = bg;
+        cell.Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+        cell.Style.Border.SetLeftBorder(XLBorderStyleValues.Thin).Border.SetLeftBorderColor(XLColor.FromHtml("#cbd5e1"));
+        cell.Style.Border.SetRightBorder(XLBorderStyleValues.Thin).Border.SetRightBorderColor(XLColor.FromHtml("#cbd5e1"));
+        cell.Style.Border.SetTopBorder(XLBorderStyleValues.Thin).Border.SetTopBorderColor(XLColor.FromHtml("#cbd5e1"));
+        cell.Style.Border.SetBottomBorder(XLBorderStyleValues.Thin).Border.SetBottomBorderColor(XLColor.FromHtml("#cbd5e1"));
     }
 
     internal class ReportData

@@ -24,6 +24,63 @@ public class ReportsController : ControllerBase
     private readonly AppDbContext _db;
     public ReportsController(AppDbContext db) => _db = db;
 
+    // ─── Shared Excel styling helpers ─────────────────────────────
+    private static XLColor Html(string hex) => XLColor.FromHtml(hex);
+
+    private static void StyleCell(IXLCell cell, string bg, string fg, bool bold, float size, XLBorderStyleValues border = XLBorderStyleValues.Thin)
+    {
+        cell.Style.Font.Bold = bold;
+        cell.Style.Font.FontSize = size;
+        cell.Style.Font.FontColor = Html(fg);
+        cell.Style.Fill.BackgroundColor = Html(bg);
+        cell.Style.Alignment.SetVertical(XLAlignmentVerticalValues.Center);
+        if (border != XLBorderStyleValues.None)
+        {
+            cell.Style.Border.SetLeftBorder(border).Border.SetLeftBorderColor(Html("#cbd5e1"));
+            cell.Style.Border.SetRightBorder(border).Border.SetRightBorderColor(Html("#cbd5e1"));
+            cell.Style.Border.SetTopBorder(border).Border.SetTopBorderColor(Html("#cbd5e1"));
+            cell.Style.Border.SetBottomBorder(border).Border.SetBottomBorderColor(Html("#cbd5e1"));
+        }
+    }
+
+    private static void WriteSectionTitle(IXLWorksheet ws, int row, int col, string title, string color)
+    {
+        ws.Cell(row, col).Value = title;
+        ws.Cell(row, col).Style.Font.Bold = true;
+        ws.Cell(row, col).Style.Font.FontSize = 13;
+        ws.Cell(row, col).Style.Font.FontColor = Html(color);
+    }
+
+    private static void WriteTableHeader(IXLWorksheet ws, int row, int startCol, string[] headers, string bg, string fg)
+    {
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var cell = ws.Cell(row, startCol + i);
+            cell.Value = headers[i];
+            StyleCell(cell, bg, fg, true, 10);
+            cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        }
+    }
+
+    private static void WriteDataRow(IXLWorksheet ws, int row, int startCol, object[] values, string evenBg, string oddBg, bool isEven)
+    {
+        var bg = isEven ? evenBg : oddBg;
+        for (int i = 0; i < values.Length; i++)
+        {
+            var cell = ws.Cell(row, startCol + i);
+            if (values[i] is string s)
+                cell.SetValue(s);
+            else if (values[i] is int iv)
+                cell.SetValue(iv);
+            else if (values[i] is double dv)
+                cell.SetValue(dv);
+            else
+                cell.SetValue(values[i]?.ToString() ?? "");
+            StyleCell(cell, bg, "#1e293b", false, 9);
+            if (i == 0) cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+        }
+    }
+
     // GET /api/reports/excel?from=2026-01-01&to=2026-12-31
     [HttpGet("excel")]
     public async Task<IActionResult> ExportExcel([FromQuery] DateTime? from, [FromQuery] DateTime? to)
@@ -62,223 +119,343 @@ public class ReportsController : ControllerBase
         var companyStats = await GetCompanyStatsAsync(from, to);
         var dailyStats = await GetDailyStatsAsync(from, to);
 
+        // Load monitoring sessions for the period
+        var sessionQuery = _db.MonitoringSessions.AsQueryable();
+        if (from.HasValue) sessionQuery = sessionQuery.Where(s => s.SessionDate >= DateOnly.FromDateTime(from.Value));
+        if (to.HasValue) sessionQuery = sessionQuery.Where(s => s.SessionDate <= DateOnly.FromDateTime(to.Value));
+        var monitoringSessions = await sessionQuery.OrderBy(s => s.SessionDate).ToListAsync();
+        var sessionIds = monitoringSessions.Select(s => s.SessionID).ToList();
+        var monitoringEngagements = await _db.Engagements
+            .AsNoTracking()
+            .Include(e => e.Staff)
+            .Include(e => e.Post).ThenInclude(p => p!.Platform)
+            .Include(e => e.Post).ThenInclude(p => p!.Company)
+            .Where(e => sessionIds.Contains(e.SessionID))
+            .ToListAsync();
+
         var dateRange = $"{from?.ToString("dd/MM/yyyy") ?? "All"} - {to?.ToString("dd/MM/yyyy") ?? "All"}";
+        var accentColors = new[] { "#1e40af", "#059669", "#d97706", "#7c3aed", "#dc2626" };
 
         using var workbook = new XLWorkbook();
-        
-        // Sheet 1: Summary & Rankings
-        var wsSummary = workbook.Worksheets.Add("Summary & Rankings");
-        wsSummary.Cell(1, 1).Value = "SociHR — Performance & Engagement Summary";
-        wsSummary.Cell(1, 1).Style.Font.Bold = true;
-        wsSummary.Cell(1, 1).Style.Font.FontSize = 16;
-        wsSummary.Cell(2, 1).Value = $"Period: {dateRange}";
-        wsSummary.Cell(3, 1).Value = $"Generated: {DateTime.Now:dd/MM/yyyy HH:mm}  •  Crafted by @syaakiirr";
 
-        // Summary KPI headers
-        var kpiHeaders = new[] { "Total Staff", "Total Completed Ticks", "Total Missed Ticks", "Total Expected Ticks", "Overall Rate" };
+        // ════════════════════════════════════════════════════════════
+        // Sheet 1: Summary & Rankings
+        // ════════════════════════════════════════════════════════════
+        var ws1 = workbook.Worksheets.Add("Summary & Rankings");
+        ws1.Cell(1, 1).Value = "SociHR — Performance & Engagement Summary";
+        StyleCell(ws1.Cell(1, 1), "#ffffff", "#1e40af", true, 18, XLBorderStyleValues.None);
+        ws1.Cell(2, 1).Value = $"Period: {dateRange}";
+        StyleCell(ws1.Cell(2, 1), "#ffffff", "#475569", false, 11, XLBorderStyleValues.None);
+        ws1.Cell(3, 1).Value = $"Generated: {DateTime.Now:dd/MM/yyyy HH:mm}  •  System crafted by @syaakiirr";
+        StyleCell(ws1.Cell(3, 1), "#ffffff", "#94a3b8", false, 9, XLBorderStyleValues.None);
+
+        // KPI row
+        var kpiHeaders = new[] { "Total Staff", "Completed", "Missed", "Expected", "Overall Rate" };
+        var kpiValues = new object[] { staffPerf.Count, totalCompleted, totalMissed, totalExpected, $"{overallRate}%" };
+        var kpiColors = new[] { "#6366f1", "#16a34a", "#dc2626", "#d97706", "#7c3aed" };
         for (int i = 0; i < kpiHeaders.Length; i++)
         {
-            var cell = wsSummary.Cell(5, i + 1);
-            cell.Value = kpiHeaders[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#f3f4f6");
+            var headerCell = ws1.Cell(5, i + 1);
+            headerCell.Value = kpiHeaders[i];
+            StyleCell(headerCell, "#f1f5f9", "#475569", true, 9);
+            headerCell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+
+            var valCell = ws1.Cell(6, i + 1);
+            var kv = kpiValues[i];
+            if (kv is string s) valCell.SetValue(s);
+            else if (kv is int iv) valCell.SetValue(iv);
+            else valCell.SetValue(kv?.ToString() ?? "");
+            StyleCell(valCell, "#ffffff", kpiColors[i], true, 16);
+            valCell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
         }
 
-        wsSummary.Cell(6, 1).Value = staffPerf.Count;
-        wsSummary.Cell(6, 2).Value = totalCompleted;
-        wsSummary.Cell(6, 3).Value = totalMissed;
-        wsSummary.Cell(6, 4).Value = totalExpected;
-        wsSummary.Cell(6, 5).Value = $"{overallRate}%";
-        for (int i = 1; i <= 5; i++) wsSummary.Cell(6, i).Style.Font.Bold = true;
-
-        // Top Performers Table
-        wsSummary.Cell(8, 1).Value = "Top Performing Staff (Best 10)";
-        wsSummary.Cell(8, 1).Style.Font.Bold = true;
-        wsSummary.Cell(8, 1).Style.Font.FontSize = 12;
-        wsSummary.Cell(8, 1).Style.Font.FontColor = XLColor.FromHtml("#16a34a");
-
-        var rankHeaders = new[] { "Rank", "Name", "Department", "Position", "Completed Ticks", "Expected Ticks", "Rate (%)" };
-        for (int i = 0; i < rankHeaders.Length; i++)
-        {
-            var cell = wsSummary.Cell(9, i + 1);
-            cell.Value = rankHeaders[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#16a34a");
-            cell.Style.Font.FontColor = XLColor.White;
-        }
-
+        // Top Performers
+        var topRow = 8;
+        WriteSectionTitle(ws1, topRow, 1, "Top Performing Staff (Best 10)", "#16a34a");
+        var rankHeaders = new[] { "Rank", "Name", "Department", "Position", "Completed", "Expected", "Rate (%)" };
+        WriteTableHeader(ws1, topRow + 1, 1, rankHeaders, "#16a34a", "#ffffff");
         var top10 = staffPerf.Take(10).ToList();
         for (int i = 0; i < top10.Count; i++)
         {
-            var row = 10 + i;
-            wsSummary.Cell(row, 1).Value = top10[i].Rank;
-            wsSummary.Cell(row, 2).Value = top10[i].FullName;
-            wsSummary.Cell(row, 3).Value = top10[i].Department;
-            wsSummary.Cell(row, 4).Value = top10[i].Position;
-            wsSummary.Cell(row, 5).Value = top10[i].Completed;
-            wsSummary.Cell(row, 6).Value = top10[i].Total;
-            wsSummary.Cell(row, 7).Value = $"{top10[i].CompletionRate}%";
+            var r = topRow + 2 + i;
+            WriteDataRow(ws1, r, 1, new object[] { top10[i].Rank, top10[i].FullName, top10[i].Department, top10[i].Position, top10[i].Completed, top10[i].Total, $"{top10[i].CompletionRate}%" }, "#f0fdf4", "#ffffff", i % 2 == 0);
+            ws1.Cell(r, 7).Style.Font.FontColor = Html("#16a34a");
+            ws1.Cell(r, 7).Style.Font.Bold = true;
         }
 
-        // Underperformers Table
-        var startBottomRow = 10 + Math.Max(top10.Count, 1) + 2;
-        wsSummary.Cell(startBottomRow, 1).Value = "Least Performing Staff (Bottom 10)";
-        wsSummary.Cell(startBottomRow, 1).Style.Font.Bold = true;
-        wsSummary.Cell(startBottomRow, 1).Style.Font.FontSize = 12;
-        wsSummary.Cell(startBottomRow, 1).Style.Font.FontColor = XLColor.FromHtml("#dc2626");
-
-        for (int i = 0; i < rankHeaders.Length; i++)
-        {
-            var cell = wsSummary.Cell(startBottomRow + 1, i + 1);
-            cell.Value = rankHeaders[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#dc2626");
-            cell.Style.Font.FontColor = XLColor.White;
-        }
-
+        // Bottom Performers
+        var botRow = topRow + 2 + Math.Max(top10.Count, 1) + 2;
+        WriteSectionTitle(ws1, botRow, 1, "Least Performing Staff (Bottom 10)", "#dc2626");
+        WriteTableHeader(ws1, botRow + 1, 1, rankHeaders, "#dc2626", "#ffffff");
         var bottom10 = staffPerf.AsEnumerable().Reverse().Take(10).Reverse().ToList();
         for (int i = 0; i < bottom10.Count; i++)
         {
-            var row = startBottomRow + 2 + i;
-            wsSummary.Cell(row, 1).Value = bottom10[i].Rank;
-            wsSummary.Cell(row, 2).Value = bottom10[i].FullName;
-            wsSummary.Cell(row, 3).Value = bottom10[i].Department;
-            wsSummary.Cell(row, 4).Value = bottom10[i].Position;
-            wsSummary.Cell(row, 5).Value = bottom10[i].Completed;
-            wsSummary.Cell(row, 6).Value = bottom10[i].Total;
-            wsSummary.Cell(row, 7).Value = $"{bottom10[i].CompletionRate}%";
+            var r = botRow + 2 + i;
+            WriteDataRow(ws1, r, 1, new object[] { bottom10[i].Rank, bottom10[i].FullName, bottom10[i].Department, bottom10[i].Position, bottom10[i].Completed, bottom10[i].Total, $"{bottom10[i].CompletionRate}%" }, "#fef2f2", "#ffffff", i % 2 == 0);
+            ws1.Cell(r, 7).Style.Font.FontColor = Html("#dc2626");
+            ws1.Cell(r, 7).Style.Font.Bold = true;
         }
 
-        wsSummary.Columns().AdjustToContents();
+        ws1.Columns().AdjustToContents();
 
-        // Sheet 2: All Staff Details
-        var wsDetails = workbook.Worksheets.Add("All Staff Performance");
-        var detailsHeaders = new[] { "Rank", "Name", "Department", "Position", "Status", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Completion Rate (%)" };
-        for (int i = 0; i < detailsHeaders.Length; i++)
-        {
-            var cell = wsDetails.Cell(1, i + 1);
-            cell.Value = detailsHeaders[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#7c3aed");
-            cell.Style.Font.FontColor = XLColor.White;
-        }
+        // ════════════════════════════════════════════════════════════
+        // Sheet 2: All Staff Performance
+        // ════════════════════════════════════════════════════════════
+        var ws2 = workbook.Worksheets.Add("All Staff Performance");
+        ws2.Cell(1, 1).Value = "All Staff — Detailed Performance";
+        StyleCell(ws2.Cell(1, 1), "#ffffff", "#7c3aed", true, 16, XLBorderStyleValues.None);
+        ws2.Cell(2, 1).Value = $"Period: {dateRange}";
+        StyleCell(ws2.Cell(2, 1), "#ffffff", "#475569", false, 11, XLBorderStyleValues.None);
 
+        var detailHeaders = new[] { "Rank", "Name", "Department", "Position", "Status", "Completed", "Missed", "Expected", "Rate (%)" };
+        WriteTableHeader(ws2, 4, 1, detailHeaders, "#7c3aed", "#ffffff");
         for (int i = 0; i < staffPerf.Count; i++)
         {
-            var row = i + 2;
-            wsDetails.Cell(row, 1).Value = staffPerf[i].Rank;
-            wsDetails.Cell(row, 2).Value = staffPerf[i].FullName;
-            wsDetails.Cell(row, 3).Value = staffPerf[i].Department;
-            wsDetails.Cell(row, 4).Value = staffPerf[i].Position;
-            wsDetails.Cell(row, 5).Value = staffPerf[i].Status;
-            wsDetails.Cell(row, 6).Value = staffPerf[i].Completed;
-            wsDetails.Cell(row, 7).Value = staffPerf[i].Missed;
-            wsDetails.Cell(row, 8).Value = staffPerf[i].Total;
-            wsDetails.Cell(row, 9).Value = $"{staffPerf[i].CompletionRate}%";
+            var r = 5 + i;
+            var s = staffPerf[i];
+            WriteDataRow(ws2, r, 1, new object[] { s.Rank, s.FullName, s.Department, s.Position, s.Status, s.Completed, s.Missed, s.Total, $"{s.CompletionRate}%" }, "#f8fafc", "#ffffff", i % 2 == 0);
+            var rateColor = s.CompletionRate >= 80 ? "#16a34a" : s.CompletionRate >= 50 ? "#d97706" : "#dc2626";
+            ws2.Cell(r, 9).Style.Font.FontColor = Html(rateColor);
+            ws2.Cell(r, 9).Style.Font.Bold = true;
         }
 
-        wsDetails.Columns().AdjustToContents();
+        ws2.Columns().AdjustToContents();
 
-        // Sheet 3: Engagement Ticks by Platform & Company
-        var wsBreakdown = workbook.Worksheets.Add("Platform & Company");
-        wsBreakdown.Cell(1, 1).Value = "Engagement Ticks by Platform";
-        wsBreakdown.Cell(1, 1).Style.Font.Bold = true;
-        wsBreakdown.Cell(1, 1).Style.Font.FontSize = 12;
-        wsBreakdown.Cell(1, 1).Style.Font.FontColor = XLColor.FromHtml("#7c3aed");
+        // ════════════════════════════════════════════════════════════
+        // Sheet 3: Platform & Company Stats
+        // ════════════════════════════════════════════════════════════
+        var ws3 = workbook.Worksheets.Add("Platform & Company");
+        ws3.Cell(1, 1).Value = "Platform & Company Engagement Breakdown";
+        StyleCell(ws3.Cell(1, 1), "#ffffff", "#7c3aed", true, 16, XLBorderStyleValues.None);
 
-        var platformHeaders = new[] { "Platform", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Rate (%)" };
-        for (int i = 0; i < platformHeaders.Length; i++)
-        {
-            var cell = wsBreakdown.Cell(2, i + 1);
-            cell.Value = platformHeaders[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#7c3aed");
-            cell.Style.Font.FontColor = XLColor.White;
-        }
+        WriteSectionTitle(ws3, 3, 1, "Engagement Ticks by Platform", "#7c3aed");
+        var platHeaders = new[] { "Platform", "Completed", "Missed", "Expected", "Rate (%)" };
+        WriteTableHeader(ws3, 4, 1, platHeaders, "#7c3aed", "#ffffff");
         for (int i = 0; i < platformStats.Count; i++)
         {
-            var row = 3 + i;
-            wsBreakdown.Cell(row, 1).Value = platformStats[i].Platform;
-            wsBreakdown.Cell(row, 2).Value = platformStats[i].Completed;
-            wsBreakdown.Cell(row, 3).Value = platformStats[i].Missed;
-            wsBreakdown.Cell(row, 4).Value = platformStats[i].Total;
-            wsBreakdown.Cell(row, 5).Value = $"{platformStats[i].Rate}%";
+            var r = 5 + i;
+            var p = platformStats[i];
+            WriteDataRow(ws3, r, 1, new object[] { p.Platform, p.Completed, p.Missed, p.Total, $"{p.Rate}%" }, "#f8fafc", "#ffffff", i % 2 == 0);
+            var rateColor = p.Rate >= 80 ? "#16a34a" : p.Rate >= 50 ? "#d97706" : "#dc2626";
+            ws3.Cell(r, 5).Style.Font.FontColor = Html(rateColor);
+            ws3.Cell(r, 5).Style.Font.Bold = true;
         }
 
-        var companySectionRow = 3 + Math.Max(platformStats.Count, 1) + 2;
-        wsBreakdown.Cell(companySectionRow, 1).Value = "Engagement Ticks by Company";
-        wsBreakdown.Cell(companySectionRow, 1).Style.Font.Bold = true;
-        wsBreakdown.Cell(companySectionRow, 1).Style.Font.FontSize = 12;
-        wsBreakdown.Cell(companySectionRow, 1).Style.Font.FontColor = XLColor.FromHtml("#7c3aed");
-
-        var companyHeaders = new[] { "Company", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Rate (%)" };
-        for (int i = 0; i < companyHeaders.Length; i++)
-        {
-            var cell = wsBreakdown.Cell(companySectionRow + 1, i + 1);
-            cell.Value = companyHeaders[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#7c3aed");
-            cell.Style.Font.FontColor = XLColor.White;
-        }
+        var coTitleRow = 5 + Math.Max(platformStats.Count, 1) + 2;
+        WriteSectionTitle(ws3, coTitleRow, 1, "Engagement Ticks by Company", "#7c3aed");
+        var coHeaders = new[] { "Company", "Completed", "Missed", "Expected", "Rate (%)" };
+        WriteTableHeader(ws3, coTitleRow + 1, 1, coHeaders, "#7c3aed", "#ffffff");
         for (int i = 0; i < companyStats.Count; i++)
         {
-            var row = companySectionRow + 2 + i;
-            wsBreakdown.Cell(row, 1).Value = companyStats[i].Company;
-            wsBreakdown.Cell(row, 2).Value = companyStats[i].Completed;
-            wsBreakdown.Cell(row, 3).Value = companyStats[i].Missed;
-            wsBreakdown.Cell(row, 4).Value = companyStats[i].Total;
-            wsBreakdown.Cell(row, 5).Value = $"{companyStats[i].Rate}%";
+            var r = coTitleRow + 2 + i;
+            var c = companyStats[i];
+            WriteDataRow(ws3, r, 1, new object[] { c.Company, c.Completed, c.Missed, c.Total, $"{c.Rate}%" }, "#f8fafc", "#ffffff", i % 2 == 0);
+            var rateColor = c.Rate >= 80 ? "#16a34a" : c.Rate >= 50 ? "#d97706" : "#dc2626";
+            ws3.Cell(r, 5).Style.Font.FontColor = Html(rateColor);
+            ws3.Cell(r, 5).Style.Font.Bold = true;
         }
 
-        wsBreakdown.Columns().AdjustToContents();
+        ws3.Columns().AdjustToContents();
 
-        // Sheet 4: Daily Engagement (one row per session date within range)
-        var wsDaily = workbook.Worksheets.Add("Daily Engagement");
-        wsDaily.Cell(1, 1).Value = "Daily Engagement Breakdown";
-        wsDaily.Cell(1, 1).Style.Font.Bold = true;
-        wsDaily.Cell(1, 1).Style.Font.FontSize = 12;
-        wsDaily.Cell(1, 1).Style.Font.FontColor = XLColor.FromHtml("#7c3aed");
+        // ════════════════════════════════════════════════════════════
+        // Sheet 4: Daily Engagement
+        // ════════════════════════════════════════════════════════════
+        var ws4 = workbook.Worksheets.Add("Daily Engagement");
+        ws4.Cell(1, 1).Value = "Daily Engagement Breakdown";
+        StyleCell(ws4.Cell(1, 1), "#ffffff", "#7c3aed", true, 16, XLBorderStyleValues.None);
 
-        var dailyHeaders = new[] { "Date", "Sessions", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Rate (%)" };
-        for (int i = 0; i < dailyHeaders.Length; i++)
-        {
-            var cell = wsDaily.Cell(2, i + 1);
-            cell.Value = dailyHeaders[i];
-            cell.Style.Font.Bold = true;
-            cell.Style.Fill.BackgroundColor = XLColor.FromHtml("#7c3aed");
-            cell.Style.Font.FontColor = XLColor.White;
-        }
-        for (int i = 0; i < dailyStats.Count; i++)
-        {
-            var row = 3 + i;
-            wsDaily.Cell(row, 1).Value = dailyStats[i].Date.ToString("dd/MM/yyyy");
-            wsDaily.Cell(row, 2).Value = dailyStats[i].SessionCount;
-            wsDaily.Cell(row, 3).Value = dailyStats[i].Completed;
-            wsDaily.Cell(row, 3).Style.Font.FontColor = XLColor.FromHtml("#16a34a");
-            wsDaily.Cell(row, 4).Value = dailyStats[i].Missed;
-            wsDaily.Cell(row, 4).Style.Font.FontColor = XLColor.FromHtml("#dc2626");
-            wsDaily.Cell(row, 5).Value = dailyStats[i].Total;
-            // Store as a real numeric percentage (not text) so it can drive a color-scale,
-            // mirroring the dashboard's heatmap (color intensity = completion rate).
-            wsDaily.Cell(row, 6).Value = dailyStats[i].Rate / 100.0;
-            wsDaily.Cell(row, 6).Style.NumberFormat.Format = "0.0%";
-            wsDaily.Cell(row, 6).Style.Font.Bold = true;
-        }
+        var dailyHeaders = new[] { "Date", "Sessions", "Completed", "Missed", "Expected", "Rate (%)" };
+        WriteTableHeader(ws4, 3, 1, dailyHeaders, "#7c3aed", "#ffffff");
         if (dailyStats.Count == 0)
         {
-            wsDaily.Cell(3, 1).Value = "No sessions found in this date range.";
+            ws4.Cell(4, 1).Value = "No sessions found in this date range.";
+            StyleCell(ws4.Cell(4, 1), "#ffffff", "#94a3b8", true, 10, XLBorderStyleValues.None);
         }
         else
         {
-            // Heatmap-style color scale on the Rate column, same visual language as the dashboard
-            var rateRange = wsDaily.Range(3, 6, 2 + dailyStats.Count, 6);
+            for (int i = 0; i < dailyStats.Count; i++)
+            {
+                var r = 4 + i;
+                var d = dailyStats[i];
+                WriteDataRow(ws4, r, 1, new object[] { d.Date.ToString("dd/MM/yyyy"), d.SessionCount, d.Completed, d.Missed, d.Total, d.Rate / 100.0 }, "#f8fafc", "#ffffff", i % 2 == 0);
+                ws4.Cell(r, 3).Style.Font.FontColor = Html("#16a34a");
+                ws4.Cell(r, 4).Style.Font.FontColor = Html("#dc2626");
+                ws4.Cell(r, 6).Style.NumberFormat.Format = "0.0%";
+                ws4.Cell(r, 6).Style.Font.Bold = true;
+            }
+
+            var rateRange = ws4.Range(4, 6, 3 + dailyStats.Count, 6);
             rateRange.AddConditionalFormat().ColorScale()
-                .LowestValue(XLColor.FromHtml("#eef2ff"))
-                .Midpoint(XLCFContentType.Percent, "50", XLColor.FromHtml("#a5b4fc"))
-                .HighestValue(XLColor.FromHtml("#6366f1"));
+                .LowestValue(Html("#eef2ff"))
+                .Midpoint(XLCFContentType.Percent, "50", Html("#a5b4fc"))
+                .HighestValue(Html("#6366f1"));
         }
 
-        wsDaily.Columns().AdjustToContents();
+        ws4.Columns().AdjustToContents();
+
+        // ════════════════════════════════════════════════════════════
+        // Sheet 5+: Monitoring Sessions (one sheet per session)
+        // ════════════════════════════════════════════════════════════
+        for (int sIdx = 0; sIdx < monitoringSessions.Count; sIdx++)
+        {
+            var session = monitoringSessions[sIdx];
+            var sessionEngs = monitoringEngagements.Where(e => e.SessionID == session.SessionID).ToList();
+            var rd = MonitoringSessionController.BuildReportData(session, sessionEngs);
+            var accent = accentColors[sIdx % accentColors.Length];
+            var sheetName = $"Session {sIdx + 1} - {session.SessionDate:yyyy-MM-dd}";
+            if (sheetName.Length > 31) sheetName = sheetName[..31];
+
+            var ws = workbook.Worksheets.Add(sheetName);
+
+            // Header
+            ws.Cell(1, 1).Value = $"Monitoring Session — {session.SessionDate:dd MMMM yyyy}";
+            StyleCell(ws.Cell(1, 1), accent, "#ffffff", true, 14, XLBorderStyleValues.None);
+            ws.Range(1, 1, 1, 8).Merge();
+
+            ws.Cell(2, 1).Value = $"Session {sIdx + 1} of {monitoringSessions.Count}";
+            StyleCell(ws.Cell(2, 1), "#ffffff", "#64748b", false, 10, XLBorderStyleValues.None);
+
+            // Summary Cards
+            var scRow = 4;
+            var summaryCards = new[] {
+                ("Total Likes", rd.TotalLikes.ToString(), "#3b82f6"),
+                ("Total Comments", rd.TotalComments.ToString(), "#0ea5e9"),
+                ("Total Shares", rd.TotalShares.ToString(), "#10b981")
+            };
+            for (int ci = 0; ci < summaryCards.Length; ci++)
+            {
+                var (label, val, color) = summaryCards[ci];
+                var c = ws.Cell(scRow, ci * 2 + 1);
+                c.Value = label;
+                StyleCell(c, "#f8fafc", color, true, 10);
+                c.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                var vc = ws.Cell(scRow + 1, ci * 2 + 1);
+                vc.Value = int.TryParse(val, out var n) ? n : val;
+                StyleCell(vc, "#ffffff", color, true, 18);
+                vc.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            }
+
+            // Engagement Matrix Table
+            int tableRow = scRow + 3;
+            int col = 1;
+
+            ws.Cell(tableRow, col).Value = "#";
+            StyleCell(ws.Cell(tableRow, col), "#f1f5f9", "#475569", true, 8);
+            ws.Range(tableRow, col, tableRow + 2, col).Merge();
+            col++;
+
+            ws.Cell(tableRow, col).Value = "Staff Name";
+            StyleCell(ws.Cell(tableRow, col), "#f1f5f9", "#475569", true, 8);
+            ws.Range(tableRow, col, tableRow + 2, col).Merge();
+            col++;
+
+            ws.Cell(tableRow, col).Value = "Dept";
+            StyleCell(ws.Cell(tableRow, col), "#f1f5f9", "#475569", true, 8);
+            ws.Range(tableRow, col, tableRow + 2, col).Merge();
+            col++;
+
+            int actionStartCol = col;
+
+            // Company headers
+            int companyRow = tableRow;
+            foreach (var coGroup in rd.CompanyGroups)
+            {
+                var cell = ws.Cell(companyRow, col);
+                cell.Value = coGroup.Name;
+                StyleCell(cell, "#dbeafe", "#1e40af", true, 10);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                if (coGroup.Span > 1)
+                    ws.Range(companyRow, col, companyRow, col + coGroup.Span - 1).Merge();
+                col += coGroup.Span;
+            }
+
+            int reasonCol = col;
+            ws.Cell(tableRow, reasonCol).Value = "Reason";
+            StyleCell(ws.Cell(tableRow, reasonCol), "#fef3c7", "#92400e", true, 9);
+            ws.Range(tableRow, reasonCol, tableRow + 2, reasonCol).Merge();
+
+            // Platform headers
+            col = actionStartCol;
+            int platformRow = tableRow + 1;
+            foreach (var platGroup in rd.PlatformGroups)
+            {
+                var cell = ws.Cell(platformRow, col);
+                cell.Value = platGroup.PlatformName;
+                StyleCell(cell, "#e0f2fe", "#0369a1", true, 9);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                if (platGroup.Span > 1)
+                    ws.Range(platformRow, col, platformRow, col + platGroup.Span - 1).Merge();
+                col += platGroup.Span;
+            }
+
+            // Action headers
+            col = actionStartCol;
+            int actionRow = tableRow + 2;
+            foreach (var ac in rd.ActionColumns)
+            {
+                var cell = ws.Cell(actionRow, col);
+                cell.Value = ac.ActionLabel;
+                StyleCell(cell, "#f0fdf4", "#15803d", true, 8);
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                col++;
+            }
+
+            // Data rows
+            int dataRow = tableRow + 3;
+            for (int ri = 0; ri < rd.StaffRows.Count; ri++)
+            {
+                var staffRow = rd.StaffRows[ri];
+                var bg = ri % 2 == 0 ? "#ffffff" : "#f8fafc";
+
+                int dc = 1;
+                ws.Cell(dataRow, dc).Value = ri + 1;
+                StyleCell(ws.Cell(dataRow, dc), bg, "#64748b", false, 8);
+                ws.Cell(dataRow, dc).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                dc++;
+
+                ws.Cell(dataRow, dc).Value = staffRow.StaffName;
+                StyleCell(ws.Cell(dataRow, dc), bg, "#1e293b", true, 8);
+                dc++;
+
+                ws.Cell(dataRow, dc).Value = staffRow.Department;
+                StyleCell(ws.Cell(dataRow, dc), bg, "#475569", false, 8);
+                dc++;
+
+                for (int ei = 0; ei < staffRow.EngagementValues.Count; ei++)
+                {
+                    if (staffRow.EngagementValues[ei])
+                    {
+                        ws.Cell(dataRow, dc).Value = "✓";
+                        ws.Cell(dataRow, dc).Style.Font.FontColor = Html("#ffffff");
+                        ws.Cell(dataRow, dc).Style.Fill.BackgroundColor = Html("#10b981");
+                        ws.Cell(dataRow, dc).Style.Font.Bold = true;
+                    }
+                    else
+                    {
+                        ws.Cell(dataRow, dc).Value = "";
+                        ws.Cell(dataRow, dc).Style.Fill.BackgroundColor = Html(bg);
+                    }
+                    ws.Cell(dataRow, dc).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    ws.Cell(dataRow, dc).Style.Border.SetLeftBorder(XLBorderStyleValues.Thin).Border.SetLeftBorderColor(Html("#cbd5e1"));
+                    ws.Cell(dataRow, dc).Style.Border.SetRightBorder(XLBorderStyleValues.Thin).Border.SetRightBorderColor(Html("#cbd5e1"));
+                    ws.Cell(dataRow, dc).Style.Border.SetTopBorder(XLBorderStyleValues.Thin).Border.SetTopBorderColor(Html("#cbd5e1"));
+                    ws.Cell(dataRow, dc).Style.Border.SetBottomBorder(XLBorderStyleValues.Thin).Border.SetBottomBorderColor(Html("#cbd5e1"));
+                    dc++;
+                }
+
+                ws.Cell(dataRow, reasonCol).Value = staffRow.Reason ?? "";
+                StyleCell(ws.Cell(dataRow, reasonCol), bg, "#475569", false, 7);
+                dataRow++;
+            }
+
+            var fRow = dataRow + 2;
+            ws.Cell(fRow, 1).Value = "@syaakiirr";
+            StyleCell(ws.Cell(fRow, 1), "#ffffff", "#94a3b8", false, 7, XLBorderStyleValues.None);
+            ws.Cell(fRow + 1, 1).Value = $"Generated {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC";
+            StyleCell(ws.Cell(fRow + 1, 1), "#ffffff", "#9ca3af", false, 8, XLBorderStyleValues.None);
+
+            ws.Columns().AdjustToContents();
+        }
 
         using var ms = new MemoryStream();
         workbook.SaveAs(ms);
@@ -287,6 +464,399 @@ public class ReportsController : ControllerBase
         return File(ms.ToArray(),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"SociHR_Performance_Report_{DateTime.Now:yyyyMMdd}.xlsx");
+    }
+
+    // POST /api/reports/custom-excel — same toggle options as custom PDF
+    [HttpPost("custom-excel")]
+    public async Task<IActionResult> ExportCustomExcel([FromBody] CustomExcelReportRequest req)
+    {
+        var staffList = await _db.Staff
+            .Where(s => !s.IsArchived)
+            .ToDictionaryAsync(s => s.StaffID);
+
+        var ranking = await StaffRankingHelper.GetRanking(_db, "top", null, req.DateFrom, req.DateTo);
+
+        var staffPerf = ranking.Select((d, idx) =>
+        {
+            var staff = staffList.TryGetValue(d.StaffID, out var s) ? s : null;
+            var missed = d.Total - d.Completed;
+            return new StaffPerformanceDto
+            {
+                Rank = idx + 1,
+                StaffID = d.StaffID,
+                FullName = d.FullName,
+                Department = d.Department ?? "-",
+                Position = staff?.Position ?? "-",
+                Status = staff?.Status ?? "Active",
+                Completed = d.Completed,
+                Missed = missed,
+                Total = d.Total,
+                CompletionRate = d.CompletionRate
+            };
+        }).ToList();
+
+        var totalCompleted = staffPerf.Sum(s => s.Completed);
+        var totalMissed = staffPerf.Sum(s => s.Missed);
+        var totalExpected = totalCompleted + totalMissed;
+        var overallRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
+
+        var platformStats = req.IncludePlatformCompany ? await GetPlatformStatsAsync(req.DateFrom, req.DateTo) : new List<PlatformStatDto>();
+        var companyStats = req.IncludePlatformCompany ? await GetCompanyStatsAsync(req.DateFrom, req.DateTo) : new List<CompanyStatDto>();
+        var dailyStats = req.IncludeDaily ? await GetDailyStatsAsync(req.DateFrom, req.DateTo) : new List<DailyStatDto>();
+
+        // Load monitoring sessions
+        List<MonitoringSession>? monitoringSessions = null;
+        List<Engagement>? monitoringEngagements = null;
+        if (req.IncludeMonitoringSessions)
+        {
+            var sessionQuery = _db.MonitoringSessions.AsQueryable();
+            if (req.DateFrom.HasValue) sessionQuery = sessionQuery.Where(s => s.SessionDate >= DateOnly.FromDateTime(req.DateFrom.Value));
+            if (req.DateTo.HasValue) sessionQuery = sessionQuery.Where(s => s.SessionDate <= DateOnly.FromDateTime(req.DateTo.Value));
+            monitoringSessions = await sessionQuery.OrderBy(s => s.SessionDate).ToListAsync();
+            var sids = monitoringSessions.Select(s => s.SessionID).ToList();
+            monitoringEngagements = await _db.Engagements
+                .AsNoTracking()
+                .Include(e => e.Staff)
+                .Include(e => e.Post).ThenInclude(p => p!.Platform)
+                .Include(e => e.Post).ThenInclude(p => p!.Company)
+                .Where(e => sids.Contains(e.SessionID))
+                .ToListAsync();
+        }
+
+        var dateRange = $"{req.DateFrom?.ToString("dd/MM/yyyy") ?? "All"} - {req.DateTo?.ToString("dd/MM/yyyy") ?? "All"}";
+        var accentColors = new[] { "#1e40af", "#059669", "#d97706", "#7c3aed", "#dc2626" };
+
+        using var workbook = new XLWorkbook();
+
+        var sheetIdx = 1;
+
+        // ── Sheet: Summary ──
+        if (req.IncludeSummaryCards || req.IncludeStaffRanking)
+        {
+            var wsSum = workbook.Worksheets.Add("Summary & Rankings");
+            wsSum.Cell(1, 1).Value = "SociHR — Custom Performance Report";
+            StyleCell(wsSum.Cell(1, 1), "#ffffff", "#1e40af", true, 18, XLBorderStyleValues.None);
+            wsSum.Cell(2, 1).Value = $"Period: {dateRange}";
+            StyleCell(wsSum.Cell(2, 1), "#ffffff", "#475569", false, 11, XLBorderStyleValues.None);
+            wsSum.Cell(3, 1).Value = $"Generated: {DateTime.Now:dd/MM/yyyy HH:mm}  •  System crafted by @syaakiirr";
+            StyleCell(wsSum.Cell(3, 1), "#ffffff", "#94a3b8", false, 9, XLBorderStyleValues.None);
+
+            if (req.IncludeSummaryCards)
+            {
+                var kpiHeaders = new[] { "Total Staff", "Completed", "Missed", "Expected", "Overall Rate" };
+                var kpiValues = new object[] { staffPerf.Count, totalCompleted, totalMissed, totalExpected, $"{overallRate}%" };
+                var kpiColors = new[] { "#6366f1", "#16a34a", "#dc2626", "#d97706", "#7c3aed" };
+                for (int i = 0; i < kpiHeaders.Length; i++)
+                {
+                    var hc = wsSum.Cell(5, i + 1);
+                    hc.Value = kpiHeaders[i];
+                    StyleCell(hc, "#f1f5f9", "#475569", true, 9);
+                    hc.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    var vc = wsSum.Cell(6, i + 1);
+                    var kv = kpiValues[i];
+                    if (kv is string s) vc.SetValue(s);
+                    else if (kv is int iv) vc.SetValue(iv);
+                    else vc.SetValue(kv?.ToString() ?? "");
+                    StyleCell(vc, "#ffffff", kpiColors[i], true, 16);
+                    vc.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                }
+            }
+
+            if (req.IncludeStaffRanking)
+            {
+                var rankHeaders = new[] { "Rank", "Name", "Department", "Position", "Completed", "Expected", "Rate (%)" };
+                var topRow = req.IncludeSummaryCards ? 8 : 5;
+                WriteSectionTitle(wsSum, topRow, 1, "Top Performing Staff (Best 10)", "#16a34a");
+                WriteTableHeader(wsSum, topRow + 1, 1, rankHeaders, "#16a34a", "#ffffff");
+                var top10 = staffPerf.Take(10).ToList();
+                for (int i = 0; i < top10.Count; i++)
+                {
+                    var r = topRow + 2 + i;
+                    WriteDataRow(wsSum, r, 1, new object[] { top10[i].Rank, top10[i].FullName, top10[i].Department, top10[i].Position, top10[i].Completed, top10[i].Total, $"{top10[i].CompletionRate}%" }, "#f0fdf4", "#ffffff", i % 2 == 0);
+                    wsSum.Cell(r, 7).Style.Font.FontColor = Html("#16a34a");
+                    wsSum.Cell(r, 7).Style.Font.Bold = true;
+                }
+
+                var botRow = topRow + 2 + Math.Max(top10.Count, 1) + 2;
+                WriteSectionTitle(wsSum, botRow, 1, "Least Performing Staff (Bottom 10)", "#dc2626");
+                WriteTableHeader(wsSum, botRow + 1, 1, rankHeaders, "#dc2626", "#ffffff");
+                var bottom10 = staffPerf.AsEnumerable().Reverse().Take(10).Reverse().ToList();
+                for (int i = 0; i < bottom10.Count; i++)
+                {
+                    var r = botRow + 2 + i;
+                    WriteDataRow(wsSum, r, 1, new object[] { bottom10[i].Rank, bottom10[i].FullName, bottom10[i].Department, bottom10[i].Position, bottom10[i].Completed, bottom10[i].Total, $"{bottom10[i].CompletionRate}%" }, "#fef2f2", "#ffffff", i % 2 == 0);
+                    wsSum.Cell(r, 7).Style.Font.FontColor = Html("#dc2626");
+                    wsSum.Cell(r, 7).Style.Font.Bold = true;
+                }
+            }
+
+            wsSum.Columns().AdjustToContents();
+        }
+
+        // ── Sheet: All Staff ──
+        if (req.IncludeStaffTable)
+        {
+            var wsStaff = workbook.Worksheets.Add("All Staff Performance");
+            wsStaff.Cell(1, 1).Value = "All Staff — Detailed Performance";
+            StyleCell(wsStaff.Cell(1, 1), "#ffffff", "#7c3aed", true, 16, XLBorderStyleValues.None);
+            wsStaff.Cell(2, 1).Value = $"Period: {dateRange}";
+            StyleCell(wsStaff.Cell(2, 1), "#ffffff", "#475569", false, 11, XLBorderStyleValues.None);
+
+            var detailHeaders = new[] { "Rank", "Name", "Department", "Position", "Status", "Completed", "Missed", "Expected", "Rate (%)" };
+            WriteTableHeader(wsStaff, 4, 1, detailHeaders, "#7c3aed", "#ffffff");
+            for (int i = 0; i < staffPerf.Count; i++)
+            {
+                var r = 5 + i;
+                var s = staffPerf[i];
+                WriteDataRow(wsStaff, r, 1, new object[] { s.Rank, s.FullName, s.Department, s.Position, s.Status, s.Completed, s.Missed, s.Total, $"{s.CompletionRate}%" }, "#f8fafc", "#ffffff", i % 2 == 0);
+                var rateColor = s.CompletionRate >= 80 ? "#16a34a" : s.CompletionRate >= 50 ? "#d97706" : "#dc2626";
+                wsStaff.Cell(r, 9).Style.Font.FontColor = Html(rateColor);
+                wsStaff.Cell(r, 9).Style.Font.Bold = true;
+            }
+
+            wsStaff.Columns().AdjustToContents();
+        }
+
+        // ── Sheet: Platform & Company ──
+        if (req.IncludePlatformCompany)
+        {
+            var wsPC = workbook.Worksheets.Add("Platform & Company");
+            wsPC.Cell(1, 1).Value = "Platform & Company Engagement Breakdown";
+            StyleCell(wsPC.Cell(1, 1), "#ffffff", "#7c3aed", true, 16, XLBorderStyleValues.None);
+
+            WriteSectionTitle(wsPC, 3, 1, "Engagement Ticks by Platform", "#7c3aed");
+            var platHeaders = new[] { "Platform", "Completed", "Missed", "Expected", "Rate (%)" };
+            WriteTableHeader(wsPC, 4, 1, platHeaders, "#7c3aed", "#ffffff");
+            for (int i = 0; i < platformStats.Count; i++)
+            {
+                var r = 5 + i;
+                var p = platformStats[i];
+                WriteDataRow(wsPC, r, 1, new object[] { p.Platform, p.Completed, p.Missed, p.Total, $"{p.Rate}%" }, "#f8fafc", "#ffffff", i % 2 == 0);
+                var rateColor = p.Rate >= 80 ? "#16a34a" : p.Rate >= 50 ? "#d97706" : "#dc2626";
+                wsPC.Cell(r, 5).Style.Font.FontColor = Html(rateColor);
+                wsPC.Cell(r, 5).Style.Font.Bold = true;
+            }
+
+            var coTitleRow = 5 + Math.Max(platformStats.Count, 1) + 2;
+            WriteSectionTitle(wsPC, coTitleRow, 1, "Engagement Ticks by Company", "#7c3aed");
+            var coHeaders = new[] { "Company", "Completed", "Missed", "Expected", "Rate (%)" };
+            WriteTableHeader(wsPC, coTitleRow + 1, 1, coHeaders, "#7c3aed", "#ffffff");
+            for (int i = 0; i < companyStats.Count; i++)
+            {
+                var r = coTitleRow + 2 + i;
+                var c = companyStats[i];
+                WriteDataRow(wsPC, r, 1, new object[] { c.Company, c.Completed, c.Missed, c.Total, $"{c.Rate}%" }, "#f8fafc", "#ffffff", i % 2 == 0);
+                var rateColor = c.Rate >= 80 ? "#16a34a" : c.Rate >= 50 ? "#d97706" : "#dc2626";
+                wsPC.Cell(r, 5).Style.Font.FontColor = Html(rateColor);
+                wsPC.Cell(r, 5).Style.Font.Bold = true;
+            }
+
+            wsPC.Columns().AdjustToContents();
+        }
+
+        // ── Sheet: Daily ──
+        if (req.IncludeDaily)
+        {
+            var wsDaily = workbook.Worksheets.Add("Daily Engagement");
+            wsDaily.Cell(1, 1).Value = "Daily Engagement Breakdown";
+            StyleCell(wsDaily.Cell(1, 1), "#ffffff", "#7c3aed", true, 16, XLBorderStyleValues.None);
+
+            var dailyHeaders = new[] { "Date", "Sessions", "Completed", "Missed", "Expected", "Rate (%)" };
+            WriteTableHeader(wsDaily, 3, 1, dailyHeaders, "#7c3aed", "#ffffff");
+            if (dailyStats.Count == 0)
+            {
+                wsDaily.Cell(4, 1).Value = "No sessions found in this date range.";
+                StyleCell(wsDaily.Cell(4, 1), "#ffffff", "#94a3b8", true, 10, XLBorderStyleValues.None);
+            }
+            else
+            {
+                for (int i = 0; i < dailyStats.Count; i++)
+                {
+                    var r = 4 + i;
+                    var d = dailyStats[i];
+                    WriteDataRow(wsDaily, r, 1, new object[] { d.Date.ToString("dd/MM/yyyy"), d.SessionCount, d.Completed, d.Missed, d.Total, d.Rate / 100.0 }, "#f8fafc", "#ffffff", i % 2 == 0);
+                    wsDaily.Cell(r, 3).Style.Font.FontColor = Html("#16a34a");
+                    wsDaily.Cell(r, 4).Style.Font.FontColor = Html("#dc2626");
+                    wsDaily.Cell(r, 6).Style.NumberFormat.Format = "0.0%";
+                    wsDaily.Cell(r, 6).Style.Font.Bold = true;
+                }
+
+                var rateRange = wsDaily.Range(4, 6, 3 + dailyStats.Count, 6);
+                rateRange.AddConditionalFormat().ColorScale()
+                    .LowestValue(Html("#eef2ff"))
+                    .Midpoint(XLCFContentType.Percent, "50", Html("#a5b4fc"))
+                    .HighestValue(Html("#6366f1"));
+            }
+
+            wsDaily.Columns().AdjustToContents();
+        }
+
+        // ── Sheets: Monitoring Sessions ──
+        if (req.IncludeMonitoringSessions && monitoringSessions != null && monitoringEngagements != null)
+        {
+            for (int sIdx = 0; sIdx < monitoringSessions.Count; sIdx++)
+            {
+                var session = monitoringSessions[sIdx];
+                var sessionEngs = monitoringEngagements.Where(e => e.SessionID == session.SessionID).ToList();
+                var rd = MonitoringSessionController.BuildReportData(session, sessionEngs);
+                var accent = accentColors[sIdx % accentColors.Length];
+                var sheetName = $"Session {sIdx + 1} - {session.SessionDate:yyyy-MM-dd}";
+                if (sheetName.Length > 31) sheetName = sheetName[..31];
+
+                var ws = workbook.Worksheets.Add(sheetName);
+
+                ws.Cell(1, 1).Value = $"Monitoring Session — {session.SessionDate:dd MMMM yyyy}";
+                StyleCell(ws.Cell(1, 1), accent, "#ffffff", true, 14, XLBorderStyleValues.None);
+                ws.Range(1, 1, 1, 8).Merge();
+                ws.Cell(2, 1).Value = $"Session {sIdx + 1} of {monitoringSessions.Count}";
+                StyleCell(ws.Cell(2, 1), "#ffffff", "#64748b", false, 10, XLBorderStyleValues.None);
+
+                var scRow = 4;
+                var summaryCards = new[] {
+                    ("Total Likes", rd.TotalLikes.ToString(), "#3b82f6"),
+                    ("Total Comments", rd.TotalComments.ToString(), "#0ea5e9"),
+                    ("Total Shares", rd.TotalShares.ToString(), "#10b981")
+                };
+                for (int ci = 0; ci < summaryCards.Length; ci++)
+                {
+                    var (label, val, color) = summaryCards[ci];
+                    var c = ws.Cell(scRow, ci * 2 + 1);
+                    c.Value = label;
+                    StyleCell(c, "#f8fafc", color, true, 10);
+                    c.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    var vc = ws.Cell(scRow + 1, ci * 2 + 1);
+                    vc.Value = int.TryParse(val, out var n) ? n : val;
+                    StyleCell(vc, "#ffffff", color, true, 18);
+                    vc.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                }
+
+                int tblRow = scRow + 3;
+                int cCol = 1;
+
+                ws.Cell(tblRow, cCol).Value = "#";
+                StyleCell(ws.Cell(tblRow, cCol), "#f1f5f9", "#475569", true, 8);
+                ws.Range(tblRow, cCol, tblRow + 2, cCol).Merge();
+                cCol++;
+
+                ws.Cell(tblRow, cCol).Value = req.IncludeStaffPosition ? "Staff Name" : "Staff Name";
+                StyleCell(ws.Cell(tblRow, cCol), "#f1f5f9", "#475569", true, 8);
+                ws.Range(tblRow, cCol, tblRow + 2, cCol).Merge();
+                cCol++;
+
+                ws.Cell(tblRow, cCol).Value = req.IncludeStaffPosition ? "Position" : "Dept";
+                StyleCell(ws.Cell(tblRow, cCol), "#f1f5f9", "#475569", true, 8);
+                ws.Range(tblRow, cCol, tblRow + 2, cCol).Merge();
+                cCol++;
+
+                int actStart = cCol;
+                foreach (var coGroup in rd.CompanyGroups)
+                {
+                    var cell = ws.Cell(tblRow, cCol);
+                    cell.Value = coGroup.Name;
+                    StyleCell(cell, "#dbeafe", "#1e40af", true, 10);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    if (coGroup.Span > 1)
+                        ws.Range(tblRow, cCol, tblRow, cCol + coGroup.Span - 1).Merge();
+                    cCol += coGroup.Span;
+                }
+
+                int rsnCol = cCol;
+                if (req.IncludeReasonColumn)
+                {
+                    ws.Cell(tblRow, rsnCol).Value = "Reason";
+                    StyleCell(ws.Cell(tblRow, rsnCol), "#fef3c7", "#92400e", true, 9);
+                    ws.Range(tblRow, rsnCol, tblRow + 2, rsnCol).Merge();
+                }
+
+                cCol = actStart;
+                foreach (var platGroup in rd.PlatformGroups)
+                {
+                    var cell = ws.Cell(tblRow + 1, cCol);
+                    cell.Value = platGroup.PlatformName;
+                    StyleCell(cell, "#e0f2fe", "#0369a1", true, 9);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    if (platGroup.Span > 1)
+                        ws.Range(tblRow + 1, cCol, tblRow + 1, cCol + platGroup.Span - 1).Merge();
+                    cCol += platGroup.Span;
+                }
+
+                cCol = actStart;
+                foreach (var ac in rd.ActionColumns)
+                {
+                    var cell = ws.Cell(tblRow + 2, cCol);
+                    cell.Value = ac.ActionLabel;
+                    StyleCell(cell, "#f0fdf4", "#15803d", true, 8);
+                    cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    cCol++;
+                }
+
+                int dRow = tblRow + 3;
+                for (int ri = 0; ri < rd.StaffRows.Count; ri++)
+                {
+                    var staffRow = rd.StaffRows[ri];
+                    var bg = ri % 2 == 0 ? "#ffffff" : "#f8fafc";
+
+                    int dc = 1;
+                    ws.Cell(dRow, dc).Value = ri + 1;
+                    StyleCell(ws.Cell(dRow, dc), bg, "#64748b", false, 8);
+                    ws.Cell(dRow, dc).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    dc++;
+
+                    ws.Cell(dRow, dc).Value = staffRow.StaffName;
+                    StyleCell(ws.Cell(dRow, dc), bg, "#1e293b", true, 8);
+                    dc++;
+
+                    ws.Cell(dRow, dc).Value = staffRow.Department;
+                    StyleCell(ws.Cell(dRow, dc), bg, "#475569", false, 8);
+                    dc++;
+
+                    for (int ei = 0; ei < staffRow.EngagementValues.Count; ei++)
+                    {
+                        if (staffRow.EngagementValues[ei])
+                        {
+                            ws.Cell(dRow, dc).Value = "✓";
+                            ws.Cell(dRow, dc).Style.Font.FontColor = Html("#ffffff");
+                            ws.Cell(dRow, dc).Style.Fill.BackgroundColor = Html("#10b981");
+                            ws.Cell(dRow, dc).Style.Font.Bold = true;
+                        }
+                        else
+                        {
+                            ws.Cell(dRow, dc).Value = "";
+                            ws.Cell(dRow, dc).Style.Fill.BackgroundColor = Html(bg);
+                        }
+                        ws.Cell(dRow, dc).Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                        ws.Cell(dRow, dc).Style.Border.SetLeftBorder(XLBorderStyleValues.Thin).Border.SetLeftBorderColor(Html("#cbd5e1"));
+                        ws.Cell(dRow, dc).Style.Border.SetRightBorder(XLBorderStyleValues.Thin).Border.SetRightBorderColor(Html("#cbd5e1"));
+                        ws.Cell(dRow, dc).Style.Border.SetTopBorder(XLBorderStyleValues.Thin).Border.SetTopBorderColor(Html("#cbd5e1"));
+                        ws.Cell(dRow, dc).Style.Border.SetBottomBorder(XLBorderStyleValues.Thin).Border.SetBottomBorderColor(Html("#cbd5e1"));
+                        dc++;
+                    }
+
+                    if (req.IncludeReasonColumn)
+                    {
+                        ws.Cell(dRow, rsnCol).Value = staffRow.Reason ?? "";
+                        StyleCell(ws.Cell(dRow, rsnCol), bg, "#475569", false, 7);
+                    }
+                    dRow++;
+                }
+
+                var ftrRow = dRow + 2;
+                ws.Cell(ftrRow, 1).Value = "@syaakiirr";
+                StyleCell(ws.Cell(ftrRow, 1), "#ffffff", "#94a3b8", false, 7, XLBorderStyleValues.None);
+                ws.Cell(ftrRow + 1, 1).Value = $"Generated {DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC";
+                StyleCell(ws.Cell(ftrRow + 1, 1), "#ffffff", "#9ca3af", false, 8, XLBorderStyleValues.None);
+
+                ws.Columns().AdjustToContents();
+            }
+        }
+
+        using var ms = new MemoryStream();
+        workbook.SaveAs(ms);
+        ms.Seek(0, SeekOrigin.Begin);
+
+        return File(ms.ToArray(),
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            $"SociHR_Custom_Report_{DateTime.Now:yyyyMMdd}.xlsx");
     }
 
     // GET /api/reports/pdf?from=2026-01-01&to=2026-12-31
@@ -1063,3 +1633,16 @@ public class DailyStatDto
     public int Total { get; set; }
     public double Rate { get; set; }
 }
+
+public record CustomExcelReportRequest(
+    DateTime? DateFrom,
+    DateTime? DateTo,
+    bool IncludeSummaryCards = true,
+    bool IncludeStaffRanking = true,
+    bool IncludePlatformCompany = true,
+    bool IncludeDaily = true,
+    bool IncludeStaffTable = true,
+    bool IncludeMonitoringSessions = true,
+    bool IncludeReasonColumn = true,
+    bool IncludeStaffPosition = true
+);
