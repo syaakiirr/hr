@@ -292,13 +292,36 @@ app.UseResponseCompression();
 // Rate Limiting Middleware
 app.UseIpRateLimiting();
 
-// Serve static files and SPA fallback FIRST, before auth, so React can load
-app.UseStaticFiles();
+// Serve static files with aggressive caching for hashed assets
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var path = ctx.File.Name;
+        // Hashed files like index-DFSj2u6q.js, Geist.woff2 — safe to cache forever
+        if (path.Contains('-') && (path.EndsWith(".js") || path.EndsWith(".css") || path.EndsWith(".woff2")))
+        {
+            ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=31536000, immutable");
+        }
+        else if (path.EndsWith(".svg") || path.EndsWith(".png") || path.EndsWith(".ico"))
+        {
+            ctx.Context.Response.Headers.Append("Cache-Control", "public, max-age=86400");
+        }
+        else
+        {
+            ctx.Context.Response.Headers.Append("Cache-Control", "no-cache");
+        }
+    }
+});
 
 app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+// Health-check endpoint (lightweight, no DB) — use with cron-job.org / UptimeRobot to prevent cold starts
+app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
 app.MapFallbackToFile("index.html");
 
 app.Run();

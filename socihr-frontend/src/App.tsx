@@ -2,7 +2,8 @@ import { lazy, Suspense, useState, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { AnimatePresence } from "framer-motion";
 import PageTransition from "./components/PageTransition";
-import LoginTransition from "./components/LoginTransition";
+
+const LoginTransition = lazy(() => import("./components/LoginTransition"));
 
 
 const LoginPage           = lazy(() => import("./pages/LoginPage"));
@@ -125,10 +126,12 @@ function AppContent() {
       </Suspense>
       <AnimatePresence>
         {showOverlay && (
-          <LoginTransition
-            key="login-transition"
-            onMidpoint={handleMidpoint}
-          />
+          <Suspense fallback={null}>
+            <LoginTransition
+              key="login-transition"
+              onMidpoint={handleMidpoint}
+            />
+          </Suspense>
         )}
       </AnimatePresence>
     </>
