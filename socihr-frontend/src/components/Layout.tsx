@@ -1,6 +1,6 @@
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import type { ReactNode } from "react";
+import { useState, useEffect, type ReactNode } from "react";
 
 
 const NAV = [
@@ -22,12 +22,30 @@ export default function Layout({ children }: { children: ReactNode }) {
   const username = localStorage.getItem("username") || "HR";
   const role     = localStorage.getItem("role")     || "Admin";
 
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+  useEffect(() => {
+    const onResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener("resize", onResize);
+    return () => window.removeEventListener("resize", onResize);
+  }, []);
+  useEffect(() => { setMobileOpen(false); }, [location.pathname]);
+
   return (
     <div style={{ display: "flex", minHeight: "100vh", background: "var(--surface)" }}>
+        {isMobile && mobileOpen && (
+          <div
+            onClick={() => setMobileOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 40, background: "rgba(17,17,24,0.5)" }}
+          />
+        )}
         <aside style={{
-          width: 220, flexShrink: 0, position: "sticky", top: 0, height: "100vh",
+          width: 220, flexShrink: 0, position: isMobile ? "fixed" : "sticky",
+          top: 0, height: "100vh", zIndex: isMobile ? 50 : "auto",
           background: "var(--white)", borderRight: "1px solid var(--line)",
           display: "flex", flexDirection: "column",
+          transform: isMobile ? (mobileOpen ? "translateX(0)" : "translateX(-100%)") : "none",
+          transition: isMobile ? "transform 0.2s ease" : "none",
         }}>
           <div style={{ padding: "20px 16px 16px", borderBottom: "1px solid var(--line)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
@@ -107,6 +125,25 @@ export default function Layout({ children }: { children: ReactNode }) {
         </aside>
 
         <main style={{ flex: 1, overflow: "auto", position: "relative", background: "var(--surface)" }}>
+          {isMobile && (
+            <button
+              onClick={() => setMobileOpen(true)}
+              aria-label="Open sidebar menu"
+              style={{
+                position: "fixed", top: 12, left: 12, zIndex: 30,
+                width: 36, height: 36, borderRadius: 8,
+                background: "var(--white)", border: "1px solid var(--line)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                cursor: "pointer", boxShadow: "var(--shadow-sm)",
+              }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-2)" strokeWidth="2" strokeLinecap="round">
+                <line x1="3" y1="6" x2="21" y2="6" />
+                <line x1="3" y1="12" x2="21" y2="12" />
+                <line x1="3" y1="18" x2="21" y2="18" />
+              </svg>
+            </button>
+          )}
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
@@ -114,7 +151,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.15, ease: "easeOut" }}
-              style={{ padding: "28px 32px", maxWidth: 1320, margin: "0 auto", position: "relative", zIndex: 1 }}
+              style={{ padding: isMobile ? "60px 16px 28px" : "28px 32px", maxWidth: 1320, margin: "0 auto", position: "relative", zIndex: 1 }}
             >
               {children}
             </motion.div>

@@ -98,6 +98,7 @@ html, body, #root {
   -webkit-font-smoothing: subpixel-antialiased;
   -moz-osx-font-smoothing: auto;
   text-rendering: optimizeLegibility;
+  touch-action: manipulation;
 }
 
 
@@ -911,4 +912,29 @@ html, body, #root {
 /* --- NO global GPU compositing — causes blurry text on Windows --- */
 main {
   /* transform: translateZ(0); REMOVED — breaks ClearType font rendering */
+}
+
+/* ─── Mobile Responsive ─────────────────────────── */
+.chart-grid { display: grid; gap: 16; margin-bottom: 16; }
+
+@media (max-width: 768px) {
+  body { font-size: 16px; }
+  .btn { height: 40px; padding: 0 var(--s4); font-size: var(--text-base); }
+  .btn-sm { height: 34px; padding: 0 var(--s3); font-size: var(--text-sm); }
+  .btn-icon { width: 40px; }
+  .btn-icon.btn-sm { width: 34px; }
+  .input { height: 42px; font-size: 16px; }
+  .modal-box { max-width: 100%; margin: var(--s4); padding: var(--s6); }
+  .kpi-value { font-size: var(--text-xl); }
+  .tbl td, .tbl th { padding: var(--s2) var(--s3); font-size: var(--text-sm); }
+  .tbl-wrap { overflow-x: auto; }
+  .card { padding: var(--s4); }
+  .chart-wrap { padding: var(--s4); }
+  .page-hd { flex-direction: column; }
+  .loader { padding: var(--s8) var(--s4); }
+  .chart-grid { grid-template-columns: 1fr !important; }
+}
+
+@media (max-width: 480px) {
+  .tbl td, .tbl th { font-size: var(--text-xs); padding: var(--s2); white-space: nowrap; }
 }

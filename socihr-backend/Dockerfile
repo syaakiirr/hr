@@ -15,5 +15,5 @@ WORKDIR /app
 COPY --from=build-backend /app .
 COPY --from=build-frontend /src/dist ./wwwroot
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
-ENTRYPOINT ["dotnet", "socihr-backend.dll"]
+EXPOSE ${PORT:-8080}
+ENTRYPOINT ["sh", "-c", "ASPNETCORE_URLS=http://+:${PORT:-8080} dotnet socihr-backend.dll"]
