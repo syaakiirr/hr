@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import ReactECharts from "echarts-for-react";
-import * as echarts from "echarts";
+import ReactEChartsCore from "echarts-for-react/esm/core";
+import { use, graphic, init, getInstanceByDom, dispose } from "echarts/core";
+import { BarChart } from "echarts/charts";
+import { GridComponent, TooltipComponent } from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
@@ -11,7 +14,9 @@ import {
   getCompanyPerformance,
   type Company
 } from "../services/api";
-import { downloadPageAsPDF } from "../utils/pdf";
+
+const treeShakenECharts = { use, graphic, init, getInstanceByDom, dispose };
+use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
 const COMPANY_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
 
@@ -131,7 +136,7 @@ export default function CompanyPage() {
           return {
             value: c.rate,
             itemStyle: {
-              color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              color: new graphic.LinearGradient(0, 0, 1, 0, [
                 { offset: 0, color: color + "80" },
                 { offset: 1, color: color }
               ]),
@@ -144,7 +149,7 @@ export default function CompanyPage() {
           position: "right" as const,
           color: "#3d3d50",
           fontSize: 11,
-          formatter: (p: { value: number }) => `${p.value}%`,
+          formatter: (p: { value: number }) => `${Math.round(p.value)}%`,
           fontWeight: "bold"
         },
       }],
@@ -177,7 +182,7 @@ export default function CompanyPage() {
             <p className="page-sub">View company rankings, check completion ticks, and register new companies</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
-                 <button onClick={() => downloadPageAsPDF("Company_Performance")} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                 <button onClick={async () => { const { downloadPageAsPDF } = await import("../utils/pdf"); downloadPageAsPDF("Company_Performance"); }} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
@@ -256,7 +261,7 @@ export default function CompanyPage() {
                       {/* Score/Rate */}
                       <div style={{ textAlign: "right", display: "flex", alignItems: "center", gap: 8 }}>
                         <span className={`badge ${c.rate >= 75 ? "badge-green" : c.rate >= 50 ? "badge-amber" : "badge-red"}`} style={{ fontSize: 13, padding: "6px 12px", borderRadius: 8, fontWeight: 800 }}>
-                          {c.rate}%
+                          {Math.round(c.rate)}%
                         </span>
                         <button
                           onClick={(e) => { e.stopPropagation(); handleDeleteCompany(c.companyID, c.companyName); }}
@@ -292,7 +297,8 @@ export default function CompanyPage() {
                     No engagement stats available yet. Create sessions to populate stats.
                   </div>
                 ) : (
-                  <ReactECharts
+                  <ReactEChartsCore
+                    echarts={treeShakenECharts}
                     option={companyChartOption}
                     style={{ height: 350 }}
                     opts={{ renderer: 'canvas' }}

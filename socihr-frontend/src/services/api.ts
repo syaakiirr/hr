@@ -298,53 +298,53 @@ export interface KpiData {
   completionRate: number;
 }
 
-export async function getDashboardKpi(from?: string, to?: string): Promise<KpiData> {
+export async function getDashboardKpi(from?: string, to?: string, signal?: AbortSignal): Promise<KpiData> {
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/kpi?${queryString}` : `${BASE_URL}/dashboard/kpi`;
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await fetch(url, { headers: authHeaders(), signal });
   return handleResponse<KpiData>(res);
 }
 
-export async function getMonthlyTrend(year?: number) {
+export async function getMonthlyTrend(year?: number, signal?: AbortSignal) {
   const q = year ? `?year=${year}` : "";
-  const res = await fetch(`${BASE_URL}/dashboard/monthly${q}`, { headers: authHeaders() });
+  const res = await fetch(`${BASE_URL}/dashboard/monthly${q}`, { headers: authHeaders(), signal });
   return handleResponse<{ month: number; completed: number; missed: number; total: number }[]>(res);
 }
 
-export async function getWeeklyTrend(from?: string, to?: string) {
+export async function getWeeklyTrend(from?: string, to?: string, signal?: AbortSignal) {
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/weekly?${queryString}` : `${BASE_URL}/dashboard/weekly`;
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await fetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ week: string; completed: number; missed: number; total: number }[]>(res);
 }
 
-export async function getPlatformComparison(from?: string, to?: string) {
+export async function getPlatformComparison(from?: string, to?: string, signal?: AbortSignal) {
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/platform-comparison?${queryString}` : `${BASE_URL}/dashboard/platform-comparison`;
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await fetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ platform: string; completed: number; missed: number; total: number }[]>(res);
 }
 
-export async function getCompanyPerformance(from?: string, to?: string) {
+export async function getCompanyPerformance(from?: string, to?: string, signal?: AbortSignal) {
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/company-performance?${queryString}` : `${BASE_URL}/dashboard/company-performance`;
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await fetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>(res);
 }
 
-export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 10, from?: string, to?: string) {
+export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 10, from?: string, to?: string, signal?: AbortSignal) {
   const q = new URLSearchParams();
   q.set("order", order);
   q.set("limit", String(limit));
@@ -352,13 +352,13 @@ export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 1
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/staff-ranking?${queryString}` : `${BASE_URL}/dashboard/staff-ranking`;
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await fetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ staffID: string; fullName: string; department: string; completed: number; total: number; completionRate: number }[]>(res);
 }
 
-export async function getHeatmap(year?: number) {
+export async function getHeatmap(year?: number, signal?: AbortSignal) {
   const q = year ? `?year=${year}` : "";
-  const res = await fetch(`${BASE_URL}/dashboard/heatmap${q}`, { headers: authHeaders() });
+  const res = await fetch(`${BASE_URL}/dashboard/heatmap${q}`, { headers: authHeaders(), signal });
   return handleResponse<{ date: string; completed: number; total: number }[]>(res);
 }
 
@@ -372,10 +372,11 @@ export interface DashboardSnapshot {
   notes?: string;
 }
 
-export async function createSnapshot(name: string, notes?: string, fromDate?: string, toDate?: string): Promise<{ snapshotID: string; message: string }> {
+export async function createSnapshot(name: string, notes?: string, fromDate?: string, toDate?: string, signal?: AbortSignal): Promise<{ snapshotID: string; message: string }> {
   const res = await fetch(`${BASE_URL}/dashboard/snapshot/create`, {
     method: "POST",
     headers: authHeaders(),
+    signal,
     body: JSON.stringify({ Name: name, Notes: notes, FromDate: fromDate, ToDate: toDate }),
   });
   return handleResponse<{ snapshotID: string; message: string }>(res);

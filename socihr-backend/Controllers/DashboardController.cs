@@ -16,285 +16,271 @@ public class DashboardController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IMemoryCache _cache;
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
+
     public DashboardController(AppDbContext db, IMemoryCache cache) { _db = db; _cache = cache; }
 
-    // GET /api/dashboard/kpi?from=2026-01-01&to=2026-12-31
-    [HttpGet("kpi")]
-    public async Task<IActionResult> GetKpi([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    // ── Helpers ──────────────────────────────────────────
+
+    private string CacheKey(string prefix, DateTime? from, DateTime? to) =>
+        $"{prefix}|{from?.ToString("yyyyMMdd") ?? "na"}|{to?.ToString("yyyyMMdd") ?? "na"}";
+
+    private IQueryable<Engagement> FilteredEngagements(DateTime? from, DateTime? to)
+    {
+        var q = _db.Engagements
+            .AsNoTracking()
+            .Where(e => !e.Session!.IsArchived);
+        if (from.HasValue)
+        {
+            var fd = DateOnly.FromDateTime(from.Value);
+            q = q.Where(e => e.Session!.SessionDate >= fd);
+        }
+        if (to.HasValue)
+        {
+            var td = DateOnly.FromDateTime(to.Value);
+            q = q.Where(e => e.Session!.SessionDate <= td);
+        }
+        return q;
+    }
+
+    // ── Aggregation helpers that run entirely on the server ──
+
+    private sealed record KpiTotals(int Staff, int Sessions, int Platforms, int Expected, int Completed, int Missed, double Rate);
+
+    private async Task<KpiTotals> ComputeKpiAsync(DateTime? from, DateTime? to)
     {
         var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active" && !s.IsArchived);
         var totalSessions = await _db.MonitoringSessions.CountAsync(s => !s.IsArchived);
         var totalPlatforms = await _db.Platforms.CountAsync();
 
-        var engQuery = _db.Engagements
-            .AsNoTracking()
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .Include(e => e.Session)
-            .Where(e => !e.Session!.IsArchived)
-            .AsQueryable();
+        var engQ = FilteredEngagements(from, to);
 
-        if (from.HasValue)
-        {
-            var fromDate = DateOnly.FromDateTime(from.Value);
-            engQuery = engQuery.Where(e => e.Session!.SessionDate >= fromDate);
-        }
-        if (to.HasValue)
-        {
-            var toDate = DateOnly.FromDateTime(to.Value);
-            engQuery = engQuery.Where(e => e.Session!.SessionDate <= toDate);
-        }
+        // Push all aggregation to the database — no client-side materialisation.
+        var count = await engQ.CountAsync();
+        var liked = await engQ.CountAsync(e => e.IsLiked);
+        var commented = await engQ.CountAsync(e => e.IsCommented);
+        var shared = await engQ.CountAsync(e => e.IsShared);
 
-        var engagements = await engQuery.ToListAsync();
-
-        // Count ticks at action level: each checkbox = 1 tick
-        var totalCompleted = engagements.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
-        var totalExpected = engagements.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
+        var totalExpected = count * 3;
+        var totalCompleted = liked + commented + shared;
         var totalMissed = totalExpected - totalCompleted;
-        var completionRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
+        var rate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
 
-        var result = new
-        {
-            totalStaff,
-            totalSessions,
-            totalPlatforms,
-            totalExpected,
-            totalCompleted,
-            totalMissed,
-            completionRate
-        };
-
-        return Ok(result);
+        return new KpiTotals(totalStaff, totalSessions, totalPlatforms, totalExpected, totalCompleted, totalMissed, rate);
     }
 
-    // GET /api/dashboard/monthly  — monthly engagement trend
+    // /api/dashboard/kpi
+    [HttpGet("kpi")]
+    public async Task<IActionResult> GetKpi([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var key = CacheKey("kpi", from, to);
+        if (_cache.TryGetValue(key, out KpiTotals? cached) && cached != null)
+            return Ok(new { totalStaff = cached.Staff, totalSessions = cached.Sessions, totalPlatforms = cached.Platforms, totalExpected = cached.Expected, totalCompleted = cached.Completed, totalMissed = cached.Missed, completionRate = cached.Rate });
+
+        var r = await ComputeKpiAsync(from, to);
+        _cache.Set(key, r, CacheTtl);
+
+        return Ok(new { totalStaff = r.Staff, totalSessions = r.Sessions, totalPlatforms = r.Platforms, totalExpected = r.Expected, totalCompleted = r.Completed, totalMissed = r.Missed, completionRate = r.Rate });
+    }
+
+    // /api/dashboard/monthly
     [HttpGet("monthly")]
     public async Task<IActionResult> GetMonthly([FromQuery] int? year)
     {
         var y = year ?? DateTime.UtcNow.Year;
+        var key = CacheKey("monthly", null, null) + $"|{y}";
+        if (_cache.TryGetValue(key, out object? cached) && cached != null)
+            return Ok(cached);
 
-        var engagements = await _db.Engagements
+        var data = await _db.Engagements
             .AsNoTracking()
-            .Include(e => e.Session)
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate.Year == y && !e.Session.IsArchived)
-            .ToListAsync();
-
-        var data = engagements
             .GroupBy(e => e.Session!.SessionDate.Month)
             .Select(g => new
             {
                 Month = g.Key,
-                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Missed = g.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Missed = g.Sum(e => 3 - ((e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0))),
+                Total = g.Count() * 3
             })
             .OrderBy(g => g.Month)
-            .ToList();
+            .ToListAsync();
 
+        _cache.Set(key, data, CacheTtl);
         return Ok(data);
     }
 
-    // GET /api/dashboard/weekly  — last 12 weeks (or a custom from/to range)
+    // /api/dashboard/weekly
     [HttpGet("weekly")]
     public async Task<IActionResult> GetWeekly([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
+        var key = CacheKey("weekly", from, to);
+        if (_cache.TryGetValue(key, out object? cached) && cached != null)
+            return Ok(cached);
+
         var sessionsQuery = _db.MonitoringSessions.AsNoTracking()
-            .Where(s => !s.IsArchived)  // exclude archived sessions
+            .Where(s => !s.IsArchived)
             .AsQueryable();
 
         if (from.HasValue || to.HasValue)
         {
-            if (from.HasValue)
-            {
-                var fromDate = DateOnly.FromDateTime(from.Value);
-                sessionsQuery = sessionsQuery.Where(s => s.SessionDate >= fromDate);
-            }
-            if (to.HasValue)
-            {
-                var toDate = DateOnly.FromDateTime(to.Value);
-                sessionsQuery = sessionsQuery.Where(s => s.SessionDate <= toDate);
-            }
+            if (from.HasValue) { var fd = DateOnly.FromDateTime(from.Value); sessionsQuery = sessionsQuery.Where(s => s.SessionDate >= fd); }
+            if (to.HasValue) { var td = DateOnly.FromDateTime(to.Value); sessionsQuery = sessionsQuery.Where(s => s.SessionDate <= td); }
         }
         else
         {
-            var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-84)); // 12 weeks
+            var cutoff = DateOnly.FromDateTime(DateTime.UtcNow.AddDays(-84));
             sessionsQuery = sessionsQuery.Where(s => s.SessionDate >= cutoff);
         }
 
-        var sessions = await sessionsQuery
-            .OrderBy(s => s.SessionDate)
-            .ToListAsync();
-
+        var sessions = await sessionsQuery.OrderBy(s => s.SessionDate).ToListAsync();
         var sessionIds = sessions.Select(s => s.SessionID).ToList();
-        var engagements = await _db.Engagements
+        if (sessionIds.Count == 0) { _cache.Set(key, new List<object>(), CacheTtl); return Ok(Array.Empty<object>()); }
+
+        // Aggregate by session in one server-side pass
+        var engAgg = await _db.Engagements
             .AsNoTracking()
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => sessionIds.Contains(e.SessionID))
+            .GroupBy(e => e.SessionID)
+            .Select(g => new
+            {
+                SessionID = g.Key,
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Total = g.Count() * 3
+            })
             .ToListAsync();
 
-        // Group by ISO week
-        var grouped = sessions.GroupBy(s =>
-        {
-            var date = s.SessionDate.ToDateTime(TimeOnly.MinValue);
-            var cal = System.Globalization.CultureInfo.InvariantCulture.Calendar;
-            var week = cal.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
-            return $"{s.SessionDate.Year}-W{week:D2}";
-        })
-        .Select(g =>
-        {
-            var sIds = g.Select(s => s.SessionID).ToList();
-            var eng = engagements.Where(e => sIds.Contains(e.SessionID)).ToList();
-            return new
-            {
-                Week = g.Key,
-                Completed = eng.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Missed = eng.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Total = eng.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
-            };
-        })
-        .OrderBy(g => g.Week)
-        .ToList();
+        var lookup = engAgg.ToDictionary(a => a.SessionID);
 
+        var grouped = sessions
+            .GroupBy(s =>
+            {
+                var date = s.SessionDate.ToDateTime(TimeOnly.MinValue);
+                var cal = System.Globalization.CultureInfo.InvariantCulture.Calendar;
+                var week = cal.GetWeekOfYear(date, System.Globalization.CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday);
+                return $"{s.SessionDate.Year}-W{week:D2}";
+            })
+            .Select(g =>
+            {
+                var completed = g.Sum(s => lookup.TryGetValue(s.SessionID, out var a) ? a.Completed : 0);
+                var total = g.Sum(s => lookup.TryGetValue(s.SessionID, out var a) ? a.Total : 0);
+                return new { Week = g.Key, Completed = completed, Missed = total - completed, Total = total };
+            })
+            .OrderBy(g => g.Week)
+            .ToList();
+
+        _cache.Set(key, grouped, CacheTtl);
         return Ok(grouped);
     }
 
-    // GET /api/dashboard/platform-comparison
+    // /api/dashboard/platform-comparison
     [HttpGet("platform-comparison")]
     public async Task<IActionResult> GetPlatformComparison([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var query = _db.Engagements
-            .AsNoTracking()
-            .Include(e => e.Post)
-                .ThenInclude(p => p!.Platform)
-            .Include(e => e.Session)
-            .Where(e => !e.Session!.IsArchived)  // exclude archived sessions
-            .AsQueryable();
+        var key = CacheKey("platform", from, to);
+        if (_cache.TryGetValue(key, out object? cached) && cached != null)
+            return Ok(cached);
 
-        if (from.HasValue)
-        {
-            var fromDate = DateOnly.FromDateTime(from.Value);
-            query = query.Where(e => e.Session!.SessionDate >= fromDate);
-        }
-        if (to.HasValue)
-        {
-            var toDate = DateOnly.FromDateTime(to.Value);
-            query = query.Where(e => e.Session!.SessionDate <= toDate);
-        }
-
-        var engagements = await query.ToListAsync();
-
-        var data = engagements
+        var data = await FilteredEngagements(from, to)
             .GroupBy(e => e.Post!.Platform!.PlatformName)
             .Select(g => new
             {
                 Platform = g.Key,
-                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Missed = g.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Missed = g.Sum(e => 3 - ((e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0))),
+                Total = g.Count() * 3
             })
-            .ToList();
+            .ToListAsync();
 
+        _cache.Set(key, data, CacheTtl);
         return Ok(data);
     }
 
-    // GET /api/dashboard/staff-ranking?limit=13&order=top&from=2026-01-01&to=2026-12-31
+    // /api/dashboard/staff-ranking
     [HttpGet("staff-ranking")]
     public async Task<IActionResult> GetStaffRanking([FromQuery] int limit = 13, [FromQuery] string order = "top", [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null)
     {
-        var data = await GetStaffRankingData(order, limit, from, to);
-        return Ok(data);
+        var key = CacheKey($"ranking|{order}|{limit}", from, to);
+        if (_cache.TryGetValue(key, out object? cached) && cached != null)
+            return Ok(cached);
+
+        var data = await StaffRankingHelper.GetRanking(_db, order, limit, from, to);
+        _cache.Set(key, data, CacheTtl);
+        return Ok(data.Select(d => new { d.StaffID, d.FullName, d.Department, d.Completed, d.Total, d.CompletionRate }).ToList());
     }
 
-    // GET /api/dashboard/heatmap?year=2026
+    // /api/dashboard/heatmap
     [HttpGet("heatmap")]
     public async Task<IActionResult> GetHeatmap([FromQuery] int? year)
     {
         var y = year ?? DateTime.UtcNow.Year;
+        var key = CacheKey("heatmap", null, null) + $"|{y}";
+        if (_cache.TryGetValue(key, out object? cached) && cached != null)
+            return Ok(cached);
+
         var startDate = new DateOnly(y, 1, 1);
         var endDate = new DateOnly(y, 12, 31);
 
-        var engagements = await _db.Engagements
+        var data = await _db.Engagements
             .AsNoTracking()
-            .Include(e => e.Session)
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate >= startDate && e.Session.SessionDate <= endDate && !e.Session.IsArchived)
-            .ToListAsync();
-
-        var data = engagements
             .GroupBy(e => e.Session!.SessionDate)
             .Select(g => new
             {
                 Date = g.Key,
-                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Total = g.Count() * 3
             })
             .OrderBy(g => g.Date)
-            .ToList();
+            .ToListAsync();
 
+        _cache.Set(key, data, CacheTtl);
         return Ok(data);
     }
 
-    // GET /api/dashboard/company-performance
+    // /api/dashboard/company-performance
     [HttpGet("company-performance")]
     public async Task<IActionResult> GetCompanyPerformance([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        // Get all companies
-        var companies = await _db.Companies
+        var key = CacheKey("company", from, to);
+        if (_cache.TryGetValue(key, out object? cached) && cached != null)
+            return Ok(cached);
+
+        var companies = await _db.Companies.AsNoTracking().OrderBy(c => c.CompanyName).ToListAsync();
+
+        // Aggregate engagement ticks per company in one server-side pass
+        var engAgg = await _db.Engagements
             .AsNoTracking()
-            .OrderBy(c => c.CompanyName)
+            .Where(e => e.Post!.CompanyID != null && !e.Session!.IsArchived)
+            .GroupBy(e => e.Post!.CompanyID!.Value)
+            .Select(g => new
+            {
+                CompanyID = g.Key,
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Total = g.Count() * 3
+            })
             .ToListAsync();
 
-        // Get all engagements grouped by post's company
-        var companyEngQuery = _db.Engagements
-            .AsNoTracking()
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .Include(e => e.Session)
-            .Where(e => e.Post!.CompanyID != null && !e.Session!.IsArchived)  // exclude archived sessions
-            .AsQueryable();
+        var lookup = engAgg.ToDictionary(a => a.CompanyID);
 
-        if (from.HasValue)
+        var result = companies.Select(c =>
         {
-            var fromDate = DateOnly.FromDateTime(from.Value);
-            companyEngQuery = companyEngQuery.Where(e => e.Session!.SessionDate >= fromDate);
-        }
-        if (to.HasValue)
-        {
-            var toDate = DateOnly.FromDateTime(to.Value);
-            companyEngQuery = companyEngQuery.Where(e => e.Session!.SessionDate <= toDate);
-        }
-
-        var engagements = await companyEngQuery.ToListAsync();
-
-        var result = companies.Select(company =>
-        {
-            var companyEngagements = engagements
-                .Where(e => e.Post!.CompanyID == company.CompanyID)
-                .ToList();
-
-            var completed = companyEngagements.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
-            var expected = companyEngagements.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
-            var missed = expected - completed;
-            var rate = expected > 0 ? Math.Round((double)completed / expected * 100, 1) : 0;
-
-            return new
-            {
-                company.CompanyID,
-                Company = company.CompanyName,
-                Completed = completed,
-                Missed = missed,
-                Total = expected,
-                Rate = rate
-            };
+            var a = lookup.GetValueOrDefault(c.CompanyID);
+            var completed = a?.Completed ?? 0;
+            var total = a?.Total ?? 0;
+            var missed = total - completed;
+            var rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
+            return new { c.CompanyID, Company = c.CompanyName, Completed = completed, Missed = missed, Total = total, Rate = rate };
         }).ToList();
 
+        _cache.Set(key, result, CacheTtl);
         return Ok(result);
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // DASHBOARD SNAPSHOT ENDPOINTS
+    // SNAPSHOT ENDPOINTS
     // ═══════════════════════════════════════════════════════════════
 
-    // POST /api/dashboard/snapshot/create
     [HttpPost("snapshot/create")]
     public async Task<IActionResult> CreateSnapshot([FromBody] CreateSnapshotRequest req)
     {
@@ -303,35 +289,28 @@ public class DashboardController : ControllerBase
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
             var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
 
-            // Parse optional date range for staff ranking consistency
             DateTime? snapshotFrom = null;
             DateTime? snapshotTo = null;
-            if (!string.IsNullOrEmpty(req.FromDate) && DateTime.TryParse(req.FromDate, out var parsedFrom))
-                snapshotFrom = parsedFrom;
-            if (!string.IsNullOrEmpty(req.ToDate) && DateTime.TryParse(req.ToDate, out var parsedTo))
-                snapshotTo = parsedTo;
+            if (!string.IsNullOrEmpty(req.FromDate) && DateTime.TryParse(req.FromDate, out var parsedFrom)) snapshotFrom = parsedFrom;
+            if (!string.IsNullOrEmpty(req.ToDate) && DateTime.TryParse(req.ToDate, out var parsedTo)) snapshotTo = parsedTo;
 
-            // Get current dashboard data — all filtered by the same date range for consistency
-            var kpiData = await GetKpiData(req.FromDate, req.ToDate);
+            var kpiData = await ComputeKpiAsync(snapshotFrom, snapshotTo);
             var monthlyData = await GetMonthlyData(DateTime.UtcNow.Year);
             var platformData = await GetPlatformData();
-            var topStaff = await GetStaffRankingData("top", 10, snapshotFrom, snapshotTo);
-            var bottomStaff = await GetStaffRankingData("bottom", 10, snapshotFrom, snapshotTo);
+            var topStaff = await StaffRankingHelper.GetRanking(_db, "top", 10, snapshotFrom, snapshotTo);
+            var bottomStaff = await StaffRankingHelper.GetRanking(_db, "bottom", 10, snapshotFrom, snapshotTo);
 
             var dashboardState = new
             {
-                kpi = kpiData,
+                kpi = new { kpiData.Staff, kpiData.Sessions, kpiData.Platforms, kpiData.Expected, kpiData.Completed, kpiData.Missed, Rate = kpiData.Rate },
                 monthly = monthlyData,
                 platform = platformData,
-                topStaff,
-                bottomStaff,
+                topStaff = topStaff.Select(d => new { d.StaffID, d.FullName, d.Department, d.Completed, d.Total, d.CompletionRate }),
+                bottomStaff = bottomStaff.Select(d => new { d.StaffID, d.FullName, d.Department, d.Completed, d.Total, d.CompletionRate }),
                 capturedAt = DateTime.UtcNow
             };
 
-            var options = new JsonSerializerOptions
-            {
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            };
+            var options = new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase };
 
             var snapshot = new DashboardSnapshot
             {
@@ -347,10 +326,7 @@ public class DashboardController : ControllerBase
             _db.DashboardSnapshots.Add(snapshot);
             await _db.SaveChangesAsync();
 
-            return Ok(new { 
-                snapshotID = snapshot.SnapshotID, 
-                message = "Dashboard snapshot saved successfully." 
-            });
+            return Ok(new { snapshotID = snapshot.SnapshotID, message = "Dashboard snapshot saved successfully." });
         }
         catch (Exception ex)
         {
@@ -358,25 +334,16 @@ public class DashboardController : ControllerBase
         }
     }
 
-    // GET /api/dashboard/snapshot/list
     [HttpGet("snapshot/list")]
     public async Task<IActionResult> GetSnapshots()
     {
         try
         {
             var snapshots = await _db.DashboardSnapshots
+                .AsNoTracking()
                 .OrderByDescending(s => s.SnapshotDate)
-                .Select(s => new
-                {
-                    s.SnapshotID,
-                    s.SnapshotName,
-                    s.SnapshotDate,
-                    s.CreatedBy,
-                    s.CreatedAt,
-                    s.Notes
-                })
+                .Select(s => new { s.SnapshotID, s.SnapshotName, s.SnapshotDate, s.CreatedBy, s.CreatedAt, s.Notes })
                 .ToListAsync();
-
             return Ok(snapshots);
         }
         catch (Exception ex)
@@ -385,31 +352,18 @@ public class DashboardController : ControllerBase
         }
     }
 
-    // GET /api/dashboard/snapshot/{id}
     [HttpGet("snapshot/{id}")]
     public async Task<IActionResult> GetSnapshot(Guid id)
     {
         try
         {
-            var snapshot = await _db.DashboardSnapshots
-                .FirstOrDefaultAsync(s => s.SnapshotID == id);
+            var snapshot = await _db.DashboardSnapshots.AsNoTracking().FirstOrDefaultAsync(s => s.SnapshotID == id);
+            if (snapshot == null) return NotFound(new { message = "Snapshot not found." });
 
-            if (snapshot == null)
-                return NotFound(new { message = "Snapshot not found." });
-
-            // Parse the stored JSON data back to preserve original camelCase keys
             using var doc = JsonDocument.Parse(snapshot.SnapshotData);
-            var data = doc.RootElement.Clone();
+            var root = doc.RootElement.Clone();
 
-            return Ok(new
-            {
-                snapshot.SnapshotID,
-                snapshot.SnapshotName,
-                snapshot.SnapshotDate,
-                snapshot.CreatedBy,
-                snapshot.Notes,
-                data
-            });
+            return Ok(new { snapshot.SnapshotID, snapshot.SnapshotName, snapshot.SnapshotDate, snapshot.CreatedBy, snapshot.Notes, data = root });
         }
         catch (Exception ex)
         {
@@ -417,21 +371,16 @@ public class DashboardController : ControllerBase
         }
     }
 
-    // DELETE /api/dashboard/snapshot/{id}
     [HttpDelete("snapshot/{id}")]
     public async Task<IActionResult> DeleteSnapshot(Guid id)
     {
         try
         {
-            var snapshot = await _db.DashboardSnapshots
-                .FirstOrDefaultAsync(s => s.SnapshotID == id);
-
-            if (snapshot == null)
-                return NotFound(new { message = "Snapshot not found." });
+            var snapshot = await _db.DashboardSnapshots.FirstOrDefaultAsync(s => s.SnapshotID == id);
+            if (snapshot == null) return NotFound(new { message = "Snapshot not found." });
 
             _db.DashboardSnapshots.Remove(snapshot);
             await _db.SaveChangesAsync();
-
             return Ok(new { message = "Snapshot deleted successfully." });
         }
         catch (Exception ex)
@@ -440,111 +389,39 @@ public class DashboardController : ControllerBase
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // HELPER METHODS FOR SNAPSHOT
-    // ═══════════════════════════════════════════════════════════════
-
-    private async Task<object> GetKpiData(string? fromDate, string? toDate)
-    {
-        var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active" && !s.IsArchived);
-        var totalSessions = await _db.MonitoringSessions.CountAsync(s => !s.IsArchived);
-        var totalPlatforms = await _db.Platforms.CountAsync();
-
-        var engQuery = _db.Engagements
-            .AsNoTracking()
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .Include(e => e.Session)
-            .Where(e => !e.Session!.IsArchived)
-            .AsQueryable();
-
-        if (!string.IsNullOrEmpty(fromDate) && DateTime.TryParse(fromDate, out var from))
-        {
-            var fromDateOnly = DateOnly.FromDateTime(from);
-            engQuery = engQuery.Where(e => e.Session!.SessionDate >= fromDateOnly);
-        }
-        if (!string.IsNullOrEmpty(toDate) && DateTime.TryParse(toDate, out var to))
-        {
-            var toDateOnly = DateOnly.FromDateTime(to);
-            engQuery = engQuery.Where(e => e.Session!.SessionDate <= toDateOnly);
-        }
-
-        var engagements = await engQuery.ToListAsync();
-        var totalCompleted = engagements.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
-        var totalExpected = engagements.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
-        var totalMissed = totalExpected - totalCompleted;
-        var completionRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
-
-        return new
-        {
-            totalStaff,
-            totalSessions,
-            totalPlatforms,
-            totalExpected,
-            totalCompleted,
-            totalMissed,
-            completionRate
-        };
-    }
+    // ── Snapshot helper methods ──
 
     private async Task<object> GetMonthlyData(int year)
     {
-        var engagements = await _db.Engagements
+        return await _db.Engagements
             .AsNoTracking()
-            .Include(e => e.Session)
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => e.Session!.SessionDate.Year == year && !e.Session.IsArchived)
-            .ToListAsync();
-
-        var data = engagements
             .GroupBy(e => e.Session!.SessionDate.Month)
             .Select(g => new
             {
                 Month = g.Key,
-                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Missed = g.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Missed = g.Sum(e => 3 - ((e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0))),
+                Total = g.Count() * 3
             })
             .OrderBy(g => g.Month)
-            .ToList();
-
-        return data;
+            .ToListAsync();
     }
 
     private async Task<object> GetPlatformData()
     {
-        var engagements = await _db.Engagements
+        return await _db.Engagements
             .AsNoTracking()
-            .Include(e => e.Session)
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => !e.Session!.IsArchived)
-            .ToListAsync();
-
-        var data = engagements
             .GroupBy(e => e.Post!.Platform!.PlatformName)
             .Select(g => new
             {
                 Platform = g.Key,
-                Completed = g.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Missed = g.Sum(e => TickHelper.Missed(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
-                Total = g.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName))
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Missed = g.Sum(e => 3 - ((e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0))),
+                Total = g.Count() * 3
             })
-            .ToList();
-
-        return data;
-    }
-
-    private async Task<object> GetStaffRankingData(string order, int limit, DateTime? from = null, DateTime? to = null)
-    {
-        var ranking = await StaffRankingHelper.GetRanking(_db, order, limit, from, to);
-        return ranking.Select(d => new
-        {
-            d.StaffID,
-            d.FullName,
-            d.Department,
-            d.Completed,
-            d.Total,
-            d.CompletionRate
-        }).ToList();
+            .ToListAsync();
     }
 }
 

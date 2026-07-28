@@ -113,7 +113,7 @@ public class ReportsController : ControllerBase
         var totalCompleted = staffPerf.Sum(s => s.Completed);
         var totalMissed = staffPerf.Sum(s => s.Missed);
         var totalExpected = totalCompleted + totalMissed;
-        var overallRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
+        var overallRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100) : 0;
 
         var platformStats = await GetPlatformStatsAsync(from, to);
         var companyStats = await GetCompanyStatsAsync(from, to);
@@ -498,7 +498,7 @@ public class ReportsController : ControllerBase
         var totalCompleted = staffPerf.Sum(s => s.Completed);
         var totalMissed = staffPerf.Sum(s => s.Missed);
         var totalExpected = totalCompleted + totalMissed;
-        var overallRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
+        var overallRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100) : 0;
 
         var platformStats = req.IncludePlatformCompany ? await GetPlatformStatsAsync(req.DateFrom, req.DateTo) : new List<PlatformStatDto>();
         var companyStats = req.IncludePlatformCompany ? await GetCompanyStatsAsync(req.DateFrom, req.DateTo) : new List<CompanyStatDto>();
@@ -901,7 +901,7 @@ public class ReportsController : ControllerBase
         var totalCompleted = staffPerf.Sum(s => s.Completed);
         var totalMissed = staffPerf.Sum(s => s.Missed);
         var totalExpected = totalCompleted + totalMissed;
-        var overallRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
+        var overallRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100) : 0;
 
         var platformStats = await GetPlatformStatsAsync(from, to);
         var companyStats = await GetCompanyStatsAsync(from, to);
@@ -1411,7 +1411,7 @@ public class ReportsController : ControllerBase
                     Completed = completed,
                     Missed = missed,
                     Total = total,
-                    Rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0
+                    Rate = total > 0 ? Math.Round((double)completed / total * 100) : 0
                 };
             })
             .OrderByDescending(p => p.Total)
@@ -1455,7 +1455,7 @@ public class ReportsController : ControllerBase
                 Completed = completed,
                 Missed = missed,
                 Total = total,
-                Rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0
+                Rate = total > 0 ? Math.Round((double)completed / total * 100) : 0
             };
         }).ToList();
     }

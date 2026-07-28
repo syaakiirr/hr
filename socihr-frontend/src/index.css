@@ -31,7 +31,7 @@
   --text-1:   #0f172a;   /* Slate 900 - very dark headings */
   --text-2:   #334155;   /* Slate 700 - highly legible body text */
   --text-3:   #64748b;   /* Slate 500 - clear secondary text */
-  --text-4:   #94a3b8;   /* Slate 400 - visible placeholder/disabled */
+  --text-4:   #71717a;   /* Zinc 500 - visible placeholder/disabled (4.6:1 on white) */
 
   /* Accent — premium glowing aurora indigo */
   --accent:         #4f46e5;      /* Crisp Indigo-600 */
@@ -47,10 +47,10 @@
   --green:       #16a34a;
   --green-soft:  #f0fdf4;
   --green-line:  #bbf7d0;
-  --red:         #dc2626;
+  --red:         #b91c1c;
   --red-soft:    #fef2f2;
   --red-line:    #fecaca;
-  --amber:       #d97706;
+  --amber:       #b45309;
   --amber-soft:  #fffbeb;
   --amber-line:  #fde68a;
   --blue:        #2563eb;
@@ -895,6 +895,18 @@ html, body, #root {
   from { opacity: 0; transform: translateY(6px); }
   to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes ptFadeSlideUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes ptFadeSlideRight { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: translateX(0); } }
+.pt-enter { animation: ptFadeSlideUp 0.22s cubic-bezier(0.32,0.72,0,1) forwards; }
+.pt-enter-h { animation: ptFadeSlideRight 0.22s cubic-bezier(0.32,0.72,0,1) forwards; }
+
+/* Login overlay slide */
+@keyframes ltSlideDown { from { transform: translateY(-100%); } to { transform: translateY(0%); } }
+@keyframes ltSlideUp { from { transform: translateY(0%); } to { transform: translateY(100%); } }
+@keyframes ltFadeScaleIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+.lt-overlay { animation: ltSlideDown 0.6s cubic-bezier(0.76,0,0.24,1) forwards; }
+.lt-overlay.exit { animation: ltSlideUp 0.6s cubic-bezier(0.76,0,0.24,1) forwards; }
+.lt-logo { animation: ltFadeScaleIn 0.3s ease 0.2s both; }
 
 /* --- NO global GPU compositing — causes blurry text on Windows --- */
 main {

@@ -67,6 +67,8 @@ public class AppDbContext : DbContext
             // Indexes for performance
             e.HasIndex(x => x.SessionDate);
             e.HasIndex(x => x.IsArchived);
+            // Composite covering index for dashboard date-range + archive filter queries
+            e.HasIndex(x => new { x.IsArchived, x.SessionDate });
         });
 
         // ── Platform ──
@@ -113,6 +115,8 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.SessionID);
             e.HasIndex(x => x.StaffID);
             e.HasIndex(x => x.PostID);
+            // Composite covering index for dashboard aggregation queries
+            e.HasIndex(x => new { x.SessionID, x.IsLiked, x.IsCommented, x.IsShared });
         });
 
         // ── AuditTrail ──

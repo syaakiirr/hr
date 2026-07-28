@@ -1,57 +1,48 @@
-import { motion } from "framer-motion";
+import { useRef, useEffect } from "react";
 
 interface LoginTransitionProps {
   onMidpoint?: () => void;
 }
 
 export default function LoginTransition({ onMidpoint }: LoginTransitionProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = overlayRef.current;
+    if (!el) return;
+    const handler = (e: AnimationEvent) => {
+      if (e.animationName === "ltSlideDown") {
+        setTimeout(() => onMidpoint?.(), 150);
+      }
+    };
+    el.addEventListener("animationend", handler);
+    return () => el.removeEventListener("animationend", handler);
+  }, [onMidpoint]);
+
   return (
-    <motion.div
-      initial={{ y: "-100%" }}
-      animate={{ y: "0%" }}
-      exit={{ y: "100%" }}
-      transition={{
-        duration: 0.6,
-        ease: [0.76, 0, 0.24, 1], // Custom premium cubic-bezier ease
-      }}
-      onAnimationComplete={(definition) => {
-        // If it finished sliding down (entering)
-        if (JSON.stringify(definition) === JSON.stringify({ y: "0%" }) || (definition as any).y === "0%") {
-          setTimeout(() => {
-            onMidpoint?.();
-          }, 150); // Small pause for dramatic effect
-        }
-      }}
+    <div
+      ref={overlayRef}
+      className="lt-overlay"
       style={{
         position: "fixed",
         inset: 0,
         zIndex: 99999,
-        background: "#09090b", // Sleek dark/black
+        background: "#09090b",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
       }}
     >
-      {/* Brand logo in the center of the black screen */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ delay: 0.2, duration: 0.3 }}
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          gap: 16,
-        }}
-      >
+      <div className="lt-logo" style={{
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 16,
+      }}>
         <div style={{
-          width: 54,
-          height: 54,
-          borderRadius: 14,
+          width: 54, height: 54, borderRadius: 14,
           background: "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          display: "flex", alignItems: "center", justifyContent: "center",
           boxShadow: "0 0 40px rgba(99, 102, 241, 0.4)",
         }}>
           <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round">
@@ -60,8 +51,7 @@ export default function LoginTransition({ onMidpoint }: LoginTransitionProps) {
           </svg>
         </div>
         <h1 style={{
-          fontSize: 22,
-          fontWeight: 800,
+          fontSize: 22, fontWeight: 800,
           background: "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
@@ -69,7 +59,7 @@ export default function LoginTransition({ onMidpoint }: LoginTransitionProps) {
         }}>
           SociHR
         </h1>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   );
 }

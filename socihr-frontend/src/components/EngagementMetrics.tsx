@@ -1,6 +1,6 @@
 import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { getDashboardKpi, getSessions, getEngagements } from "../services/api";
+import { getSessions, getEngagements, type KpiData } from "../services/api";
 
 const MAX_SESSIONS = 30; // Limit concurrent API calls
 
@@ -97,7 +97,7 @@ function getDateRange(filter: string): { from?: string; to?: string } {
   }
 }
 
-export default function EngagementMetrics({ filter = "month" }: { filter?: string }) {
+export default function EngagementMetrics({ filter = "month", kpiData: kpiProp }: { filter?: string; kpiData?: KpiData | null }) {
   const [mode, setMode] = useState<"session" | "overall">("overall");
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,8 +110,11 @@ export default function EngagementMetrics({ filter = "month" }: { filter?: strin
     setLoading(true);
     try {
       if (mode === "overall") {
-        const { from, to } = getDateRange(filter);
-        const kpiData = await getDashboardKpi(from, to);
+        const kpiData = kpiProp ?? await (async () => {
+          const { from, to } = getDateRange(filter);
+          const { getDashboardKpi } = await import("../services/api");
+          return getDashboardKpi(from, to);
+        })();
         setMetrics([
           {
             id: "overall",
@@ -185,9 +188,9 @@ export default function EngagementMetrics({ filter = "month" }: { filter?: strin
       {/* Header with toggle */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20, flexWrap: "wrap", gap: 12 }}>
         <div>
-          <h3 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 4 }}>
+          <h2 style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", marginBottom: 4 }}>
             Engagement Tick Metrics
-          </h3>
+          </h2>
           <p style={{ fontSize: 12, color: "var(--text-3)" }}>
             View completion statistics {mode === "overall" ? "across all sessions" : "by individual session"}
           </p>

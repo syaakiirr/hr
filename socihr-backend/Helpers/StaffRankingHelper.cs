@@ -23,19 +23,9 @@ public class StaffRankingHelper
         DateTime? to = null
     )
     {
-        // Get active staff only
-        var activeStaffIds = await db.Staff
-            .AsNoTracking()
-            .Where(s => !s.IsArchived)
-            .Select(s => s.StaffID)
-            .ToListAsync();
-
         var query = db.Engagements
             .AsNoTracking()
-            .Include(e => e.Staff)
-            .Include(e => e.Session)
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .Where(e => activeStaffIds.Contains(e.StaffID) && !e.Session!.IsArchived); 
+            .Where(e => !e.Staff!.IsArchived && !e.Session!.IsArchived);
 
         if (from.HasValue)
         {
@@ -48,34 +38,28 @@ public class StaffRankingHelper
             query = query.Where(e => e.Session!.SessionDate <= toDate);
         }
 
-        var engagements = await query.ToListAsync();
-
-        var data = engagements
+        // Aggregate entirely on the server — no client-side materialisation
+        var aggregated = await query
             .GroupBy(e => new { e.StaffID, e.Staff!.FullName, e.Staff.Department })
-            .Select(g =>
-            {
-                var staffEngs = g.ToList();
-                var completed = staffEngs.Sum(e => TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared));
-                var total = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
-                var completionRate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
-                return new StaffRankingDto(
-                    g.Key.StaffID,
-                    g.Key.FullName,
-                    g.Key.Department,
-                    completed,
-                    total,
-                    completionRate
-                );
-            })
-            .ToList();
+            .Select(g => new StaffRankingDto(
+                g.Key.StaffID,
+                g.Key.FullName,
+                g.Key.Department,
+                g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                g.Count() * 3,
+                g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)) * 100.0 / (g.Count() * 3)
+            ))
+            .ToListAsync();
 
-        // Apply ordering.
-        // Tiebreak priority: CompletionRate -> Completed ticks -> Total ticks handled (workload) -> Name (stable fallback only).
-        IOrderedEnumerable<StaffRankingDto> ordered = order == "bottom"
-            ? data.OrderBy(d => d.CompletionRate).ThenBy(d => d.Completed).ThenBy(d => d.Total).ThenBy(d => d.FullName)
-            : data.OrderByDescending(d => d.CompletionRate).ThenByDescending(d => d.Completed).ThenByDescending(d => d.Total).ThenBy(d => d.FullName);
+        // Round completion rates to integers
+        for (int i = 0; i < aggregated.Count; i++)
+            aggregated[i] = aggregated[i] with { CompletionRate = Math.Round(aggregated[i].CompletionRate) };
 
-        // Apply limit if specified
-        return limit.HasValue ? ordered.Take(limit.Value).ToList() : ordered.ToList();
+        // Apply ordering + limit in memory on the small result set
+        var ranked = order == "bottom"
+            ? aggregated.OrderBy(d => d.CompletionRate).ThenBy(d => d.Completed).ThenBy(d => d.Total).ThenBy(d => d.FullName)
+            : aggregated.OrderByDescending(d => d.CompletionRate).ThenByDescending(d => d.Completed).ThenByDescending(d => d.Total).ThenBy(d => d.FullName);
+
+        return limit.HasValue ? ranked.Take(limit.Value).ToList() : ranked.ToList();
     }
 }

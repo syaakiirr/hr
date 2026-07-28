@@ -1,10 +1,14 @@
 import { useState, useEffect, useMemo, memo } from "react";
 import { useNavigate } from "react-router-dom";
-import ReactECharts from "echarts-for-react";
-import * as echarts from "echarts";
+import ReactEChartsCore from "echarts-for-react/esm/core";
+import { use, graphic, init, getInstanceByDom, dispose, type LinearGradientObject } from "echarts/core";
+import { BarChart, LineChart, PieChart, HeatmapChart } from "echarts/charts";
+import { GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent } from "echarts/components";
+import { CanvasRenderer } from "echarts/renderers";
+import { LegacyGridContainLabel } from "echarts/features";
 import Layout from "../components/Layout";
 import EngagementMetrics from "../components/EngagementMetrics";
-import { downloadPageAsPDF } from "../utils/pdf";
+import Toast, { type ToastState } from "../components/Toast";
 import {
   getDashboardKpi,
   getMonthlyTrend,
@@ -21,6 +25,9 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 const PLATFORM_COLORS: Record<string, string> = {
   Instagram: "#e1306c", Facebook: "#1877f2", TikTok: "#1f1f1f", LinkedIn: "#0a66c2"
 };
+
+const treeShakenECharts = { use, graphic, init, getInstanceByDom, dispose };
+use([BarChart, LineChart, PieChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer, LegacyGridContainLabel]);
 
 const DATE_FILTERS = [
   { label: "Today", value: "today" },
@@ -73,11 +80,48 @@ const KpiCard = memo(({ label, value, sub, colorClass }: { label: string; value:
   );
 });
 
+function getRateColor(rate: number) {
+  if (rate >= 75) return "green";
+  if (rate >= 50) return "amber";
+  return "red";
+}
+
 // Crisp clean light theme ECharts config
 const lightChartTheme = {
   backgroundColor: "transparent",
   textStyle: { color: "#7b7b96", fontFamily: "Geist, sans-serif", fontSize: 11 },
 };
+
+const customTooltip = {
+  backgroundColor: "rgba(255, 255, 255, 0.96)",
+  borderColor: "#e5e5f0",
+  borderWidth: 1,
+  textStyle: { color: "#111118", fontFamily: "Geist, sans-serif", fontSize: 11 },
+  extraCssText: "box-shadow: 0 4px 16px rgba(17, 17, 24, 0.08); border-radius: 8px; padding: 8px 12px;"
+};
+
+type BarGradient = { offset: number; color: string }[];
+
+function makeStaffBarOption(data: number[], labels: string[], gradient: BarGradient, opts?: { barMaxWidth?: number; labelFontSize?: number }) {
+  return {
+    ...lightChartTheme,
+    animation: true,
+    animationDuration: 400,
+    animationEasing: "cubicOut",
+    tooltip: { trigger: "axis" as const, ...customTooltip },
+    grid: { left: 10, right: 25, bottom: 0, top: 10, containLabel: true },
+    xAxis: { type: "value" as const, max: 100, axisLabel: { color: "#7b7b96", formatter: "{value}%" }, splitLine: { lineStyle: { color: "#f1f1f6" } } },
+    yAxis: { type: "category" as const, data: labels, axisLabel: { color: "#3d3d50" }, axisLine: { lineStyle: { color: "#e4e4ed" } } },
+    series: [{
+      type: "bar" as const, barMaxWidth: opts?.barMaxWidth ?? 12,
+      showBackground: true,
+      backgroundStyle: { color: "rgba(15, 23, 42, 0.02)", borderRadius: [0, 4, 4, 0] },
+      data,
+      itemStyle: { color: new graphic.LinearGradient(0, 0, 1, 0, gradient), borderRadius: [0, 4, 4, 0] },
+      label: { show: true, position: "right" as const, color: "#3d3d50", fontSize: opts?.labelFontSize ?? 10, formatter: (p: { value: number }) => `${Math.round(p.value)}%`, fontWeight: "bold" },
+    }],
+  };
+}
 
 export default function DashboardPage() {
   const navigate = useNavigate();
@@ -90,6 +134,13 @@ export default function DashboardPage() {
   const [bottomStaff, setBottomStaff] = useState<{ staffID: string; fullName: string; department: string; completed: number; total: number; completionRate: number }[]>([]);
   const [companyPerf, setCompanyPerf] = useState<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Toast state
+  const [toast, setToast] = useState<ToastState>({ isOpen: false, message: "", type: "success" });
+  function showToast(message: string, type: "success" | "error" = "success") {
+    setToast({ isOpen: true, message, type });
+  }
 
   // Snapshot modal state
   const [showSnapshotModal, setShowSnapshotModal] = useState(false);
@@ -97,24 +148,36 @@ export default function DashboardPage() {
   const [snapshotNotes, setSnapshotNotes] = useState("");
   const [savingSnapshot, setSavingSnapshot] = useState(false);
 
+  useEffect(() => {
+    if (!showSnapshotModal) return;
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowSnapshotModal(false);
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [showSnapshotModal]);
+
   // Heatmap state
   const [heatmapData, setHeatmapData] = useState<{ date: string; completed: number; total: number }[]>([]);
   const currentYear = new Date().getFullYear();
 
 
   useEffect(() => {
+    const controller = new AbortController();
+    const { signal } = controller;
     const { from, to } = getDateRange(filter);
     setLoading(true);
+    setError(null);
 
     Promise.all([
-      getDashboardKpi(from, to),
-      getMonthlyTrend(new Date().getFullYear()),
-      getWeeklyTrend(from, to),
-      getPlatformComparison(from, to),
-      getStaffRanking("top", 10, from, to),
-      getStaffRanking("bottom", 10, from, to),
-      getCompanyPerformance(from, to),
-      getHeatmap(currentYear),
+      getDashboardKpi(from, to, signal),
+      getMonthlyTrend(new Date().getFullYear(), signal),
+      getWeeklyTrend(from, to, signal),
+      getPlatformComparison(from, to, signal),
+      getStaffRanking("top", 10, from, to, signal),
+      getStaffRanking("bottom", 10, from, to, signal),
+      getCompanyPerformance(from, to, signal),
+      getHeatmap(currentYear, signal),
     ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData]) => {
       setKpi(kpiData);
       setMonthly(monthData);
@@ -128,13 +191,18 @@ export default function DashboardPage() {
         completed: d.completed,
         total: d.total,
       })));
-    }).catch(console.error)
-      .finally(() => setLoading(false));
+    }).catch((err) => {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      console.error(err);
+      setError(err instanceof Error ? err.message : "Gagal muatkan data, cuba lagi.");
+    }).finally(() => setLoading(false));
+
+    return () => controller.abort();
   }, [filter]);
 
   const handleCreateSnapshot = async () => {
     if (!snapshotName.trim()) {
-      alert("Please enter a snapshot name.");
+      showToast("Please enter a snapshot name.", "error");
       return;
     }
 
@@ -142,24 +210,16 @@ export default function DashboardPage() {
     try {
       const { from, to } = getDateRange(filter);
       await createSnapshot(snapshotName, snapshotNotes, from, to);
-      alert("Dashboard snapshot saved successfully!");
+      showToast("Dashboard snapshot saved successfully!", "success");
       setShowSnapshotModal(false);
       setSnapshotName("");
       setSnapshotNotes("");
     } catch (error) {
       console.error(error);
-      alert("Failed to save snapshot. Please try again.");
+      showToast(error instanceof Error ? error.message : "Failed to save snapshot. Please try again.", "error");
     } finally {
       setSavingSnapshot(false);
     }
-  };
-
-  const customTooltip = {
-    backgroundColor: "rgba(255, 255, 255, 0.96)",
-    borderColor: "#e5e5f0",
-    borderWidth: 1,
-    textStyle: { color: "#111118", fontFamily: "Geist, sans-serif", fontSize: 11 },
-    extraCssText: "box-shadow: 0 4px 16px rgba(17, 17, 24, 0.08); border-radius: 8px; padding: 8px 12px;"
   };
 
   // Monthly trend option - memoized for performance
@@ -178,7 +238,7 @@ export default function DashboardPage() {
         name: "Completed", type: "bar" as const, stack: "total", barMaxWidth: 20,
         data: MONTHS.map((_, i) => monthly.find((m) => m?.month === i + 1)?.completed ?? 0),
         itemStyle: { 
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: "#4ade80" },
             { offset: 1, color: "#16a34a" }
           ]),
@@ -189,7 +249,7 @@ export default function DashboardPage() {
         name: "Missed", type: "bar" as const, stack: "total", barMaxWidth: 20,
         data: MONTHS.map((_, i) => monthly.find((m) => m?.month === i + 1)?.missed ?? 0),
         itemStyle: { 
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: "#f87171" },
             { offset: 1, color: "#dc2626" }
           ]),
@@ -223,7 +283,7 @@ export default function DashboardPage() {
         symbol: "circle", symbolSize: 6, 
         itemStyle: { color: "#6366f1" },
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: "rgba(99, 102, 241, 0.2)" },
             { offset: 1, color: "rgba(99, 102, 241, 0.01)" }
           ])
@@ -236,7 +296,7 @@ export default function DashboardPage() {
         symbol: "circle", symbolSize: 5, 
         itemStyle: { color: "#ef4444" },
         areaStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+          color: new graphic.LinearGradient(0, 0, 0, 1, [
             { offset: 0, color: "rgba(239, 68, 68, 0.08)" },
             { offset: 1, color: "rgba(239, 68, 68, 0)" }
           ])
@@ -247,13 +307,13 @@ export default function DashboardPage() {
 
   // Platform comparison - memoized for performance
   const platformOption = useMemo(() => {
-    const platformGradients: Record<string, echarts.graphic.LinearGradient> = {
-      Facebook: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#60a5fa" }, { offset: 1, color: "#1d4ed8" }]),
-      Instagram: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#fb7185" }, { offset: 1, color: "#be185d" }]),
-      TikTok: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#9ca3af" }, { offset: 1, color: "#374151" }]),
-      LinkedIn: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#38bdf8" }, { offset: 1, color: "#0369a1" }]),
+    const platformGradients: Record<string, LinearGradientObject> = {
+      Facebook: new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#60a5fa" }, { offset: 1, color: "#1d4ed8" }]),
+      Instagram: new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#fb7185" }, { offset: 1, color: "#be185d" }]),
+      TikTok: new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#9ca3af" }, { offset: 1, color: "#374151" }]),
+      LinkedIn: new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#38bdf8" }, { offset: 1, color: "#0369a1" }]),
     };
-    const defaultGrad = new echarts.graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#a78bfa" }, { offset: 1, color: "#7c3aed" }]);
+    const defaultGrad = new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#a78bfa" }, { offset: 1, color: "#7c3aed" }]);
 
     return {
       ...lightChartTheme,
@@ -312,70 +372,20 @@ export default function DashboardPage() {
   }, [platforms]);
 
   // Staff ranking top - memoized for performance
-  const topOption = useMemo(() => ({
-    ...lightChartTheme,
-    animation: true,
-    animationDuration: 400,
-    animationEasing: "cubicOut",
-    tooltip: { trigger: "axis" as const, ...customTooltip },
-    grid: { left: 10, right: 25, bottom: 0, top: 10, containLabel: true },
-    xAxis: { type: "value" as const, max: 100, axisLabel: { color: "#7b7b96", formatter: "{value}%" }, splitLine: { lineStyle: { color: "#f1f1f6" } } },
-    yAxis: {
-      type: "category" as const,
-      data: topStaff.map((s) => s.fullName ? s.fullName.split(" ")[0] : "Staff"),
-      axisLabel: { color: "#3d3d50" }, axisLine: { lineStyle: { color: "#e4e4ed" } }
-    },
-    series: [{
-      type: "bar" as const, barMaxWidth: 12,
-      showBackground: true,
-      backgroundStyle: {
-        color: "rgba(15, 23, 42, 0.02)",
-        borderRadius: [0, 4, 4, 0]
-      },
-      data: topStaff.map((s) => s.completionRate ?? 0),
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: "#86efac" },
-          { offset: 1, color: "#16a34a" }
-        ]),
-        borderRadius: [0, 4, 4, 0]
-      },
-      label: { show: true, position: "right" as const, color: "#3d3d50", fontSize: 10, formatter: "{c}%", fontWeight: "bold" },
-    }],
-  }), [topStaff]);
+  const topLabels = useMemo(() => topStaff.map((s) => s.fullName ? s.fullName.split(" ")[0] : "Staff"), [topStaff]);
+  const topData = useMemo(() => topStaff.map((s) => Math.round(s.completionRate ?? 0)), [topStaff]);
+  const topOption = useMemo(() => makeStaffBarOption(topData, topLabels, [
+    { offset: 0, color: "#86efac" },
+    { offset: 1, color: "#16a34a" }
+  ]), [topData, topLabels]);
 
   // Staff ranking bottom - memoized for performance
-  const bottomOption = useMemo(() => ({
-    ...lightChartTheme,
-    animation: true,
-    animationDuration: 400,
-    animationEasing: "cubicOut",
-    tooltip: { trigger: "axis" as const, ...customTooltip },
-    grid: { left: 10, right: 25, bottom: 0, top: 10, containLabel: true },
-    xAxis: { type: "value" as const, max: 100, axisLabel: { color: "#7b7b96", formatter: "{value}%" }, splitLine: { lineStyle: { color: "#f1f1f6" } } },
-    yAxis: {
-      type: "category" as const,
-      data: bottomStaff.map((s) => s.fullName ? s.fullName.split(" ")[0] : "Staff"),
-      axisLabel: { color: "#3d3d50" }, axisLine: { lineStyle: { color: "#e4e4ed" } }
-    },
-    series: [{
-      type: "bar" as const, barMaxWidth: 12,
-      showBackground: true,
-      backgroundStyle: {
-        color: "rgba(15, 23, 42, 0.02)",
-        borderRadius: [0, 4, 4, 0]
-      },
-      data: bottomStaff.map((s) => s.completionRate ?? 0),
-      itemStyle: {
-        color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
-          { offset: 0, color: "#fca5a5" },
-          { offset: 1, color: "#dc2626" }
-        ]),
-        borderRadius: [0, 4, 4, 0]
-      },
-      label: { show: true, position: "right" as const, color: "#3d3d50", fontSize: 10, formatter: "{c}%", fontWeight: "bold" },
-    }],
-  }), [bottomStaff]);
+  const bottomLabels = useMemo(() => bottomStaff.map((s) => s.fullName ? s.fullName.split(" ")[0] : "Staff"), [bottomStaff]);
+  const bottomData = useMemo(() => bottomStaff.map((s) => Math.round(s.completionRate ?? 0)), [bottomStaff]);
+  const bottomOption = useMemo(() => makeStaffBarOption(bottomData, bottomLabels, [
+    { offset: 0, color: "#fca5a5" },
+    { offset: 1, color: "#dc2626" }
+  ]), [bottomData, bottomLabels]);
 
   // Company performance chart - memoized
   const companyColors = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b"];
@@ -406,7 +416,7 @@ export default function DashboardPage() {
       data: companyPerf.map((c, i) => ({
         value: c.rate,
         itemStyle: {
-          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+          color: new graphic.LinearGradient(0, 0, 1, 0, [
             { offset: 0, color: companyColors[i % companyColors.length] + "80" },
             { offset: 1, color: companyColors[i % companyColors.length] }
           ]),
@@ -416,7 +426,7 @@ export default function DashboardPage() {
       label: {
         show: true, position: "right" as const,
         color: "#3d3d50", fontSize: 11,
-        formatter: (p: { value: number }) => `${p.value}%`,
+        formatter: (p: { value: number }) => `${Math.round(p.value)}%`,
         fontWeight: "bold"
       },
     }],
@@ -486,6 +496,7 @@ export default function DashboardPage() {
                 onClick={() => setShowSnapshotModal(true)}
                 className="btn btn-secondary btn-sm"
                 style={{ display: "flex", alignItems: "center", gap: 6 }}
+                aria-label="Save dashboard snapshot"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <rect x="3" y="3" width="18" height="18" rx="2" />
@@ -499,6 +510,7 @@ export default function DashboardPage() {
                 onClick={() => navigate('/snapshots')}
 className="btn btn-primary btn-sm"
                 style={{ display: "flex", alignItems: "center", gap: 6 }}
+                aria-label="View saved snapshots"
               >
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
                   <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -506,7 +518,7 @@ className="btn btn-primary btn-sm"
                 View Snapshots
               </button>
 
-                <button onClick={() => downloadPageAsPDF("Dashboard")} className="btn btn-ghost btn-sm" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button onClick={async () => { const { downloadPageAsPDF } = await import("../utils/pdf"); downloadPageAsPDF("Dashboard"); }} className="btn btn-ghost btn-sm" style={{ display: "flex", alignItems: "center", gap: 6 }} aria-label="Download dashboard as PDF">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                     <polyline points="7 10 12 15 17 10" />
@@ -532,7 +544,14 @@ className="btn btn-primary btn-sm"
           </div>
         </div>
 
-        {loading ? (
+        {error ? (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, justifyContent: "center", padding: "60px 0" }}>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--red)" strokeWidth="2" strokeLinecap="round">
+              <circle cx="12" cy="12" r="10" /><line x1="12" y1="8" x2="12" y2="12" /><line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span style={{ color: "var(--red)", fontSize: 14, fontWeight: 500 }}>{error}</span>
+          </div>
+        ) : loading ? (
           <div
             style={{
               display: "flex", alignItems: "center", gap: 10,
@@ -553,7 +572,7 @@ className="btn btn-primary btn-sm"
                 <KpiCard label="Expected Ticks" value={kpi.totalExpected} colorClass="kpi-amber" />
                   <KpiCard label="Completed Ticks" value={kpi.totalCompleted} colorClass="kpi-green" />
                   <KpiCard label="Missed Ticks" value={kpi.totalMissed} colorClass="kpi-red" />
-                <KpiCard label="Completion Rate" value={`${kpi.completionRate}%`} colorClass={kpi.completionRate >= 75 ? "kpi-green" : kpi.completionRate >= 50 ? "kpi-amber" : "kpi-red"} />
+                <KpiCard label="Completion Rate" value={`${Math.round(kpi.completionRate)}%`} colorClass={`kpi-${getRateColor(kpi.completionRate)}`} />
               </div>
 
           {/* Quick Platform Badges */}
@@ -590,10 +609,10 @@ className="btn btn-primary btn-sm"
                   <strong style={{ color: companyColors[i % companyColors.length] }}>{c.company}</strong>
                   <span style={{
                     padding: "2px 7px", borderRadius: 5, fontSize: 11, fontWeight: 700,
-                    background: c.rate >= 75 ? "var(--green-soft)" : c.rate >= 50 ? "var(--amber-soft)" : "var(--red-soft)",
-                    color: c.rate >= 75 ? "var(--green)" : c.rate >= 50 ? "var(--amber)" : "var(--red)",
+                    background: `var(--${getRateColor(c.rate)}-soft)`,
+                    color: `var(--${getRateColor(c.rate)})`,
                   }}>
-                    {c.rate}%
+                    {Math.round(c.rate)}%
                   </span>
                 </div>
               ))}
@@ -604,7 +623,8 @@ className="btn btn-primary btn-sm"
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
             <div className="chart-wrap">
               <p className="chart-label">Monthly Trend (This Year)</p>
-              <ReactECharts 
+              <ReactEChartsCore 
+                echarts={treeShakenECharts}
                 option={monthlyOption} 
                 style={{ height: 220 }} 
                 opts={{ renderer: 'canvas' }}
@@ -614,7 +634,8 @@ className="btn btn-primary btn-sm"
             </div>
             <div className="chart-wrap">
               <p className="chart-label">Weekly Trend</p>
-              <ReactECharts 
+              <ReactEChartsCore 
+                echarts={treeShakenECharts}
                 option={weeklyOption} 
                 style={{ height: 220 }}
                 opts={{ renderer: 'canvas' }}
@@ -628,7 +649,8 @@ className="btn btn-primary btn-sm"
           <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 16 }}>
             <div className="chart-wrap">
               <p className="chart-label">Performance by Platform (Completion Rate %)</p>
-              <ReactECharts 
+              <ReactEChartsCore 
+                echarts={treeShakenECharts}
                 option={platformOption} 
                 style={{ height: 220 }}
                 opts={{ renderer: 'canvas' }}
@@ -639,7 +661,8 @@ className="btn btn-primary btn-sm"
             <div className="chart-wrap">
               <p className="chart-label">Completed Engagement Distribution</p>
               <div style={{ display: "flex", height: 220, alignItems: "center", position: "relative" }}>
-                <ReactECharts 
+                <ReactEChartsCore 
+                  echarts={treeShakenECharts}
                   option={distributionOption} 
                   style={{ height: "100%", width: "100%" }}
                   opts={{ renderer: 'canvas' }}
@@ -664,7 +687,8 @@ className="btn btn-primary btn-sm"
               {topStaff.length === 0 ? (
                 <p style={{ color: "var(--text-4)", fontSize: 13, padding: "20px 0" }}>No data available</p>
               ) : (
-                <ReactECharts 
+                <ReactEChartsCore 
+                  echarts={treeShakenECharts}
                   option={topOption} 
                   style={{ height: 240 }}
                   opts={{ renderer: 'canvas' }}
@@ -678,7 +702,8 @@ className="btn btn-primary btn-sm"
               {bottomStaff.length === 0 ? (
                 <p style={{ color: "var(--text-4)", fontSize: 13, padding: "20px 0" }}>No data available</p>
               ) : (
-                <ReactECharts 
+                <ReactEChartsCore 
+                  echarts={treeShakenECharts}
                   option={bottomOption} 
                   style={{ height: 240 }}
                   opts={{ renderer: 'canvas' }}
@@ -689,15 +714,16 @@ className="btn btn-primary btn-sm"
             </div>
           </div>
 
-          {/* Engagement Metrics Component */}
-          <EngagementMetrics filter={filter} />
+          {/* Engagement Metrics Component — pass kpi to avoid duplicate fetch */}
+          <EngagementMetrics filter={filter} kpiData={kpi} />
 
           {/* Company Performance Chart */}
           {companyPerf.length > 0 && (
             <div className="chart-wrap" style={{ marginTop: 16 }}>
               <p className="chart-label" style={{ color: "#6366f1" }}>🏢 Company Performance by Tick (Completion Rate %)</p>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
-                <ReactECharts
+                <ReactEChartsCore
+                  echarts={treeShakenECharts}
                   option={companyOption}
                   style={{ height: 200 }}
                   opts={{ renderer: 'canvas' }}
@@ -721,10 +747,10 @@ className="btn btn-primary btn-sm"
                         <span style={{
                           display: "inline-block", padding: "3px 8px", borderRadius: 6,
                           fontSize: 12, fontWeight: 800,
-                          background: c.rate >= 75 ? "var(--green-soft)" : c.rate >= 50 ? "var(--amber-soft)" : "var(--red-soft)",
-                          color: c.rate >= 75 ? "var(--green)" : c.rate >= 50 ? "var(--amber)" : "var(--red)",
+                          background: `var(--${getRateColor(c.rate)}-soft)`,
+                          color: `var(--${getRateColor(c.rate)})`,
                         }}>
-                          {c.rate}%
+                          {Math.round(c.rate)}%
                         </span>
                       </div>
                     </div>
@@ -753,7 +779,8 @@ className="btn btn-primary btn-sm"
                   <span>High</span>
                 </div>
               </div>
-              <ReactECharts
+              <ReactEChartsCore
+                echarts={treeShakenECharts}
                 option={heatmapOption}
                 style={{ height: 190, marginTop: 8 }}
                 opts={{ renderer: 'canvas' }}
@@ -778,7 +805,7 @@ className="btn btn-primary btn-sm"
           >
               <div className="modal-head">
                 <h2 className="modal-title">Save Dashboard Snapshot</h2>
-                <button onClick={() => setShowSnapshotModal(false)} className="btn btn-ghost btn-icon btn-sm">
+                <button onClick={() => setShowSnapshotModal(false)} className="btn btn-ghost btn-icon btn-sm" aria-label="Close">
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <line x1="18" y1="6" x2="6" y2="18" />
                     <line x1="6" y1="6" x2="18" y2="18" />
@@ -867,6 +894,12 @@ className="btn btn-primary btn-sm"
           </div>
         )}
       </Layout>
+      <Toast
+        isOpen={toast.isOpen}
+        message={toast.message}
+        type={toast.type}
+        onClose={() => setToast(prev => ({ ...prev, isOpen: false }))}
+      />
     </>
   );
 }

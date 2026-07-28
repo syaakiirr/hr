@@ -1,6 +1,5 @@
 import { lazy, Suspense, useState, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
-import { AnimatePresence } from "framer-motion";
 import PageTransition from "./components/PageTransition";
 import LoginTransition from "./components/LoginTransition";
 
@@ -38,7 +37,6 @@ function AnimatedRoutes() {
   const location = useLocation();
 
   return (
-    <AnimatePresence mode="wait" initial={false}>
       <Routes location={location} key={location.pathname}>
         {/* Login — no PageTransition wrapper */}
         <Route path="/" element={<LoginPage />} />
@@ -96,7 +94,6 @@ function AnimatedRoutes() {
         } />
         <Route path="*" element={<Navigate replace to="/" />} />
       </Routes>
-    </AnimatePresence>
   );
 }
 
@@ -123,14 +120,12 @@ function AppContent() {
       <Suspense fallback={<PageLoader />}>
         <AnimatedRoutes />
       </Suspense>
-      <AnimatePresence>
         {showOverlay && (
           <LoginTransition
             key="login-transition"
             onMidpoint={handleMidpoint}
           />
         )}
-      </AnimatePresence>
     </>
   );
 }

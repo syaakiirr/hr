@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
 import { login } from "../services/api";
 
 export default function LoginPage() {
@@ -105,6 +104,24 @@ export default function LoginPage() {
             left: -60px;
             animation: floatOrb2 20s ease-in-out infinite;
           }
+          /* Replacements for framer-motion animations */
+          @keyframes lpFadeSlide { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes lpFadeSlideDown { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
+          @keyframes lpSpin { to { transform: rotate(360deg); } }
+          @keyframes lpFloatP1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(25px,-35px); } }
+          @keyframes lpFloatP2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-25px,35px); } }
+          @keyframes lpFloatP3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-20px,15px); } }
+          @keyframes lpFloatP4 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(10px,-30px); } }
+          .lp-fade-in { animation: lpFadeSlide 0.55s cubic-bezier(0.16,1,0.3,1) forwards; }
+          .lp-fade-in-d1 { animation: lpFadeSlide 0.45s cubic-bezier(0.16,1,0.3,1) 0.35s both; }
+          .lp-fade-in-d2 { animation: lpFadeSlide 0.45s cubic-bezier(0.16,1,0.3,1) 0.42s both; }
+          .lp-fade-in-d3 { animation: lpFadeSlide 0.45s cubic-bezier(0.16,1,0.3,1) 0.49s both; }
+          .lp-spin { animation: lpSpin 1s linear infinite; }
+          .lp-error { animation: lpFadeSlideDown 0.3s ease forwards; }
+          .lp-particle-1 { animation: lpFloatP1 12s ease-in-out infinite; }
+          .lp-particle-2 { animation: lpFloatP2 16s ease-in-out infinite; }
+          .lp-particle-3 { animation: lpFloatP3 12s ease-in-out infinite; }
+          .lp-particle-4 { animation: lpFloatP4 16s ease-in-out infinite; }
         ` }} />
 
         {/* Soft Aurora Glow Orbs */}
@@ -118,36 +135,19 @@ export default function LoginPage() {
           zIndex: 1,
         }} />
 
-        {/* Floating Particles (Animated via Framer Motion) */}
-        {[...Array(4)].map((_, i) => (
-          <motion.div
-            key={i}
-            initial={{ 
-              x: i === 0 ? -10 : i === 1 ? 15 : i === 2 ? -20 : 10,
-              y: i === 0 ? 10 : i === 1 ? -15 : i === 2 ? 15 : -10 
-            }}
-            animate={{
-              x: i % 2 === 0 ? [0, 25, -20, 0] : [0, -25, 20, 0],
-              y: i % 2 === 0 ? [0, -35, 15, 0] : [0, 35, -15, 0],
-            }}
-            transition={{
-              duration: i % 2 === 0 ? 12 : 16,
-              repeat: Infinity,
-              ease: "easeInOut",
-            }}
-            style={{
-              position: "absolute",
-              width: i % 2 === 0 ? 6 : 9,
-              height: i % 2 === 0 ? 6 : 9,
-              borderRadius: "50%",
-              background: i % 2 === 0 ? "rgba(99, 102, 241, 0.25)" : "rgba(16, 185, 129, 0.22)",
-              boxShadow: i % 2 === 0 ? "0 0 16px rgba(99, 102, 241, 0.65)" : "0 0 16px rgba(16, 185, 129, 0.55)",
-              pointerEvents: "none",
-              zIndex: 1,
-              top: i === 0 ? "25%" : i === 1 ? "65%" : i === 2 ? "45%" : "80%",
-              left: i === 0 ? "20%" : i === 1 ? "75%" : i === 2 ? "85%" : "15%",
-            }}
-          />
+        {/* Floating Particles (CSS animations instead of framer-motion) */}
+        {[
+          { top: "25%", left: "20%", w: 6, h: 6, cls: "lp-particle-1", bg: "rgba(99, 102, 241, 0.25)", shadow: "0 0 16px rgba(99, 102, 241, 0.65)" },
+          { top: "65%", left: "75%", w: 9, h: 9, cls: "lp-particle-2", bg: "rgba(16, 185, 129, 0.22)", shadow: "0 0 16px rgba(16, 185, 129, 0.55)" },
+          { top: "45%", left: "85%", w: 6, h: 6, cls: "lp-particle-3", bg: "rgba(99, 102, 241, 0.25)", shadow: "0 0 16px rgba(99, 102, 241, 0.65)" },
+          { top: "80%", left: "15%", w: 9, h: 9, cls: "lp-particle-4", bg: "rgba(16, 185, 129, 0.22)", shadow: "0 0 16px rgba(16, 185, 129, 0.55)" },
+        ].map((p, i) => (
+          <div key={i} className={p.cls} style={{
+            position: "absolute", top: p.top, left: p.left,
+            width: p.w, height: p.h, borderRadius: "50%",
+            background: p.bg, boxShadow: p.shadow,
+            pointerEvents: "none", zIndex: 1,
+          }} />
         ))}
 
         {/* Floating Branded Social & System Icons (CSS-animated bob) */}
@@ -367,11 +367,7 @@ export default function LoginPage() {
           position: "relative",
           zIndex: 2,
         }}>
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, ease: [0.16,1,0.3,1] }}
-          >
+          <div className="lp-fade-in">
             <p style={{ fontSize: 38, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.03em", lineHeight: 1.15, marginBottom: 18 }}>
               Social Media<br />Engagement Monitor
             </p>
@@ -415,18 +411,9 @@ export default function LoginPage() {
                   background: "#16a34a"
                 }} />
               </span>
-              <AnimatePresence mode="wait">
-                <motion.span
-                  key={statusIndex}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.3, ease: "easeInOut" }}
-                  style={{ fontSize: 12, fontWeight: 600, color: "#475569" }}
-                >
-                  {statuses[statusIndex]}
-                </motion.span>
-              </AnimatePresence>
+              <span key={statusIndex} style={{ fontSize: 12, fontWeight: 600, color: "#475569", animation: "lpFadeSlide 0.3s ease" }}>
+                {statuses[statusIndex]}
+              </span>
             </div>
 
             <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
@@ -470,12 +457,9 @@ export default function LoginPage() {
                   )
                 }
               ].map((p, i) => (
-                <motion.div
+                <div
                   key={p.name}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 + i * 0.07, type: "spring", stiffness: 100 }}
-                  whileHover={{ y: -2, scale: 1.03, boxShadow: p.glow, borderColor: p.color }}
+                  className={i === 0 ? "lp-fade-in-d1" : i === 1 ? "lp-fade-in-d2" : "lp-fade-in-d3"}
                   style={{
                     display: "inline-flex", alignItems: "center", gap: 8,
                     background: p.bg,
@@ -484,15 +468,17 @@ export default function LoginPage() {
                     fontSize: 12, fontWeight: 600, color: p.color,
                     cursor: "default",
                     backdropFilter: "blur(4px)",
-                    transition: "border-color 0.2s, box-shadow 0.2s",
+                    transition: "border-color 0.2s, box-shadow 0.2s, transform 0.2s",
                   }}
+                  onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-2px) scale(1.03)"; e.currentTarget.style.boxShadow = p.glow; e.currentTarget.style.borderColor = p.color; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = ""; e.currentTarget.style.borderColor = ""; }}
                 >
                   <span style={{ display: "flex", opacity: 0.85 }}>{p.icon}</span>
                   {p.name}
-                </motion.div>
+                </div>
               ))}
             </div>
-          </motion.div>
+          </div>
         </div>
 
         {/* Footer Area */}
@@ -509,12 +495,7 @@ export default function LoginPage() {
         padding: "48px 64px",
         background: "var(--white)",
       }} aria-label="Login form">
-        <motion.div
-          style={{ width: "100%", maxWidth: 360 }}
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.45, ease: [0.16,1,0.3,1] }}
-        >
+        <div className="lp-fade-in-d1" style={{ width: "100%", maxWidth: 360 }}>
           <div style={{ marginBottom: 32 }}>
             <p style={{ fontSize: 22, fontWeight: 800, color: "var(--text-1)", letterSpacing: "-0.025em", marginBottom: 4 }}>
               Account Login
@@ -553,7 +534,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <motion.div initial={{ opacity: 0, y: -6 }} animate={{ opacity: 1, y: 0 }}
+              <div className="lp-error"
                 style={{
                   background: "var(--red-soft)", border: "1px solid var(--red-line)",
                   borderRadius: 7, padding: "8px 12px",
@@ -565,7 +546,7 @@ export default function LoginPage() {
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
                 </svg>
                 {error}
-              </motion.div>
+              </div>
             )}
 
             <button id="login-btn" type="submit" disabled={loading}
@@ -574,17 +555,13 @@ export default function LoginPage() {
             >
               {loading ? (
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 10 }}>
-                  <motion.div
-                    animate={{ rotate: 360 }}
-                    transition={{ repeat: Infinity, duration: 1, ease: "linear" }}
-                    style={{
-                      width: 16,
-                      height: 16,
-                      borderRadius: "50%",
-                      border: "2px solid rgba(15, 23, 42, 0.2)",
-                      borderTopColor: "#0f172a",
-                    }}
-                  />
+                  <div className="lp-spin" style={{
+                    width: 16,
+                    height: 16,
+                    borderRadius: "50%",
+                    border: "2px solid rgba(15, 23, 42, 0.2)",
+                    borderTopColor: "#0f172a",
+                  }} />
                   <span style={{ color: "#0f172a" }}>Authenticating...</span>
                 </div>
               ) : (
@@ -629,7 +606,7 @@ export default function LoginPage() {
             <span style={{ opacity: 0.5 }}>•</span>
             <span>Crafted by <span style={{ color: "var(--primary)", fontWeight: 600 }}>@syaakiirr</span></span>
           </p>
-        </motion.div>
+        </div>
       </main>
     </div>
     </>

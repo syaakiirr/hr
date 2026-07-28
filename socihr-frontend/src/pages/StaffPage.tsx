@@ -7,7 +7,7 @@ import ConfirmationDialog from "../components/ConfirmationDialog";
 import Toast, { type ToastState } from "../components/Toast";
 import type { Staff } from "../services/api";
 import { getStaffList, createStaff, updateStaff, toggleStaffStatus, archiveStaff, deleteStaff } from "../services/api";
-import { downloadPageAsPDF } from "../utils/pdf";
+
 
 function Avatar({ name }: { name: string }) {
   const initials = name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
@@ -186,7 +186,7 @@ export default function StaffPage() {
               View Archived
             </button>
             <button
-              onClick={() => downloadPageAsPDF("Staff_List")}
+              onClick={async () => { const { downloadPageAsPDF } = await import("../utils/pdf"); downloadPageAsPDF("Staff_List"); }}
                className="btn btn-primary"
               style={{ display: "flex", alignItems: "center", gap: 6 }}
             >
