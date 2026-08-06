@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion } from "framer-motion";
 import Layout from "../components/Layout";
+import { useDateFilter, getDateRange, DATE_FILTERS } from "../contexts/DateFilterContext";
 import { getStaffEngagementStats, getStaffList, type StaffEngagementStats } from "../services/api";
 
 
@@ -22,6 +23,8 @@ function Avatar({ name }: { name: string }) {
 }
 
 export default function StaffEngagementPage() {
+  const { filter, setFilter } = useDateFilter();
+  const { from, to } = getDateRange(filter);
   const [stats, setStats] = useState<StaffEngagementStats[]>([]);
   const [totalStaffCount, setTotalStaffCount] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -41,6 +44,8 @@ export default function StaffEngagementPage() {
         search: search || undefined,
         department: filterDept || undefined,
         status: filterStatus || undefined,
+        from,
+        to,
       });
       setStats(data);
     } catch (err) {
@@ -48,7 +53,7 @@ export default function StaffEngagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [search, filterDept, filterStatus]);
+  }, [search, filterDept, filterStatus, from, to]);
 
   useEffect(() => { fetchStats(); }, [fetchStats]);
 
@@ -70,14 +75,28 @@ export default function StaffEngagementPage() {
             <h1 className="page-title">Staff Engagement Stats</h1>
             <p className="page-sub">Total ticks and completion rates for all staff</p>
           </div>
-              <button onClick={async () => { const { downloadPageAsPDF } = await import("../utils/pdf"); downloadPageAsPDF("Staff_Engagement"); }} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                  <polyline points="7 10 12 15 17 10" />
-                  <line x1="12" y1="15" x2="12" y2="3" />
-                </svg>
-                Download PDF
-              </button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <button onClick={async () => { const { downloadPageAsPDF } = await import("../utils/pdf"); downloadPageAsPDF("Staff_Engagement"); }} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
+              Download PDF
+            </button>
+            <div style={{ width: 1, height: 24, background: "var(--line)", margin: "0 4px" }} />
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              {DATE_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setFilter(f.value)}
+                  className={`btn btn-sm ${filter === f.value ? "btn-primary" : "btn-secondary"}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {/* Summary KPIs */}

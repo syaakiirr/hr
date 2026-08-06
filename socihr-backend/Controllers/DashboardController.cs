@@ -249,9 +249,20 @@ public class DashboardController : ControllerBase
         var companies = await _db.Companies.AsNoTracking().OrderBy(c => c.CompanyName).ToListAsync();
 
         // Aggregate engagement ticks per company in one server-side pass
-        var engAgg = await _db.Engagements
+        var engAggQuery = _db.Engagements
             .AsNoTracking()
-            .Where(e => e.Post!.CompanyID != null && !e.Session!.IsArchived)
+            .Where(e => e.Post!.CompanyID != null && !e.Session!.IsArchived);
+        if (from.HasValue)
+        {
+            var fd = DateOnly.FromDateTime(from.Value);
+            engAggQuery = engAggQuery.Where(e => e.Session!.SessionDate >= fd);
+        }
+        if (to.HasValue)
+        {
+            var td = DateOnly.FromDateTime(to.Value);
+            engAggQuery = engAggQuery.Where(e => e.Session!.SessionDate <= td);
+        }
+        var engAgg = await engAggQuery
             .GroupBy(e => e.Post!.CompanyID!.Value)
             .Select(g => new
             {

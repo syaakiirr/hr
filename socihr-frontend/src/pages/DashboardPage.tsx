@@ -9,6 +9,7 @@ import { LegacyGridContainLabel } from "echarts/features";
 import Layout from "../components/Layout";
 import EngagementMetrics from "../components/EngagementMetrics";
 import Toast, { type ToastState } from "../components/Toast";
+import { useDateFilter, getDateRange, DATE_FILTERS } from "../contexts/DateFilterContext";
 import {
   getDashboardKpi,
   getMonthlyTrend,
@@ -28,47 +29,6 @@ const PLATFORM_COLORS: Record<string, string> = {
 
 const treeShakenECharts = { use, graphic, init, getInstanceByDom, dispose };
 use([BarChart, LineChart, PieChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer, LegacyGridContainLabel]);
-
-const DATE_FILTERS = [
-  { label: "Today", value: "today" },
-  { label: "This Week", value: "week" },
-  { label: "This Month", value: "month" },
-  { label: "3 Months", value: "3months" },
-  { label: "6 Months", value: "6months" },
-  { label: "1 Year", value: "year" },
-  { label: "All Time", value: "all" },
-];
-
-function getDateRange(filter: string): { from?: string; to?: string } {
-  const now = new Date();
-  const fmt = (d: Date) => d.toISOString().split("T")[0];
-  const today = fmt(now);
-
-  switch (filter) {
-    case "today": return { from: today, to: today };
-    case "week": {
-      const start = new Date(now); start.setDate(now.getDate() - now.getDay());
-      return { from: fmt(start), to: today };
-    }
-    case "month": {
-      const start = new Date(now.getFullYear(), now.getMonth(), 1);
-      return { from: fmt(start), to: today };
-    }
-    case "3months": {
-      const start = new Date(now); start.setMonth(now.getMonth() - 3);
-      return { from: fmt(start), to: today };
-    }
-    case "6months": {
-      const start = new Date(now); start.setMonth(now.getMonth() - 6);
-      return { from: fmt(start), to: today };
-    }
-    case "year": {
-      const start = new Date(now); start.setFullYear(now.getFullYear() - 1);
-      return { from: fmt(start), to: today };
-    }
-    default: return {};
-  }
-}
 
 const KpiCard = memo(({ label, value, sub, colorClass }: { label: string; value: string | number; sub?: string; colorClass: string }) => {
   return (
@@ -125,7 +85,7 @@ function makeStaffBarOption(data: number[], labels: string[], gradient: BarGradi
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const [filter, setFilter] = useState("month");
+  const { filter, setFilter } = useDateFilter();
   const [kpi, setKpi] = useState<KpiData | null>(null);
   const [monthly, setMonthly] = useState<{ month: number; completed: number; missed: number; total: number }[]>([]);
   const [weekly, setWeekly] = useState<{ week: string; completed: number; missed: number; total: number }[]>([]);

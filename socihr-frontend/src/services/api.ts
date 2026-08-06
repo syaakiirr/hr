@@ -81,11 +81,13 @@ export interface StaffEngagementStats {
   completionRate: number;
 }
 
-export async function getStaffEngagementStats(params?: { search?: string; department?: string; status?: string }): Promise<StaffEngagementStats[]> {
+export async function getStaffEngagementStats(params?: { search?: string; department?: string; status?: string; from?: string; to?: string }): Promise<StaffEngagementStats[]> {
   const q = new URLSearchParams();
   if (params?.search) q.set("search", params.search);
   if (params?.department) q.set("department", params.department);
   if (params?.status) q.set("status", params.status);
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/staff/engagement-stats?${queryString}` : `${BASE_URL}/staff/engagement-stats`;
   const res = await fetch(url, { headers: authHeaders() });

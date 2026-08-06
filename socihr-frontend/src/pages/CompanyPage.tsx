@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import ReactEChartsCore from "echarts-for-react/esm/core";
 import { use, graphic, init, getInstanceByDom, dispose } from "echarts/core";
@@ -7,6 +7,7 @@ import { GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
+import { useDateFilter, getDateRange, DATE_FILTERS } from "../contexts/DateFilterContext";
 import {
   getCompanies,
   createCompany,
@@ -34,6 +35,8 @@ const customTooltip = {
 };
 
 export default function CompanyPage() {
+  const { filter, setFilter } = useDateFilter();
+  const { from, to } = getDateRange(filter);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [performance, setPerformance] = useState<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,16 +47,12 @@ export default function CompanyPage() {
     isOpen: boolean; title: string; message: string; onConfirm: () => void; isLoading?: boolean; danger?: boolean;
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  async function fetchData() {
+  const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const [compList, perfList] = await Promise.all([
         getCompanies(),
-        getCompanyPerformance()
+        getCompanyPerformance(from, to)
       ]);
       setCompanies(compList);
       setPerformance(perfList);
@@ -62,7 +61,11 @@ export default function CompanyPage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [from, to]);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
 
   async function handleAddCompany(e: React.FormEvent) {
     e.preventDefault();
@@ -181,7 +184,19 @@ export default function CompanyPage() {
             <h1 className="page-title">Company Management</h1>
             <p className="page-sub">View company rankings, check completion ticks, and register new companies</p>
           </div>
-          <div style={{ display: "flex", gap: 8 }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              {DATE_FILTERS.map((f) => (
+                <button
+                  key={f.value}
+                  onClick={() => setFilter(f.value)}
+                  className={`btn btn-sm ${filter === f.value ? "btn-primary" : "btn-secondary"}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+            </div>
+            <div style={{ width: 1, height: 24, background: "var(--line)", margin: "0 4px" }} />
                  <button onClick={async () => { const { downloadPageAsPDF } = await import("../utils/pdf"); downloadPageAsPDF("Company_Performance"); }} className="btn btn-primary" style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />

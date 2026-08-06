@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, useEffect, type ReactNode } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import PageTransition from "./components/PageTransition";
 import LoginTransition from "./components/LoginTransition";
+import { DateFilterProvider } from "./contexts/DateFilterContext";
 
 
 import LoginPage           from "./pages/LoginPage";
@@ -133,7 +134,9 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <AppContent />
+      <DateFilterProvider>
+        <AppContent />
+      </DateFilterProvider>
     </BrowserRouter>
   );
 }

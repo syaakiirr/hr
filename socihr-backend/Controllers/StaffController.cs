@@ -132,25 +132,37 @@ public class StaffController : ControllerBase
 
     // GET /api/staff/engagement-stats
     [HttpGet("engagement-stats")]
-    public async Task<IActionResult> GetEngagementStats([FromQuery] string? search, [FromQuery] string? department, [FromQuery] string? status)
+    public async Task<IActionResult> GetEngagementStats([FromQuery] string? search, [FromQuery] string? department, [FromQuery] string? status, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
         var staffQuery = _db.Staff.AsQueryable();
-        
+
         if (!string.IsNullOrWhiteSpace(search))
             staffQuery = staffQuery.Where(s => s.FullName.ToLower().Contains(search.ToLower()));
         if (!string.IsNullOrWhiteSpace(department))
             staffQuery = staffQuery.Where(s => s.Department == department);
         if (!string.IsNullOrWhiteSpace(status))
             staffQuery = staffQuery.Where(s => s.Status == status);
+        staffQuery = staffQuery.Where(s => !s.IsArchived);
 
         var staffList = await staffQuery.ToListAsync();
         
         // Get all relevant engagements with necessary includes
         var staffIds = staffList.Select(s => s.StaffID).ToList();
-        var allEngagements = await _db.Engagements
+        var allEngagementsQuery = _db.Engagements
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
             .Where(e => staffIds.Contains(e.StaffID))
-            .ToListAsync();
+            .Where(e => !e.Session!.IsArchived);
+        if (from.HasValue)
+        {
+            var fd = DateOnly.FromDateTime(from.Value);
+            allEngagementsQuery = allEngagementsQuery.Where(e => e.Session != null && e.Session.SessionDate >= fd);
+        }
+        if (to.HasValue)
+        {
+            var td = DateOnly.FromDateTime(to.Value);
+            allEngagementsQuery = allEngagementsQuery.Where(e => e.Session != null && e.Session.SessionDate <= td);
+        }
+        var allEngagements = await allEngagementsQuery.ToListAsync();
 
         var stats = staffList
             .Select(s =>
@@ -160,7 +172,10 @@ public class StaffController : ControllerBase
                 var totalExpected = staffEngs.Sum(e => TickHelper.Expected(e.Post!.Platform!.PlatformName));
                 var totalMissed = totalExpected - totalCompleted;
                 var totalPosts = staffEngs.Select(e => e.PostID).Distinct().Count();
-                var completionRate = totalExpected > 0 ? Math.Round((double)totalCompleted / totalExpected * 100, 1) : 0;
+                var rawRate = totalExpected > 0 ? (double)totalCompleted / totalExpected * 100 : 0;
+                var completionRate = Math.Round(rawRate, 1);
+                // Same integer rounding + ordering as the dashboard top-staff ranking
+                var rankRate = Math.Round(rawRate);
                 
                 return new
                 {
@@ -173,10 +188,27 @@ public class StaffController : ControllerBase
                     TotalEngagements = totalExpected,
                     TotalCompleted = totalCompleted,
                     TotalMissed = totalMissed,
-                    CompletionRate = completionRate
+                    CompletionRate = completionRate,
+                    RankRate = rankRate
                 };
             })
-            .OrderByDescending(s => s.TotalCompleted)
+            .OrderByDescending(s => s.RankRate)
+            .ThenByDescending(s => s.TotalCompleted)
+            .ThenByDescending(s => s.TotalEngagements)
+            .ThenBy(s => s.FullName)
+            .Select(s => new
+            {
+                s.StaffID,
+                s.FullName,
+                s.Department,
+                s.Position,
+                s.Status,
+                s.TotalPosts,
+                s.TotalEngagements,
+                s.TotalCompleted,
+                s.TotalMissed,
+                s.CompletionRate
+            })
             .ToList();
 
         return Ok(stats);
