@@ -18,39 +18,47 @@ public class EngagementController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetBySession([FromQuery] Guid sessionId)
     {
-        var engagements = await _db.Engagements
-            .AsNoTracking()
-            .Include(e => e.Staff)
-            .Include(e => e.Post)
-                .ThenInclude(p => p!.Platform)
-            .Include(e => e.Post)
-                .ThenInclude(p => p!.Company)
-            .Where(e => e.SessionID == sessionId)
-            .ToListAsync();
-
-        var result = engagements.Select(e => new
+        try
         {
-            e.EngagementID,
-            e.SessionID,
-            e.PostID,
-            e.StaffID,
-            StaffName = e.Staff!.FullName,
-            Department = e.Staff.Department,
-            CompanyID = e.Post!.CompanyID,
-            CompanyName = e.Post.Company != null ? e.Post.Company.CompanyName : "No Company",
-            PlatformID = e.Post!.PlatformID,
-            PlatformName = e.Post.Platform!.PlatformName,
-            PostLink = e.Post.PostLink,
-            e.Status,
-            e.IsLiked,
-            e.IsCommented,
-            e.IsShared,
-            e.Reason,
-            e.UpdatedBy,
-            e.UpdatedAt
-        });
+            var engagements = await _db.Engagements
+                .AsNoTracking()
+                .Include(e => e.Staff)
+                .Include(e => e.Post)
+                    .ThenInclude(p => p!.Platform)
+                .Include(e => e.Post)
+                    .ThenInclude(p => p!.Company)
+                .Where(e => e.SessionID == sessionId)
+                .ToListAsync();
 
-        return Ok(result);
+            var result = engagements.Select(e => new
+            {
+                e.EngagementID,
+                e.SessionID,
+                e.PostID,
+                e.StaffID,
+                StaffName = e.Staff!.FullName,
+                Department = e.Staff.Department,
+                CompanyID = e.Post!.CompanyID,
+                CompanyName = e.Post.Company != null ? e.Post.Company.CompanyName : "No Company",
+                PlatformID = e.Post!.PlatformID,
+                PlatformName = e.Post.Platform!.PlatformName,
+                PostLink = e.Post.PostLink,
+                e.Status,
+                e.IsLiked,
+                e.IsCommented,
+                e.IsShared,
+                e.Reason,
+                e.UpdatedBy,
+                e.UpdatedAt
+            });
+
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"GetBySession error: {ex}");
+            return StatusCode(500, new { message = "Failed to load engagements." });
+        }
     }
 
     // PATCH /api/engagement/{id}/status  — update tick status
@@ -87,55 +95,59 @@ public class EngagementController : ControllerBase
     [HttpPatch("{id:guid}/action")]
     public async Task<IActionResult> UpdateAction(Guid id, [FromBody] UpdateActionRequest req)
     {
-        var engagement = await _db.Engagements
-            .Include(e => e.Post).ThenInclude(p => p!.Platform)
-            .FirstOrDefaultAsync(e => e.EngagementID == id);
-        if (engagement == null) return NotFound(new { message = "Engagement not found." });
-
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-        var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
-
-        var actionLower = req.Action.ToLower();
-
-        switch (actionLower)
+        try
         {
-            case "like":    engagement.IsLiked    = req.Value; break;
-            case "comment": engagement.IsCommented = req.Value; break;
-            case "share":   engagement.IsShared   = req.Value; break;
-            default: return BadRequest(new { message = "Invalid action. Must be like, comment, or share." });
-        }
+            var engagement = await _db.Engagements
+                .Include(e => e.Post).ThenInclude(p => p!.Platform)
+                .FirstOrDefaultAsync(e => e.EngagementID == id);
+            if (engagement == null) return NotFound(new { message = "Engagement not found." });
 
-        // Auto-calculate status: all 3 actions must be ticked for Completed
-        var prevStatus = engagement.Status;
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
 
-        engagement.Status = (engagement.IsLiked && engagement.IsCommented && engagement.IsShared) ? "Completed" : "Missed";
+            var actionLower = req.Action.ToLower();
 
-        engagement.UpdatedBy = userId;
-        engagement.UpdatedAt = DateTime.UtcNow;
-
-        // Record audit trail if status changed
-        if (prevStatus != engagement.Status)
-        {
-            _db.AuditTrails.Add(new AuditTrail
+            switch (actionLower)
             {
-                AuditID = Guid.NewGuid(),
-                EngagementID = engagement.EngagementID,
-                PreviousStatus = prevStatus,
-                NewStatus = engagement.Status,
-                UpdatedBy = userId,
-                UpdatedAt = DateTime.UtcNow
+                case "like":    engagement.IsLiked    = req.Value; break;
+                case "comment": engagement.IsCommented = req.Value; break;
+                case "share":   engagement.IsShared   = req.Value; break;
+                default: return BadRequest(new { message = "Invalid action. Must be like, comment, or share." });
+            }
+
+            var prevStatus = engagement.Status;
+            engagement.Status = (engagement.IsLiked && engagement.IsCommented && engagement.IsShared) ? "Completed" : "Missed";
+            engagement.UpdatedBy = userId;
+            engagement.UpdatedAt = DateTime.UtcNow;
+
+            if (prevStatus != engagement.Status)
+            {
+                _db.AuditTrails.Add(new AuditTrail
+                {
+                    AuditID = Guid.NewGuid(),
+                    EngagementID = engagement.EngagementID,
+                    PreviousStatus = prevStatus,
+                    NewStatus = engagement.Status,
+                    UpdatedBy = userId,
+                    UpdatedAt = DateTime.UtcNow
+                });
+            }
+
+            await _db.SaveChangesAsync();
+            return Ok(new
+            {
+                engagement.EngagementID,
+                engagement.Status,
+                engagement.IsLiked,
+                engagement.IsCommented,
+                engagement.IsShared
             });
         }
-
-        await _db.SaveChangesAsync();
-        return Ok(new
+        catch (Exception ex)
         {
-            engagement.EngagementID,
-            engagement.Status,
-            engagement.IsLiked,
-            engagement.IsCommented,
-            engagement.IsShared
-        });
+            Console.WriteLine($"UpdateAction error: {ex}");
+            return StatusCode(500, new { message = "Failed to update engagement." });
+        }
     }
 
     // PATCH /api/engagement/{id}/reason  — update reason field
