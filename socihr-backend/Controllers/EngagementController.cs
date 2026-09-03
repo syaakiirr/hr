@@ -28,19 +28,21 @@ public class EngagementController : ControllerBase
             .Where(e => e.SessionID == sessionId)
             .ToListAsync();
 
-        var result = engagements.Select(e => new
+        var result = engagements
+            .Where(e => e.Staff != null && e.Post != null && e.Post.Platform != null)
+            .Select(e => new
         {
             e.EngagementID,
             e.SessionID,
             e.PostID,
             e.StaffID,
-            StaffName = e.Staff!.FullName,
-            Department = e.Staff.Department,
+            StaffName = e.Staff!.FullName ?? "[deleted staff]",
+            Department = e.Staff!.Department ?? "-",
             CompanyID = e.Post!.CompanyID,
-            CompanyName = e.Post.Company != null ? e.Post.Company.CompanyName : "No Company",
+            CompanyName = e.Post!.Company != null ? e.Post.Company.CompanyName : "No Company",
             PlatformID = e.Post!.PlatformID,
-            PlatformName = e.Post.Platform!.PlatformName,
-            PostLink = e.Post.PostLink,
+            PlatformName = e.Post!.Platform!.PlatformName ?? "Unknown",
+            PostLink = e.Post!.PostLink ?? "",
             e.Status,
             e.IsLiked,
             e.IsCommented,
