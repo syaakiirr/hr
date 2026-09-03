@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using socihr_backend.Data;
@@ -229,7 +229,7 @@ public class StaffController : ControllerBase
                 return NotFound(new { message = "Staff not found." });
 
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
+            var userId = userIdClaim != null && Guid.TryParse(userIdClaim, out var _parsedUserId) ? _parsedUserId : Guid.Empty;
 
             staff.IsArchived = true;
             staff.ArchivedBy = userId;
@@ -312,3 +312,4 @@ public class StaffController : ControllerBase
 }
 
 public record StaffRequest(string FullName, string? Department, string? Position);
+

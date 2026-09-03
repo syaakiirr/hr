@@ -1,9 +1,9 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5094/api";
+﻿const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5094/api";
 
 function authHeaders(): Record<string, string> {
   return {
     "Content-Type": "application/json",
-    Authorization: `Bearer ${localStorage.getItem("token")}`,
+    Authorization: localStorage.getItem("token") ? `Bearer ${localStorage.getItem("token")}` : "",
   };
 }
 
@@ -781,3 +781,4 @@ export async function getAuditTrail(page = 1, pageSize = 50): Promise<{ total: n
   const res = await fetch(`${BASE_URL}/audit?page=${page}&pageSize=${pageSize}`, { headers: authHeaders() });
   return handleResponse<{ total: number; page: number; pageSize: number; items: AuditItem[] }>(res);
 }
+
