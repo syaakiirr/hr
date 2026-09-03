@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -21,6 +22,7 @@ public class AuthController : ControllerBase
         _config = config;
     }
 
+    [Authorize(Roles = "SuperAdmin")]
     [HttpGet("schema")]
     public async Task<IActionResult> GetSchema()
     {
