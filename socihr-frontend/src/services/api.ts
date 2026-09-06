@@ -1,4 +1,4 @@
-﻿const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5094/api";
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5094/api";
 
 function authHeaders(): Record<string, string> {
   return {
@@ -29,7 +29,41 @@ export async function login(username: string, password: string) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ Username: username, Password: password }),
   });
-  return handleResponse<{ token: string; username: string; role: string }>(res);
+  return handleResponse<{ token: string; username: string; role: string; departmentId?: string; departmentName?: string }>(res);
+}
+
+// ─── User Management (SuperAdmin only) ──────────────
+export interface AppUser {
+  userID: string;
+  username: string;
+  role: string;
+  departmentID?: string;
+  departmentName?: string;
+}
+
+export async function getUsers(): Promise<AppUser[]> {
+  const res = await fetch(`${BASE_URL}/users`, { headers: authHeaders() });
+  return handleResponse<AppUser[]>(res);
+}
+
+export async function createUser(data: { username: string; password: string; role: string; departmentID?: string }): Promise<AppUser> {
+  const res = await fetch(`${BASE_URL}/users`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
+  return handleResponse<AppUser>(res);
+}
+
+export async function updateUser(id: string, data: { username?: string; password?: string; departmentID?: string }): Promise<AppUser> {
+  const res = await fetch(`${BASE_URL}/users/${id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
+  return handleResponse<AppUser>(res);
+}
+
+export async function deleteUser(id: string): Promise<void> {
+  const res = await fetch(`${BASE_URL}/users/${id}`, { method: "DELETE", headers: authHeaders() });
+  if (!res.ok) {
+    const text = await res.text();
+    let message = "An error occurred.";
+    try { const err = JSON.parse(text); if (err?.message) message = err.message; } catch { /* ignore */ }
+    throw new Error(message);
+  }
 }
 
 // ─── Staff ──────────────────────────────────────────
@@ -613,7 +647,8 @@ export async function downloadCustomReportPdf(
     showDaily?: boolean;
     showMonitoringSessions?: boolean;
     showStaffTable?: boolean;
-  }
+  },
+  departments?: string[]
 ): Promise<void> {
   try {
     const token = localStorage.getItem("token");
@@ -628,6 +663,7 @@ export async function downloadCustomReportPdf(
     params.append("showDaily", (options.showDaily ?? true).toString());
     params.append("showMonitoringSessions", (options.showMonitoringSessions ?? true).toString());
     params.append("showStaffTable", (options.showStaffTable ?? true).toString());
+    if (departments && departments.length > 0) params.append("departments", departments.join(","));
 
     const res = await fetch(`${BASE_URL}/reports/pdf?${params}`, {
       method: "GET",
@@ -705,7 +741,8 @@ export async function downloadCustomReportExcel(
     showDaily?: boolean;
     showMonitoringSessions?: boolean;
     showStaffTable?: boolean;
-  }
+  },
+  departments?: string[]
 ): Promise<void> {
   try {
     const token = localStorage.getItem("token");
@@ -726,6 +763,7 @@ export async function downloadCustomReportExcel(
         IncludeDaily: options.showDaily ?? true,
         IncludeStaffTable: options.showStaffTable ?? true,
         IncludeMonitoringSessions: options.showMonitoringSessions ?? true,
+        Departments: departments && departments.length > 0 ? departments : null,
       }),
     });
 
@@ -755,10 +793,11 @@ export async function downloadCustomReportExcel(
 }
 
 // ─── Reports ────────────────────────────────────────
-export function buildReportUrl(format: "excel" | "pdf", from?: string, to?: string): string {
+export function buildReportUrl(format: "excel" | "pdf", from?: string, to?: string, departments?: string[]): string {
   const q = new URLSearchParams();
   if (from) q.set("from", from);
   if (to) q.set("to", to);
+  if (departments && departments.length > 0) q.set("departments", departments.join(","));
   const queryString = q.toString();
   return queryString ? `${BASE_URL}/reports/${format}?${queryString}` : `${BASE_URL}/reports/${format}`;
 }
@@ -782,3 +821,131 @@ export async function getAuditTrail(page = 1, pageSize = 50): Promise<{ total: n
   return handleResponse<{ total: number; page: number; pageSize: number; items: AuditItem[] }>(res);
 }
 
+// ─── Paginated Staff ────────────────────────────────
+export interface StaffPagedResult {
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  items: Staff[];
+}
+
+export async function getStaffPaged(params?: {
+  search?: string;
+  department?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}): Promise<StaffPagedResult> {
+  const q = new URLSearchParams();
+  if (params?.search) q.set("search", params.search);
+  if (params?.department) q.set("department", params.department);
+  if (params?.status) q.set("status", params.status);
+  if (params?.page) q.set("page", params.page.toString());
+  if (params?.pageSize) q.set("pageSize", params.pageSize.toString());
+  const queryString = q.toString();
+  const url = queryString ? `${BASE_URL}/staff/paged?${queryString}` : `${BASE_URL}/staff/paged`;
+  const res = await fetch(url, { headers: authHeaders() });
+  return handleResponse<StaffPagedResult>(res);
+}
+
+// ─── Dashboard Trends ───────────────────────────────
+export interface TrendPoint {
+  sessionId: string;
+  date: string;
+  label: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  completed: number;
+  missed: number;
+  total: number;
+  rate: number;
+}
+
+export async function getDashboardTrend(from?: string, to?: string): Promise<TrendPoint[]> {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const qs = q.toString();
+  const res = await fetch(`${BASE_URL}/dashboard/trend${qs ? `?${qs}` : ""}`, { headers: authHeaders() });
+  return handleResponse<TrendPoint[]>(res);
+}
+
+// ─── Leaderboard ────────────────────────────────────
+export interface LeaderboardEntry {
+  rank: number;
+  staffID: string;
+  fullName: string;
+  department: string;
+  position: string;
+  completed: number;
+  total: number;
+  missed: number;
+  completionRate: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  score: number;
+  tier: "Diamond" | "Gold" | "Silver" | "Bronze";
+  medal?: string | null;
+}
+
+export async function getLeaderboard(params?: { from?: string; to?: string; department?: string }): Promise<LeaderboardEntry[]> {
+  const q = new URLSearchParams();
+  if (params?.from) q.set("from", params.from);
+  if (params?.to) q.set("to", params.to);
+  if (params?.department) q.set("department", params.department);
+  const qs = q.toString();
+  const res = await fetch(`${BASE_URL}/dashboard/leaderboard${qs ? `?${qs}` : ""}`, { headers: authHeaders() });
+  return handleResponse<LeaderboardEntry[]>(res);
+}
+
+// ─── Session Comparison ─────────────────────────────
+export interface SessionComparisonResult {
+  sessionA: {
+    sessionId: string;
+    date: string;
+    totalStaff: number;
+    totalExpected: number;
+    completed: number;
+    missed: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    rate: number;
+    departments: { department: string; staffCount: number; completed: number; total: number; rate: number }[];
+    platforms: { platform: string; likes: number; comments: number; shares: number; completed: number; total: number }[];
+  };
+  sessionB: {
+    sessionId: string;
+    date: string;
+    totalStaff: number;
+    totalExpected: number;
+    completed: number;
+    missed: number;
+    likes: number;
+    comments: number;
+    shares: number;
+    rate: number;
+    departments: { department: string; staffCount: number; completed: number; total: number; rate: number }[];
+    platforms: { platform: string; likes: number; comments: number; shares: number; completed: number; total: number }[];
+  };
+}
+
+export async function compareSessions(sessionA: string, sessionB: string): Promise<SessionComparisonResult> {
+  const res = await fetch(`${BASE_URL}/dashboard/session-comparison?sessionA=${sessionA}&sessionB=${sessionB}`, {
+    headers: authHeaders(),
+  });
+  return handleResponse<SessionComparisonResult>(res);
+}
+
+// ─── 2FA Verification ───────────────────────────────
+export async function verify2FA(pin: string): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${BASE_URL}/auth/2fa/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ Pin: pin }),
+  });
+  return handleResponse<{ success: boolean; message: string }>(res);
+}

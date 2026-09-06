@@ -1,9 +1,10 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using socihr_backend.Data;
 using socihr_backend.Helpers;
 using socihr_backend.Models;
+using System.Security.Claims;
 
 namespace socihr_backend.Controllers;
 
@@ -16,6 +17,17 @@ public class StaffController : ControllerBase
 
     public StaffController(AppDbContext db) => _db = db;
 
+    // Helper: get the DepartmentID for DeptAdmin, null for SuperAdmin
+    private Guid? GetDeptIdRestriction()
+    {
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var claim = User.FindFirst("DepartmentID")?.Value;
+            return claim != null ? Guid.Parse(claim) : null;
+        }
+        return null;
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] string? search, [FromQuery] string? department, [FromQuery] string? status, [FromQuery] bool includeArchived = false)
     {
@@ -27,12 +39,28 @@ public class StaffController : ControllerBase
         
         if (!string.IsNullOrWhiteSpace(search))
             query = query.Where(s => s.FullName.ToLower().Contains(search.ToLower()));
-        if (!string.IsNullOrWhiteSpace(department))
-            query = query.Where(s => s.Department == department);
         if (!string.IsNullOrWhiteSpace(status))
             query = query.Where(s => s.Status == status);
-        // Order by Department A→Z, then FullName A→Z so each department's staff are grouped and
-        // alphabetically ordered within the department (no interleaving across departments).
+
+        // DeptAdmin: force filter to own department
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var deptId = GetDeptIdRestriction();
+            if (deptId.HasValue)
+            {
+                var deptName = await _db.Departments
+                    .Where(d => d.DepartmentID == deptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+                if (deptName != null)
+                    query = query.Where(s => s.Department == deptName);
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(department))
+        {
+            query = query.Where(s => s.Department == department);
+        }
+
         var staff = await query
             .OrderBy(s => s.Department ?? string.Empty)
             .ThenBy(s => s.FullName ?? string.Empty)
@@ -40,19 +68,109 @@ public class StaffController : ControllerBase
         return Ok(staff);
     }
 
+    [HttpGet("paged")]
+    public async Task<IActionResult> GetPaged(
+        [FromQuery] string? search,
+        [FromQuery] string? department,
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] bool includeArchived = false)
+    {
+        var query = _db.Staff.AsQueryable();
+        
+        if (!includeArchived)
+            query = query.Where(s => !s.IsArchived);
+        
+        if (!string.IsNullOrWhiteSpace(search))
+            query = query.Where(s => s.FullName.ToLower().Contains(search.ToLower()));
+        if (!string.IsNullOrWhiteSpace(status))
+            query = query.Where(s => s.Status == status);
+
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var deptId = GetDeptIdRestriction();
+            if (deptId.HasValue)
+            {
+                var deptName = await _db.Departments
+                    .Where(d => d.DepartmentID == deptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+                if (deptName != null)
+                    query = query.Where(s => s.Department == deptName);
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(department))
+        {
+            query = query.Where(s => s.Department == department);
+        }
+
+        var total = await query.CountAsync();
+        var totalPages = (int)Math.Ceiling((double)total / pageSize);
+        var items = await query
+            .OrderBy(s => s.Department ?? string.Empty)
+            .ThenBy(s => s.FullName ?? string.Empty)
+            .Skip((Math.Max(1, page) - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        return Ok(new
+        {
+            total,
+            page = Math.Max(1, page),
+            pageSize,
+            totalPages = Math.Max(1, totalPages),
+            items
+        });
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(Guid id)
     {
         var staff = await _db.Staff.FindAsync(id);
         if (staff == null) return NotFound(new { message = "Staff not found." });
+
+        // DeptAdmin: can only see own department staff
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var deptId = GetDeptIdRestriction();
+            if (deptId.HasValue)
+            {
+                var deptName = await _db.Departments
+                    .Where(d => d.DepartmentID == deptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+                if (staff.Department != deptName)
+                    return Forbid();
+            }
+        }
+
         return Ok(staff);
     }
 
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] StaffRequest req)
     {
-        await EnsureDepartmentExistsAsync(req.Department);
+        // DeptAdmin: force department to their own department
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var deptId = GetDeptIdRestriction();
+            if (deptId.HasValue)
+            {
+                var deptName = await _db.Departments
+                    .Where(d => d.DepartmentID == deptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+                req = req with { Department = deptName };
+            }
+        }
 
+        return await CreateStaffInternal(req);
+    }
+
+    private async Task<IActionResult> CreateStaffInternal(StaffRequest req)
+    {
+        await EnsureDepartmentExistsAsync(req.Department);
         var staff = new Staff
         {
             StaffID = Guid.NewGuid(),
@@ -73,7 +191,26 @@ public class StaffController : ControllerBase
         var staff = await _db.Staff.FindAsync(id);
         if (staff == null) return NotFound(new { message = "Staff not found." });
 
-        await EnsureDepartmentExistsAsync(req.Department);
+        // DeptAdmin: can only edit staff in their own department
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var deptId = GetDeptIdRestriction();
+            if (deptId.HasValue)
+            {
+                var deptName = await _db.Departments
+                    .Where(d => d.DepartmentID == deptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+                if (staff.Department != deptName)
+                    return Forbid();
+                // Force department — DeptAdmin cannot move staff to another dept
+                req = req with { Department = deptName };
+            }
+        }
+        else
+        {
+            await EnsureDepartmentExistsAsync(req.Department);
+        }
 
         staff.FullName = req.FullName;
         staff.Department = req.Department;
@@ -82,6 +219,8 @@ public class StaffController : ControllerBase
         return Ok(staff);
     }
 
+    // DELETE — SuperAdmin only
+    [Authorize(Roles = "SuperAdmin")]
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id)
     {
@@ -90,25 +229,21 @@ public class StaffController : ControllerBase
             var staff = await _db.Staff.FindAsync(id);
             if (staff == null) return NotFound(new { message = "Staff not found." });
 
-            // 1. Get all engagement IDs for this staff member
             var engagementIds = await _db.Engagements
                 .Where(e => e.StaffID == id)
                 .Select(e => e.EngagementID)
                 .ToListAsync();
 
-            // 2. Delete all AuditTrail records referencing those engagements
             var audits = await _db.AuditTrails
                 .Where(a => engagementIds.Contains(a.EngagementID))
                 .ToListAsync();
             _db.AuditTrails.RemoveRange(audits);
 
-            // 3. Delete all Engagements for this staff member
             var engagements = await _db.Engagements
                 .Where(e => e.StaffID == id)
                 .ToListAsync();
             _db.Engagements.RemoveRange(engagements);
 
-            // 4. Delete the staff member
             _db.Staff.Remove(staff);
             await _db.SaveChangesAsync();
 
@@ -125,6 +260,22 @@ public class StaffController : ControllerBase
     {
         var staff = await _db.Staff.FindAsync(id);
         if (staff == null) return NotFound(new { message = "Staff not found." });
+
+        // DeptAdmin: can only toggle status of own department staff
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var deptId = GetDeptIdRestriction();
+            if (deptId.HasValue)
+            {
+                var deptName = await _db.Departments
+                    .Where(d => d.DepartmentID == deptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+                if (staff.Department != deptName)
+                    return Forbid();
+            }
+        }
+
         staff.Status = staff.Status == "Active" ? "Inactive" : "Active";
         await _db.SaveChangesAsync();
         return Ok(staff);
@@ -138,15 +289,31 @@ public class StaffController : ControllerBase
 
         if (!string.IsNullOrWhiteSpace(search))
             staffQuery = staffQuery.Where(s => s.FullName.ToLower().Contains(search.ToLower()));
-        if (!string.IsNullOrWhiteSpace(department))
-            staffQuery = staffQuery.Where(s => s.Department == department);
         if (!string.IsNullOrWhiteSpace(status))
             staffQuery = staffQuery.Where(s => s.Status == status);
         staffQuery = staffQuery.Where(s => !s.IsArchived);
 
+        // DeptAdmin: force filter to own department
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var deptId = GetDeptIdRestriction();
+            if (deptId.HasValue)
+            {
+                var deptName = await _db.Departments
+                    .Where(d => d.DepartmentID == deptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+                if (deptName != null)
+                    staffQuery = staffQuery.Where(s => s.Department == deptName);
+            }
+        }
+        else if (!string.IsNullOrWhiteSpace(department))
+        {
+            staffQuery = staffQuery.Where(s => s.Department == department);
+        }
+
         var staffList = await staffQuery.ToListAsync();
         
-        // Get all relevant engagements with necessary includes
         var staffIds = staffList.Select(s => s.StaffID).ToList();
         var allEngagementsQuery = _db.Engagements
             .Include(e => e.Post).ThenInclude(p => p!.Platform)
@@ -174,7 +341,6 @@ public class StaffController : ControllerBase
                 var totalPosts = staffEngs.Select(e => e.PostID).Distinct().Count();
                 var rawRate = totalExpected > 0 ? (double)totalCompleted / totalExpected * 100 : 0;
                 var completionRate = Math.Round(rawRate, 1);
-                // Same integer rounding + ordering as the dashboard top-staff ranking
                 var rankRate = Math.Round(rawRate);
                 
                 return new
@@ -215,10 +381,10 @@ public class StaffController : ControllerBase
     }
 
     // ═══════════════════════════════════════════════════════════════
-    // ARCHIVE ENDPOINTS
+    // ARCHIVE ENDPOINTS — SuperAdmin only
     // ═══════════════════════════════════════════════════════════════
 
-    // POST /api/staff/{id}/archive
+    [Authorize(Roles = "SuperAdmin")]
     [HttpPost("{id:guid}/archive")]
     public async Task<IActionResult> ArchiveStaff(Guid id)
     {
@@ -246,7 +412,7 @@ public class StaffController : ControllerBase
         }
     }
 
-    // POST /api/staff/{id}/restore
+    [Authorize(Roles = "SuperAdmin")]
     [HttpPost("{id:guid}/restore")]
     public async Task<IActionResult> RestoreStaff(Guid id)
     {
@@ -271,7 +437,7 @@ public class StaffController : ControllerBase
         }
     }
 
-    // GET /api/staff/archived
+    [Authorize(Roles = "SuperAdmin")]
     [HttpGet("archived")]
     public async Task<IActionResult> GetArchivedStaff()
     {

@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface ConfirmationDialogProps {
@@ -21,11 +22,14 @@ export default function ConfirmationDialog({
   confirmLabel = "Confirm",
   danger = true,
 }: ConfirmationDialogProps) {
-  return (
+  if (typeof document === "undefined") return null;
+
+  return createPortal(
     <AnimatePresence>
       {isOpen && (
         <motion.div
           className="modal-overlay"
+          style={{ position: "fixed", inset: 0, zIndex: 9999 }}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -75,6 +79,7 @@ export default function ConfirmationDialog({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }

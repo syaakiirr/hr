@@ -6,9 +6,8 @@
 /* ─── Premium Sidebar Enhancements ──────────────────────────── */
 
 aside {
-  transition: width 0.35s cubic-bezier(0.22, 1, 0.36, 1) !important;
   box-shadow: 4px 0 24px rgba(0, 0, 0, 0.04), 1px 0 0 rgba(0, 0, 0, 0.02) !important;
-  background: linear-gradient(180deg, #ffffff 0%, #fafbfc 100%) !important;
+  background: var(--white) !important;
 }
 
 aside:hover {
@@ -27,10 +26,10 @@ aside > div:first-child > div > div:first-child {
   50% { box-shadow: 0 0 20px 4px rgba(99, 102, 241, 0.15), 0 6px 16px rgba(99, 102, 241, 0.25); }
 }
 
-/* Navigation Items - Subtle Hover (tasteskill.dev inspired) */
+/* Navigation Items - Subtle Hover */
 aside nav a > div {
   position: relative;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 aside nav a > div:hover {
@@ -44,77 +43,51 @@ aside nav a > div[style*="linear-gradient"] {
     inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
 }
 
-/* User Avatar - Reduced Animation */
+/* User Avatar */
 aside button#logout-btn + div div:first-child,
 aside > div:last-child > div:first-child > div:first-child {
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1);
+  transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 aside button#logout-btn + div div:first-child:hover,
 aside > div:last-child > div:first-child > div:first-child:hover {
-  transform: scale(1.05);
+  transform: scale(1.03);
 }
 
 /* ─── Premium Card System (Performance Optimized) ────────────────────────────────────── */
 
 .card-premium {
   background: #ffffff;
-  border-radius: 16px;
-  border: 1px solid rgba(99, 102, 241, 0.08);
-  padding: 24px;
-  box-shadow: 
-    0 1px 3px rgba(0, 0, 0, 0.02),
-    0 4px 12px rgba(99, 102, 241, 0.04);
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  padding: 20px 24px;
+  box-shadow: var(--shadow-xs);
   transition: transform 0.2s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.2s ease;
   position: relative;
   overflow: hidden;
   will-change: transform;
 }
 
-.card-premium::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, 
-    transparent 0%,
-    rgba(99, 102, 241, 0.3) 50%,
-    transparent 100%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-}
-
 .card-premium:hover {
   transform: translateY(-1px);
-  box-shadow: 
-    0 1px 4px rgba(0, 0, 0, 0.02),
-    0 4px 12px rgba(99, 102, 241, 0.06);
-  border-color: rgba(99, 102, 241, 0.1);
+  box-shadow: var(--shadow-md);
 }
 
-.card-premium:hover::before {
-  opacity: 0.6;
-}
-
-/* ─── Premium Glassmorphism Cards (SOLID - no blur) ───────────────────────────── */
+/* ─── Premium Glassmorphism Cards (SOLID) ───────────────────────────── */
 
 .glass-card {
   background: #ffffff;
-  /* backdrop-filter: blur(12px); DISABLED FOR PERFORMANCE */
-  border-radius: 20px;
+  border-radius: 14px;
   border: 1px solid var(--line);
-  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.06);
-  padding: 28px;
+  box-shadow: var(--shadow-xs);
+  padding: 24px;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   will-change: transform;
 }
 
 .glass-card:hover {
   background: #ffffff;
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.1);
+  box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
 
@@ -122,33 +95,20 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 
 .page-hd {
   position: relative;
-  padding-bottom: 24px;
-  margin-bottom: 32px;
-}
-
-.page-hd::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  width: 80px;
-  height: 3px;
-  background: linear-gradient(90deg, #6366f1 0%, #a855f7 50%, #ec4899 100%);
-  border-radius: 99px;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+  border-bottom: 1px solid var(--line);
 }
 
 .page-hd h1 {
-  font-size: 28px;
-  font-weight: 900;
-  background: linear-gradient(135deg, #1e293b 0%, #3d3d50 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--text-1);
   letter-spacing: -0.03em;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
 }
 
-/* ─── Premium KPI Cards with Shine Effect (Optimized) ───────────────────── */
+/* ─── Premium KPI Cards (Optimized) ───────────────────── */
 
 .kpi {
   position: relative;
@@ -511,7 +471,7 @@ aside > div:last-child > div:first-child > div:first-child:hover {
   align-items: center;
   justify-content: center;
   box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4), 0 0 0 2px #ffffff;
-  animation: badge-pop 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  animation: badge-pop 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes badge-pop {

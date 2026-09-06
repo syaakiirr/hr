@@ -31,9 +31,11 @@ export default function LoginPage() {
     
     try {
       const d = await login(username, password);
-      localStorage.setItem("token",    d.token);
-      localStorage.setItem("username", d.username);
-      localStorage.setItem("role",     d.role);
+      localStorage.setItem("token",          d.token);
+      localStorage.setItem("username",       d.username);
+      localStorage.setItem("role",           d.role);
+      localStorage.setItem("departmentId",   d.departmentId   ?? "");
+      localStorage.setItem("departmentName", d.departmentName ?? "");
       
       // Dispatch global event for the sliding black overlay
       window.dispatchEvent(new CustomEvent("trigger-login-transition"));
@@ -317,19 +319,17 @@ export default function LoginPage() {
         {/* Top brand header */}
         <div style={{ position: "relative", zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <div style={{
-              width: 32, height: 32, borderRadius: 8,
-              background: "rgba(15, 23, 42, 0.06)",
-              backdropFilter: "blur(8px)",
-              border: "1px solid rgba(15, 23, 42, 0.1)",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              boxShadow: "var(--shadow-xs)"
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1e293b" strokeWidth="2.25" strokeLinecap="round">
-                <circle cx="12" cy="12" r="3"/><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>
-              </svg>
-            </div>
-            <span style={{ fontSize: 15, fontWeight: 800, color: "#1e293b", letterSpacing: "-0.02em" }}>SociHR</span>
+            <img
+              src="/logo.png"
+              alt="SociHR Logo"
+              style={{
+                width: 36,
+                height: 36,
+                objectFit: "contain",
+                filter: "drop-shadow(0 4px 12px rgba(99, 102, 241, 0.35))",
+              }}
+            />
+            <span style={{ fontSize: 16, fontWeight: 800, color: "#1e293b", letterSpacing: "-0.02em" }}>SociHR</span>
           </div>
           {/* Creator Badge */}
           <div style={{

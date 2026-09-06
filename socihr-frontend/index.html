@@ -2,7 +2,8 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
     <style>
       @font-face {
         font-family:'Geist';font-style:normal;font-weight:100 900;font-display:swap;
@@ -17,13 +18,17 @@
       #loading-screen {
         position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;background:#f1f5f9;font-family:system-ui,sans-serif;
       }
+      #loading-screen .logo-img {
+        width:48px;height:48px;margin-bottom:16px;animation:pulse 1.5s ease-in-out infinite;
+      }
       #loading-screen .spinner {
-        width:36px;height:36px;border:3px solid #cbd5e1;border-top-color:#0f172a;border-radius:50%;animation:spin .7s linear infinite;
+        width:28px;height:28px;border:2.5px solid #cbd5e1;border-top-color:#6366f1;border-radius:50%;animation:spin .7s linear infinite;
       }
       #loading-screen p {
-        margin-top:16px;color:#475569;font-size:14px;letter-spacing:.04em;
+        margin-top:12px;color:#475569;font-size:13px;font-weight:600;letter-spacing:.04em;
       }
       @keyframes spin { to { transform:rotate(360deg); } }
+      @keyframes pulse { 0%, 100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.08); opacity:0.85; } }
     </style>
     <link rel="preload" as="font" href="/fonts/Geist.woff2" type="font/woff2" crossorigin />
     <link rel="preload" as="font" href="/fonts/GeistMono.woff2" type="font/woff2" crossorigin />
@@ -34,6 +39,7 @@
   <body>
     <div id="root">
       <div id="loading-screen">
+        <img src="/logo.png" alt="SociHR Logo" class="logo-img" />
         <div class="spinner"></div>
         <p>SociHR</p>
       </div>

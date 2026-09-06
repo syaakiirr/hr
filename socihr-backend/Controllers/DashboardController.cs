@@ -20,6 +20,27 @@ public class DashboardController : ControllerBase
 
     public DashboardController(AppDbContext db, IMemoryCache cache) { _db = db; _cache = cache; }
 
+    // Helper: get DepartmentID for DeptAdmin, null for SuperAdmin
+    private Guid? GetDeptIdRestriction()
+    {
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var claim = User.FindFirst("DepartmentID")?.Value;
+            return claim != null ? Guid.Parse(claim) : null;
+        }
+        return null;
+    }
+
+    private async Task<string?> GetDeptNameRestrictionAsync()
+    {
+        var deptId = GetDeptIdRestriction();
+        if (!deptId.HasValue) return null;
+        return await _db.Departments
+            .Where(d => d.DepartmentID == deptId)
+            .Select(d => d.DepartmentName)
+            .FirstOrDefaultAsync();
+    }
+
     // ── Helpers ──────────────────────────────────────────
 
     private string CacheKey(string prefix, DateTime? from, DateTime? to) =>
@@ -47,15 +68,21 @@ public class DashboardController : ControllerBase
 
     private sealed record KpiTotals(int Staff, int Sessions, int Platforms, int Expected, int Completed, int Missed, double Rate);
 
-    private async Task<KpiTotals> ComputeKpiAsync(DateTime? from, DateTime? to)
+    private async Task<KpiTotals> ComputeKpiAsync(DateTime? from, DateTime? to, string? deptName = null)
     {
-        var totalStaff = await _db.Staff.CountAsync(s => s.Status == "Active" && !s.IsArchived);
+        // Base staff/sessions counts — filtered by department if DeptAdmin
+        var staffQ = _db.Staff.Where(s => s.Status == "Active" && !s.IsArchived);
+        if (deptName != null) staffQ = staffQ.Where(s => s.Department == deptName);
+        var totalStaff = await staffQ.CountAsync();
+
         var totalSessions = await _db.MonitoringSessions.CountAsync(s => !s.IsArchived);
         var totalPlatforms = await _db.Platforms.CountAsync();
 
         var engQ = FilteredEngagements(from, to);
+        // DeptAdmin: filter engagements to only staff in their department
+        if (deptName != null)
+            engQ = engQ.Where(e => e.Staff!.Department == deptName);
 
-        // Push all aggregation to the database — no client-side materialisation.
         var count = await engQ.CountAsync();
         var liked = await engQ.CountAsync(e => e.IsLiked);
         var commented = await engQ.CountAsync(e => e.IsCommented);
@@ -73,11 +100,12 @@ public class DashboardController : ControllerBase
     [HttpGet("kpi")]
     public async Task<IActionResult> GetKpi([FromQuery] DateTime? from, [FromQuery] DateTime? to)
     {
-        var key = CacheKey("kpi", from, to);
+        var deptName = await GetDeptNameRestrictionAsync();
+        var key = CacheKey($"kpi|{deptName ?? "all"}", from, to);
         if (_cache.TryGetValue(key, out KpiTotals? cached) && cached != null)
             return Ok(new { totalStaff = cached.Staff, totalSessions = cached.Sessions, totalPlatforms = cached.Platforms, totalExpected = cached.Expected, totalCompleted = cached.Completed, totalMissed = cached.Missed, completionRate = cached.Rate });
 
-        var r = await ComputeKpiAsync(from, to);
+        var r = await ComputeKpiAsync(from, to, deptName);
         _cache.Set(key, r, CacheTtl);
 
         return Ok(new { totalStaff = r.Staff, totalSessions = r.Sessions, totalPlatforms = r.Platforms, totalExpected = r.Expected, totalCompleted = r.Completed, totalMissed = r.Missed, completionRate = r.Rate });
@@ -200,11 +228,12 @@ public class DashboardController : ControllerBase
     [HttpGet("staff-ranking")]
     public async Task<IActionResult> GetStaffRanking([FromQuery] int limit = 13, [FromQuery] string order = "top", [FromQuery] DateTime? from = null, [FromQuery] DateTime? to = null)
     {
-        var key = CacheKey($"ranking|{order}|{limit}", from, to);
+        var deptName = await GetDeptNameRestrictionAsync();
+        var key = CacheKey($"ranking|{order}|{limit}|{deptName ?? "all"}", from, to);
         if (_cache.TryGetValue(key, out object? cached) && cached != null)
             return Ok(cached);
 
-        var data = await StaffRankingHelper.GetRanking(_db, order, limit, from, to);
+        var data = await StaffRankingHelper.GetRanking(_db, order, limit, from, to, deptName);
         _cache.Set(key, data, CacheTtl);
         return Ok(data.Select(d => new { d.StaffID, d.FullName, d.Department, d.Completed, d.Total, d.CompletionRate }).ToList());
     }
@@ -419,6 +448,169 @@ public class DashboardController : ControllerBase
             .ToListAsync();
     }
 
+    // ── Trend (Timeline multi-metric) ───────────────────
+    // /api/dashboard/trend
+    [HttpGet("trend")]
+    public async Task<IActionResult> GetTrend([FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var deptName = await GetDeptNameRestrictionAsync();
+        var key = CacheKey($"trend|{deptName ?? "all"}", from, to);
+        if (_cache.TryGetValue(key, out object? cached) && cached != null)
+            return Ok(cached);
+
+        var sessionsQ = _db.MonitoringSessions
+            .AsNoTracking()
+            .Where(s => !s.IsArchived);
+
+        if (from.HasValue)
+        {
+            var fd = DateOnly.FromDateTime(from.Value);
+            sessionsQ = sessionsQ.Where(s => s.SessionDate >= fd);
+        }
+        if (to.HasValue)
+        {
+            var td = DateOnly.FromDateTime(to.Value);
+            sessionsQ = sessionsQ.Where(s => s.SessionDate <= td);
+        }
+
+        var sessions = await sessionsQ.OrderBy(s => s.SessionDate).ToListAsync();
+        var sessionIds = sessions.Select(s => s.SessionID).ToList();
+
+        if (sessionIds.Count == 0)
+        {
+            return Ok(Array.Empty<object>());
+        }
+
+        var engQ = _db.Engagements
+            .AsNoTracking()
+            .Where(e => sessionIds.Contains(e.SessionID));
+
+        if (deptName != null)
+            engQ = engQ.Where(e => e.Staff!.Department == deptName);
+
+        var aggregated = await engQ
+            .GroupBy(e => e.SessionID)
+            .Select(g => new
+            {
+                SessionID = g.Key,
+                Likes = g.Count(e => e.IsLiked),
+                Comments = g.Count(e => e.IsCommented),
+                Shares = g.Count(e => e.IsShared),
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Total = g.Count() * 3
+            })
+            .ToListAsync();
+
+        var aggMap = aggregated.ToDictionary(a => a.SessionID);
+
+        var result = sessions.Select(s =>
+        {
+            aggMap.TryGetValue(s.SessionID, out var a);
+            var total = a?.Total ?? 0;
+            var completed = a?.Completed ?? 0;
+            var rate = total > 0 ? Math.Round((double)completed / total * 100, 1) : 0;
+            return new
+            {
+                sessionId = s.SessionID,
+                date = s.SessionDate.ToString("yyyy-MM-dd"),
+                label = s.SessionDate.ToString("dd MMM"),
+                likes = a?.Likes ?? 0,
+                comments = a?.Comments ?? 0,
+                shares = a?.Shares ?? 0,
+                completed,
+                missed = total - completed,
+                total,
+                rate
+            };
+        }).ToList();
+
+        _cache.Set(key, result, CacheTtl);
+        return Ok(result);
+    }
+
+    // ── Leaderboard (Gamified Rankings) ───────────────────
+    // /api/dashboard/leaderboard
+    [HttpGet("leaderboard")]
+    public async Task<IActionResult> GetLeaderboard(
+        [FromQuery] DateTime? from,
+        [FromQuery] DateTime? to,
+        [FromQuery] string? department = null)
+    {
+        var restrictedDept = await GetDeptNameRestrictionAsync();
+        var filterDept = restrictedDept ?? department;
+
+        var key = CacheKey($"leaderboard|{filterDept ?? "all"}", from, to);
+        if (_cache.TryGetValue(key, out object? cached) && cached != null)
+            return Ok(cached);
+
+        var ranking = await StaffRankingHelper.GetRanking(_db, "top", null, from, to, filterDept);
+
+        // Get engagement breakdown (likes/comments/shares) per staff
+        var staffIds = ranking.Select(r => r.StaffID).ToList();
+        var engCounts = await _db.Engagements
+            .AsNoTracking()
+            .Where(e => !e.Session!.IsArchived && staffIds.Contains(e.StaffID))
+            .Where(e => !from.HasValue || e.Session!.SessionDate >= DateOnly.FromDateTime(from.Value))
+            .Where(e => !to.HasValue || e.Session!.SessionDate <= DateOnly.FromDateTime(to.Value))
+            .GroupBy(e => e.StaffID)
+            .Select(g => new
+            {
+                StaffID = g.Key,
+                Likes = g.Count(e => e.IsLiked),
+                Comments = g.Count(e => e.IsCommented),
+                Shares = g.Count(e => e.IsShared)
+            })
+            .ToDictionaryAsync(g => g.StaffID);
+
+        var staffPositions = await _db.Staff
+            .AsNoTracking()
+            .Where(s => staffIds.Contains(s.StaffID))
+            .ToDictionaryAsync(s => s.StaffID, s => s.Position ?? "Staff");
+
+        var leaderboard = ranking.Select((r, idx) =>
+        {
+            var rank = idx + 1;
+            engCounts.TryGetValue(r.StaffID, out var counts);
+            staffPositions.TryGetValue(r.StaffID, out var position);
+
+            var likes = counts?.Likes ?? 0;
+            var comments = counts?.Comments ?? 0;
+            var shares = counts?.Shares ?? 0;
+
+            // Score formula: (Completed * 10) + (Shares * 3) + (Comments * 2) + (Likes * 1)
+            var score = (r.Completed * 10) + (shares * 3) + (comments * 2) + likes;
+
+            string tier = r.CompletionRate >= 90 ? "Diamond"
+                        : r.CompletionRate >= 75 ? "Gold"
+                        : r.CompletionRate >= 50 ? "Silver"
+                        : "Bronze";
+
+            string? medal = rank == 1 ? "🥇" : rank == 2 ? "🥈" : rank == 3 ? "🥉" : null;
+
+            return new
+            {
+                rank,
+                staffID = r.StaffID,
+                fullName = r.FullName,
+                department = string.IsNullOrWhiteSpace(r.Department) || r.Department == "-" ? "General" : r.Department,
+                position = position ?? "Staff",
+                completed = r.Completed,
+                total = r.Total,
+                missed = r.Total - r.Completed,
+                completionRate = r.CompletionRate,
+                likes,
+                comments,
+                shares,
+                score,
+                tier,
+                medal
+            };
+        }).ToList();
+
+        _cache.Set(key, leaderboard, CacheTtl);
+        return Ok(leaderboard);
+    }
+
     private async Task<object> GetPlatformData()
     {
         return await _db.Engagements
@@ -433,6 +625,97 @@ public class DashboardController : ControllerBase
                 Total = g.Count() * 3
             })
             .ToListAsync();
+    }
+
+    // ── Session Comparison ────────────────────────────────
+    // /api/dashboard/session-comparison?sessionA=xxx&sessionB=yyy
+    [HttpGet("session-comparison")]
+    public async Task<IActionResult> CompareSessions(
+        [FromQuery] Guid sessionA,
+        [FromQuery] Guid sessionB)
+    {
+        var sA = await _db.MonitoringSessions.FirstOrDefaultAsync(s => s.SessionID == sessionA);
+        var sB = await _db.MonitoringSessions.FirstOrDefaultAsync(s => s.SessionID == sessionB);
+
+        if (sA == null || sB == null)
+            return BadRequest(new { message = "Both session IDs must be valid." });
+
+        async Task<object> BuildSessionStats(MonitoringSession session)
+        {
+            var engs = await _db.Engagements
+                .AsNoTracking()
+                .Include(e => e.Staff)
+                .Include(e => e.Post)
+                    .ThenInclude(p => p!.Platform)
+                .Where(e => e.SessionID == session.SessionID)
+                .ToListAsync();
+
+            var totalStaff = engs.Select(e => e.StaffID).Distinct().Count();
+            var totalExpected = engs.Count * 3;
+            var likes = engs.Count(e => e.IsLiked);
+            var comments = engs.Count(e => e.IsCommented);
+            var shares = engs.Count(e => e.IsShared);
+            var completed = likes + comments + shares;
+            var missed = totalExpected - completed;
+            var rate = totalExpected > 0 ? Math.Round((double)completed / totalExpected * 100, 1) : 0;
+
+            var deptBreakdown = engs
+                .GroupBy(e => e.Staff?.Department ?? "No Department")
+                .Select(g =>
+                {
+                    var dTotal = g.Count() * 3;
+                    var dCompleted = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0));
+                    var dRate = dTotal > 0 ? Math.Round((double)dCompleted / dTotal * 100, 1) : 0;
+                    return new
+                    {
+                        department = g.Key,
+                        staffCount = g.Select(e => e.StaffID).Distinct().Count(),
+                        completed = dCompleted,
+                        total = dTotal,
+                        rate = dRate
+                    };
+                })
+                .OrderByDescending(d => d.rate)
+                .ToList();
+
+            var platformBreakdown = engs
+                .GroupBy(e => e.Post?.Platform?.PlatformName ?? "Unknown")
+                .Select(g => new
+                {
+                    platform = g.Key,
+                    likes = g.Count(e => e.IsLiked),
+                    comments = g.Count(e => e.IsCommented),
+                    shares = g.Count(e => e.IsShared),
+                    completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                    total = g.Count() * 3
+                })
+                .ToList();
+
+            return new
+            {
+                sessionId = session.SessionID,
+                date = session.SessionDate.ToString("yyyy-MM-dd"),
+                totalStaff,
+                totalExpected,
+                completed,
+                missed,
+                likes,
+                comments,
+                shares,
+                rate,
+                departments = deptBreakdown,
+                platforms = platformBreakdown
+            };
+        }
+
+        var statsA = await BuildSessionStats(sA);
+        var statsB = await BuildSessionStats(sB);
+
+        return Ok(new
+        {
+            sessionA = statsA,
+            sessionB = statsB
+        });
     }
 }
 

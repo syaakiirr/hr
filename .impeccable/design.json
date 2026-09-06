@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-24T07:52:00Z",
+  "title": "Design System: SociHR",
+  "extensions": {
+    "colorMeta": {
+      "primary": { "role": "primary", "displayName": "Aurora Indigo", "canonical": "#4f46e5", "tonalRamp": ["#312e81", "#3730a3", "#4338ca", "#4f46e5", "#6366f1", "#818cf8", "#c7d2fe", "#e0e7ff"] },
+      "surface": { "role": "neutral", "displayName": "Slate Canvas", "canonical": "#f1f5f9", "tonalRamp": ["#0f172a", "#1e293b", "#334155", "#64748b", "#94a3b8", "#cbd5e1", "#e2e8f0", "#f1f5f9"] }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Main surface headers." },
+      "headline": { "displayName": "Headline", "purpose": "Section and modal headers." },
+      "body": { "displayName": "Body", "purpose": "Standard table and content text." },
+      "label": { "displayName": "Label", "purpose": "Mono uppercase status chips and data columns." }
+    },
+    "shadows": [
+      { "name": "shadow-xs", "value": "0 1px 2px rgba(17,17,24,0.04)", "purpose": "Card resting baseline." },
+      { "name": "shadow-sm", "value": "0 1px 4px rgba(17,17,24,0.06), 0 0 0 1px rgba(17,17,24,0.04)", "purpose": "Elevated card resting state." },
+      { "name": "shadow-md", "value": "0 4px 12px rgba(17,17,24,0.08)", "purpose": "Hover lift on interactive cards." }
+    ],
+    "motion": [
+      { "name": "ease-standard", "value": "cubic-bezier(0.4, 0, 0.2, 1)", "purpose": "Standard interactive transitions (120ms)." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "768px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Primary action button across all headers and modal forms.",
+      "html": "<button class=\"ds-btn-primary\">Add Staff</button>",
+      "css": ".ds-btn-primary { background: #4f46e5; color: #ffffff; padding: 8px 16px; font-weight: 600; font-size: 13px; border: none; border-radius: 8px; cursor: pointer; transition: background 0.15s, transform 0.15s; } .ds-btn-primary:hover { background: #4338ca; transform: translateY(-1px); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Secondary control button for date filtering and auxiliary actions.",
+      "html": "<button class=\"ds-btn-secondary\">Save Snapshot</button>",
+      "css": ".ds-btn-secondary { background: #ffffff; color: #0f172a; padding: 8px 16px; font-weight: 500; font-size: 13px; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; transition: border-color 0.15s; } .ds-btn-secondary:hover { border-color: #cbd5e1; }"
+    },
+    {
+      "name": "Compliance Badge",
+      "kind": "chip",
+      "refersTo": "badge-status",
+      "description": "Status chip indicating compliance percentage or completion state.",
+      "html": "<span class=\"ds-badge-green\">88% Complete</span>",
+      "css": ".ds-badge-green { background: #f0fdf4; color: #16a34a; padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 800; display: inline-flex; align-items: center; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Modern Compliance Ledger",
+    "overview": "SociHR fuses the rigor of an enterprise audit workstation with the clarity and fluid responsiveness of a modern data-dense desktop application.",
+    "keyCharacteristics": [
+      "High information density without visual crowding.",
+      "Purpose-driven semantic coloring (Green = Met, Amber = Partial, Red = Missed).",
+      "Multi-tier layouts guiding attention from high-level executive KPIs down to individual staff records.",
+      "Deterministic keyboard accelerators (1-7 timeframes, S snapshots)."
+    ],
+    "rules": [
+      { "name": "The Rarity Rule", "body": "The primary indigo accent is reserved strictly for active interactive controls and primary KPIs. It never covers more than 8% of the viewport area.", "section": "colors" },
+      { "name": "The Functional Color Rule", "body": "Green, red, and amber are reserved exclusively for compliance statuses, completion calculations, and destructive warnings.", "section": "colors" },
+      { "name": "The Flat-at-Rest Rule", "body": "All cards and panels sit flat on the slate canvas. Elevation exists solely as a response to user focus or hover state.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do provide context text under every large KPI metric.",
+      "Do use self-contained SVG icons for actions instead of raw emoji glyphs.",
+      "Do preserve the 4-tier visual hierarchy on analytics surfaces.",
+      "Do support keyboard accelerators on core navigation and modal flows."
+    ],
+    "donts": [
+      "Don't use gradient text on headers, titles, or metrics.",
+      "Don't use thick colored borders on one side of a card (borderLeft: 5px solid).",
+      "Don't leave empty states without actionable guidance when date filters return 0 records.",
+      "Don't mix different font families outside Geist and Geist Mono."
+    ]
+  }
+}

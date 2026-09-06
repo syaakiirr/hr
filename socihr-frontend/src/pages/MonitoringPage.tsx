@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
@@ -7,7 +8,7 @@ import {
   getEngagements, updateEngagementAction, updateEngagementReason,
   downloadSessionReportPdf, downloadMultiSessionReportPdf,
   downloadSessionReportExcel, downloadMultiSessionReportExcel,
-  updatePostLink, addStaffToSession, getStaffList,
+  addStaffToSession, getStaffList,
   type MonitoringSession, type Platform, type Engagement, type Company, type Staff
 } from "../services/api";
 
@@ -44,6 +45,58 @@ function parseDateOnly(dateStr: string) {
   return new Date(y, m - 1, d);
 }
 
+function toTitleCase(str: string): string {
+  if (!str) return "";
+  return str
+    .toLowerCase()
+    .split(" ")
+    .map((word) => {
+      if (word.length === 0) return "";
+      if (word.startsWith("(")) {
+        return "(" + word.charAt(1).toUpperCase() + word.slice(2);
+      }
+      return word.charAt(0).toUpperCase() + word.slice(1);
+    })
+    .join(" ");
+}
+
+function ActionIcon({ type, platform }: { type: "like" | "comment" | "share"; platform?: string }) {
+  if (type === "like") {
+    if (platform?.toLowerCase() === "instagram") {
+      return (
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z" />
+        </svg>
+      );
+    }
+    return (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M7 10v12" />
+        <path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z" />
+      </svg>
+    );
+  }
+  if (type === "comment") {
+    return (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+      </svg>
+    );
+  }
+  if (type === "share") {
+    return (
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="18" cy="5" r="3" />
+        <circle cx="6" cy="12" r="3" />
+        <circle cx="18" cy="19" r="3" />
+        <line x1="8.59" y1="13.51" x2="15.42" y2="17.49" />
+        <line x1="15.41" y1="6.51" x2="8.59" y2="10.49" />
+      </svg>
+    );
+  }
+  return null;
+}
+
 
 export default function MonitoringPage() {
   const navigate = useNavigate();
@@ -57,8 +110,9 @@ export default function MonitoringPage() {
   const [loadingEng, setLoadingEng] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedForReport, setSelectedForReport] = useState<Set<string>>(new Set());
+  const [bulkAttestStaff, setBulkAttestStaff] = useState<{ staffID: string; staffName: string } | null>(null);
   const [bulkReason, setBulkReason] = useState("");
-  const [showBulkAttest, setShowBulkAttest] = useState(false);
+  const [savingBulk, setSavingBulk] = useState(false);
 
   // Track the current session ID to prevent stale async updates from a previous session
   // bleeding into the current session's engagement state (Bug #2 fix)
@@ -235,28 +289,6 @@ export default function MonitoringPage() {
     }
   }
 
-  async function handleEditPostLink(postId: string, platformName: string, currentLink: string) {
-    const newLink = prompt(`Update ${platformName} Post Link:`, currentLink);
-    if (newLink === null) return; // user cancelled
-    
-    try {
-      await updatePostLink(postId, newLink.trim());
-      setSelectedSession(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          posts: prev.posts.map(p => p.postID === postId ? { ...p, postLink: newLink.trim() } : p)
-        };
-      });
-      setSessions(prev => prev.map(s => s.sessionID === selectedSession?.sessionID
-        ? { ...s, posts: s.posts.map(p => p.postID === postId ? { ...p, postLink: newLink.trim() } : p) }
-        : s
-      ));
-    } catch (err) {
-      alert(err instanceof Error ? err.message : "Failed to update post link.");
-    }
-  }
-
   function openReasonModal(row: { staffName: string; engagements: Engagement[] }) {
     const current = row.engagements.find(e => e.reason)?.reason || "";
     setReasonModal({ staffName: row.staffName, engagementIDs: row.engagements.map(e => e.engagementID), current });
@@ -279,34 +311,43 @@ export default function MonitoringPage() {
     }
   }
 
-  async function handleMarkAllComplete(staffId: string) {
-    const staffEngs = engagements.filter(e => e.staffID === staffId);
-    if (staffEngs.length === 0) return;
-    const allComplete = staffEngs.every(e => e.isLiked && e.isCommented && e.isShared);
+  function handleMarkAllClick(row: { staffID: string; staffName: string; engagements: Engagement[] }) {
+    const allComplete = row.engagements.every(e => e.isLiked && e.isCommented && e.isShared);
     if (allComplete) return;
-    if (!bulkReason.trim()) {
-      setShowBulkAttest(true);
+    const existingReason = row.engagements.find(e => e.reason)?.reason || "";
+    setBulkAttestStaff({ staffID: row.staffID, staffName: row.staffName });
+    setBulkReason(existingReason);
+  }
+
+  async function handleConfirmMarkAll() {
+    if (!bulkAttestStaff) return;
+    const staffEngs = engagements.filter(e => e.staffID === bulkAttestStaff.staffID);
+    if (staffEngs.length === 0) {
+      setBulkAttestStaff(null);
       return;
     }
+    setSavingBulk(true);
     try {
       const ids = staffEngs.map(e => e.engagementID);
       await Promise.all(ids.map(id => updateEngagementAction(id, "like", true)));
       await Promise.all(ids.map(id => updateEngagementAction(id, "comment", true)));
       await Promise.all(ids.map(id => updateEngagementAction(id, "share", true)));
-      await Promise.all(ids.map(id => updateEngagementReason(id, bulkReason)));
+      if (bulkReason.trim()) {
+        await Promise.all(ids.map(id => updateEngagementReason(id, bulkReason.trim())));
+      }
       setEngagements((prev) => prev.map((e) =>
-        ids.includes(e.engagementID) ? { ...e, isLiked: true, isCommented: true, isShared: true, status: "Completed", reason: bulkReason || null } : e
+        ids.includes(e.engagementID)
+          ? { ...e, isLiked: true, isCommented: true, isShared: true, status: "Completed", reason: bulkReason.trim() || e.reason }
+          : e
       ));
+      setBulkAttestStaff(null);
       setBulkReason("");
-      setShowBulkAttest(false);
     } catch (err) {
       console.error("Failed to mark all complete:", err);
+      alert(err instanceof Error ? err.message : "Failed to mark all complete.");
+    } finally {
+      setSavingBulk(false);
     }
-  }
-
-  async function handleBulkAttest() {
-    if (!bulkReason.trim()) return;
-    setShowBulkAttest(false);
   }
 
   async function handleDeleteSession(id: string) {
@@ -486,7 +527,7 @@ export default function MonitoringPage() {
     const actionCols: {
       postID: string; platformName: string; companyID: string; companyName: string;
       actionKey: "like" | "comment" | "share";
-      label: string; icon: string; disabled?: boolean;
+      label: string; disabled?: boolean;
     }[] = [];
 
     // Sort posts: group by company, then by platform order (FB → IG → TT)
@@ -507,14 +548,14 @@ export default function MonitoringPage() {
       const plat = p.platformName;
       const coID = p.companyID ?? "";
       const coName = (p.companyName || "No Company").trim();
-      const acts: { key: "like" | "comment" | "share"; label: string; icon: string; disabled?: boolean }[] = [
-        { key: "like", label: "Like", icon: plat.toLowerCase() === "instagram" ? "❤️" : "👍" },
-        { key: "comment", label: "Komen", icon: "💬" },
-        { key: "share", label: "Share", icon: "🔁" },
+      const acts: { key: "like" | "comment" | "share"; label: string; disabled?: boolean }[] = [
+        { key: "like", label: "Like" },
+        { key: "comment", label: "Comment" },
+        { key: "share", label: "Share" },
       ];
 
       acts.forEach((a) =>
-        actionCols.push({ ...a, postID: p.postID, platformName: plat, companyID: coID, companyName: coName, actionKey: a.key, label: a.label, icon: a.icon, disabled: a.disabled })
+        actionCols.push({ postID: p.postID, platformName: plat, companyID: coID, companyName: coName, actionKey: a.key, label: a.label, disabled: a.disabled })
       );
     });
 
@@ -595,131 +636,82 @@ export default function MonitoringPage() {
   return (
     <Layout>
       <style>{`
-        /* ── Premium Monitoring Page Styles ── */
-        .mon-wrap { display: flex; flex-direction: column; gap: 16px; }
-        .mon-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 4px; }
-        .mon-hdr-title { font-size: 24px; font-weight: 800; color: var(--text-1); letter-spacing: -0.5px; margin: 0; line-height: 1.2; }
-        .mon-hdr-sub { font-size: 13px; color: var(--text-3); margin-top: 3px; }
-        .mon-hdr-title .ht { background: linear-gradient(135deg, #4f46e5, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        /* ── Monitoring Page Styles ── */
+        .mon-wrap { display: flex; flex-direction: column; gap: 14px; }
+        .mon-hdr { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 2px; }
+        .mon-hdr-title { font-size: 1.25rem; font-weight: 600; color: var(--text-1); letter-spacing: -0.02em; margin: 0; line-height: 1.2; }
+        .mon-hdr-sub { font-size: 0.8rem; color: var(--text-3); margin-top: 3px; }
 
         /* Vertical stack layout */
         .mon-grid { display: flex; flex-direction: column; gap: 14px; }
 
         /* Sessions Panel — horizontal strip at top */
-        .sesh-panel { background: var(--white); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(15,23,42,0.04); }
-        .sesh-panel-hd { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-bottom: 1px solid var(--line); background: linear-gradient(135deg, #f8faff 0%, #f3f0ff 100%); flex-shrink: 0; }
-        .sesh-panel-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-4); white-space: nowrap; }
-        .sesh-panel-count { font-size: 18px; font-weight: 800; color: var(--accent); letter-spacing: -0.5px; line-height: 1; background: rgba(99,102,241,0.08); border-radius: 8px; padding: 2px 8px; }
-        .sesh-panel-list { display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 8px; padding: 10px 14px; scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
+        .sesh-panel { background: var(--white); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(15,23,42,0.03); }
+        .sesh-panel-hd { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: #f8fafc; flex-shrink: 0; }
+        .sesh-panel-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); white-space: nowrap; }
+        .sesh-panel-count { font-size: 11px; font-weight: 700; color: var(--text-2); background: var(--surface-2); border-radius: 6px; padding: 2px 7px; }
+        .sesh-panel-list { display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 8px; padding: 10px 12px; scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
         .sesh-panel-list::-webkit-scrollbar { height: 4px; }
         .sesh-panel-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
 
         /* Session item — horizontal card chip */
-        .sesh-item { display: flex; flex-direction: column; justify-content: space-between; min-width: 150px; max-width: 180px; padding: 9px 12px; border: 1.5px solid var(--line); border-radius: 10px; cursor: pointer; transition: all 0.15s; position: relative; flex-shrink: 0; background: var(--white); gap: 5px; }
-        .sesh-item:hover { border-color: var(--accent); background: #faf8ff; transform: translateY(-1px); box-shadow: 0 3px 10px rgba(99,102,241,0.1); }
-        .sesh-item.active { border-color: var(--accent); background: linear-gradient(135deg, #f5f3ff 0%, #faf8ff 100%); box-shadow: 0 0 0 2px rgba(99,102,241,0.18); }
-        .sesh-item.active::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: linear-gradient(90deg, #6366f1, #8b5cf6); border-radius: 8px 8px 0 0; }
+        .sesh-item { display: flex; flex-direction: column; justify-content: space-between; min-width: 150px; max-width: 180px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: all 0.15s ease; position: relative; flex-shrink: 0; background: var(--white); gap: 4px; }
+        .sesh-item:hover { border-color: var(--accent); background: #f8fafc; }
+        .sesh-item.active { border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 1.5px var(--accent); }
         .sesh-item-body { flex: 1; min-width: 0; }
-        .sesh-item-date { font-size: 12px; font-weight: 700; color: var(--text-1); white-space: nowrap; }
-        .sesh-item-co { font-size: 10px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sesh-item-plats { display: flex; align-items: center; gap: 3px; flex-wrap: wrap; }
+        .sesh-item-date { font-size: 12px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
+        .sesh-item-co { font-size: 10.5px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .sesh-item-plats { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
         .plat-pip { width: 6px; height: 6px; border-radius: 50%; }
         .sesh-item-acts { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
         .sesh-item:hover .sesh-item-acts { opacity: 1; }
 
         /* Right area */
         .engage-area { min-width: 0; }
-        .engage-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 32px; background: var(--white); border: 1.5px dashed var(--line); border-radius: 14px; text-align: center; gap: 8px; }
-        .engage-empty-ico { font-size: 44px; opacity: 0.3; }
-        .engage-empty-title { font-size: 16px; font-weight: 800; color: var(--text-2); }
-        .engage-empty-sub { font-size: 13px; color: var(--text-3); max-width: 280px; line-height: 1.6; }
+        .engage-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 32px; background: var(--white); border: 1px dashed var(--line); border-radius: 10px; text-align: center; gap: 6px; }
+        .engage-empty-ico { font-size: 32px; opacity: 0.4; }
+        .engage-empty-title { font-size: 14px; font-weight: 600; color: var(--text-2); }
+        .engage-empty-sub { font-size: 12px; color: var(--text-3); max-width: 280px; line-height: 1.5; }
 
         /* Matrix card inside right area */
-        .engage-card { background: var(--white); border: 1.5px solid var(--line); border-radius: 14px; overflow: hidden; box-shadow: 0 2px 10px rgba(15,23,42,0.04); }
-        .engage-card-hd { display: flex; align-items: center; justify-content: space-between; padding: 15px 18px; border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 10px; }
-        .engage-card-title { font-size: 14px; font-weight: 800; color: var(--text-1); }
+        .engage-card { background: var(--white); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(15,23,42,0.03); }
+        .engage-card-hd { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid var(--line); flex-wrap: wrap; gap: 10px; }
+        .engage-card-title { font-size: 13.5px; font-weight: 600; color: var(--text-1); }
         .engage-card-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
         .stats-row { display: flex; gap: 7px; align-items: center; }
-        .stat-chip { display: flex; align-items: center; gap: 4px; padding: 3.5px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; border: 1.5px solid; }
-        .chip-g { background: #f0fdf4; color: #16a34a; border-color: #bbf7d0; }
-        .chip-r { background: #fef2f2; color: #dc2626; border-color: #fecaca; }
-        .chip-b { background: #eff6ff; color: #2563eb; border-color: #bfdbfe; }
+        .stat-chip { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid; }
+        .chip-g { background: rgba(16,185,129,0.08); color: #16a34a; border-color: rgba(16,185,129,0.2); }
+        .chip-r { background: rgba(239,68,68,0.08); color: #dc2626; border-color: rgba(239,68,68,0.2); }
+        .chip-b { background: rgba(99,102,241,0.08); color: var(--accent); border-color: rgba(99,102,241,0.2); }
 
         /* Filter bar */
-        .filter-bar { display: flex; gap: 7px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line); background: #fafbfc; flex-wrap: wrap; }
+        .filter-bar { display: flex; gap: 7px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); background: #fafbfc; flex-wrap: wrap; }
         .fi-wrap { position: relative; flex: 1; min-width: 130px; }
         .fi-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.3; }
-        .fi-inp { width: 100%; height: 32px; padding: 0 9px 0 30px; border: 1.5px solid var(--line); border-radius: 7px; font-size: 12.5px; background: var(--white); color: var(--text-1); outline: none; transition: border-color 0.15s; font-family: inherit; box-sizing: border-box; }
+        .fi-inp { width: 100%; height: 32px; padding: 0 9px 0 30px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; background: var(--white); color: var(--text-1); outline: none; transition: border-color 0.15s; font-family: inherit; box-sizing: border-box; }
         .fi-inp:focus { border-color: var(--accent); }
-        .fi-sel { height: 32px; padding: 0 8px; border: 1.5px solid var(--line); border-radius: 7px; font-size: 12px; background: var(--white); color: var(--text-1); outline: none; cursor: pointer; font-family: inherit; min-width: 110px; max-width: 145px; transition: border-color 0.15s; }
+        .fi-sel { height: 32px; padding: 0 8px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; background: var(--white); color: var(--text-1); outline: none; cursor: pointer; font-family: inherit; min-width: 110px; max-width: 145px; transition: border-color 0.15s; }
         .fi-sel:focus { border-color: var(--accent); }
 
         /* Bulk bar */
-        .bulk-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 16px; background: linear-gradient(90deg, #f5f3ff, #fdf4ff); border-bottom: 1px solid rgba(99,102,241,0.12); flex-wrap: wrap; gap: 8px; }
-        .bulk-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; font-weight: 800; margin-right: 5px; }
+        .bulk-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 16px; background: #faf8ff; border-bottom: 1px solid rgba(99,102,241,0.12); flex-wrap: wrap; gap: 8px; }
+        .bulk-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; font-weight: 700; margin-right: 5px; }
 
-        /* ── CSS Grid Matrix Table Styles ── */
-        .matrix-grid {
-          display: grid;
+        /* ── Simple Engage Table Explicit Borders ── */
+        .simple-engage-table {
+          border-collapse: separate !important;
+          border-spacing: 0 !important;
+          border-left: 1px solid var(--line, #e2e8f0);
+          border-top: 1px solid var(--line, #e2e8f0);
           background: var(--white);
-          border: 1px solid var(--line);
-          border-radius: 12px;
-          overflow: hidden;
-          box-shadow: 0 4px 18px rgba(15, 23, 42, 0.04);
         }
-
-        .gh-cell {
-          background: #fafbfc;
-          border-right: 1px solid var(--line);
-          border-bottom: 1.5px solid var(--line);
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          text-align: center;
-          box-sizing: border-box;
-          font-weight: 700;
-          font-size: 10px;
-          color: var(--text-2);
+        .simple-engage-table th,
+        .simple-engage-table td {
+          border-right: 1px solid var(--line, #e2e8f0);
+          border-bottom: 1px solid var(--line, #e2e8f0);
         }
-
-        .gh-cell.sticky-col {
-          position: sticky;
-          z-index: 25;
-        }
-
-        .gh-cell.sticky-row {
-          position: sticky;
-          top: 0;
-          z-index: 20;
-        }
-
-        .gh-cell.sticky-both {
-          position: sticky;
-          top: 0;
-          z-index: 30;
-        }
-
-        .gb-cell {
-          padding: 8px;
-          border-right: 1px solid var(--line);
-          border-bottom: 1px solid var(--line);
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          box-sizing: border-box;
-          background: var(--white);
-          font-size: 12px;
-        }
-
-        .gb-cell.sticky-col {
-          position: sticky;
-          z-index: 10;
-          box-shadow: 2px 0 5px rgba(0, 0, 0, 0.02);
-        }
-
-        .gb-cell.selected-row-cell {
-          background: #f5f3ff !important;
+        .simple-engage-table .co-boundary {
+          border-right: 2px solid #cbd5e1 !important;
         }
 
         @media (max-width: 700px) { .sesh-item { min-width: 130px; } }
@@ -729,7 +721,7 @@ export default function MonitoringPage() {
         {/* ── Header ── */}
         <div className="mon-hdr">
           <div>
-            <h1 className="mon-hdr-title">Monitoring <span className="ht">Sessions</span></h1>
+            <h1 className="mon-hdr-title">Monitoring Sessions</h1>
             <p className="mon-hdr-sub">Manage and verify staff engagement for each platform post</p>
           </div>
           <div style={{ display: "flex", gap: 8 }}>
@@ -864,7 +856,7 @@ export default function MonitoringPage() {
                         <div className="sesh-item-date">
                           {parseDateOnly(s.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}
                         </div>
-                        {coSummary && <div className="sesh-item-co" title={coSummary}>🏢 {coSummary}</div>}
+                        {coSummary && <div className="sesh-item-co" title={coSummary}>{coSummary}</div>}
                         <div className="sesh-item-plats">
                           {uniquePlats.map(pl => (
                             <span key={pl} className="plat-pip" style={{ background: PLATFORM_COLORS[pl] || "var(--accent)" }} title={pl} />
@@ -899,9 +891,16 @@ export default function MonitoringPage() {
           <div className="engage-area" style={{ width: "100%" }}>
             {!selectedSession ? (
               <div className="engage-empty">
-                <div className="engage-empty-ico">📅</div>
+                <div className="engage-empty-ico" style={{ display: "flex", justifyContent: "center" }}>
+                  <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.4 }}>
+                    <rect width="18" height="18" x="3" y="4" rx="2" ry="2"/>
+                    <line x1="16" x2="16" y1="2" y2="6"/>
+                    <line x1="8" x2="8" y1="2" y2="6"/>
+                    <line x1="3" x2="21" y1="10" y2="10"/>
+                  </svg>
+                </div>
                 <p className="engage-empty-title">Select a Session</p>
-                <p className="engage-empty-sub">Click any session from the left panel to view and manage staff engagement.</p>
+                <p className="engage-empty-sub">Click any session from the top list to view and manage staff engagement.</p>
               </div>
             ) : (
               <div className="engage-card">
@@ -909,17 +908,24 @@ export default function MonitoringPage() {
                 <div className="engage-card-hd">
                   <div>
                     <div className="engage-card-title">Engagement Matrix</div>
-                    <div className="engage-card-sub">
-                      📅 {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
+                    <div className="engage-card-sub" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                      {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
                     </div>
                   </div>
-                  <div className="stats-row" style={{ gap: 12, alignItems: "center" }}>
-                    <span className="stat-chip chip-b">
-                      <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                  <div className="stats-row" style={{ gap: 10, alignItems: "center" }}>
+                    <span className="stat-chip chip-b" title="Total Staff in Session">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
                       {allStaffRows.length}
                     </span>
-                    <span className="stat-chip chip-g">✓ {totalTicks.completed}</span>
-                    <span className="stat-chip chip-r">✗ {totalTicks.missed}</span>
+                    <span className="stat-chip chip-g" title="Completed Ticks">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                      {totalTicks.completed}
+                    </span>
+                    <span className="stat-chip chip-r" title="Missed Ticks">
+                      <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                      {totalTicks.missed}
+                    </span>
                     <button
                       onClick={() => setShowAddStaffModal(true)}
                       className="btn btn-primary btn-sm"
@@ -1003,8 +1009,8 @@ export default function MonitoringPage() {
                     const { actionCols, coGroups, platGroups, coEndIndices } = tableData;
                     
                     const thStyle: React.CSSProperties = {
-                      padding: "6px 5px", textAlign: "center", fontWeight: 700,
-                      fontSize: 11.5, color: "var(--text-2)", whiteSpace: "nowrap"
+                      padding: "6px 5px", textAlign: "center", fontWeight: 600,
+                      fontSize: 11, color: "var(--text-2)", whiteSpace: "nowrap"
                     };
                     const tdStyle: React.CSSProperties = {
                       padding: "6px", textAlign: "center", verticalAlign: "middle"
@@ -1031,30 +1037,29 @@ export default function MonitoringPage() {
                           style={{ overflowX: "auto", width: "100%" }}
                         >
                         <table className="simple-engage-table" style={{
-                          width: "100%", borderCollapse: "collapse", fontSize: 13,
-                          minWidth: 400 + actionCols.length * 52
+                          width: "100%", fontSize: 13,
+                          minWidth: 400 + actionCols.length * 54
                         }}>
                           <thead>
                             {/* Row 1 — Company */}
-                            <tr style={{ background: "#f1f5f9" }}>
-
-                              <th rowSpan={3} style={{ ...thStyle, width: 28, fontSize: 11, color: "var(--text-4)", borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>#</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 120, fontSize: 12, borderRight: "1px solid var(--line)", borderBottom: "2px solid var(--line)" }}>Staff Name</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 80, fontSize: 11, borderRight: "2px solid var(--line-2)", borderBottom: "2px solid var(--line)" }}>Department</th>
+                            <tr style={{ background: "#f8fafc" }}>
+                              <th rowSpan={3} style={{ ...thStyle, width: 34, fontSize: 11, color: "var(--text-4)" }}>#</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 140, fontSize: 11.5, paddingLeft: 12 }}>Staff Name</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 90, fontSize: 11, paddingLeft: 10, borderRight: "2px solid #cbd5e1" }}>Department</th>
                               {coGroups.map((cg) => (
                                 <th key={cg.companyID} colSpan={cg.span} style={{
-                                  padding: "5px 6px", textAlign: "center", fontWeight: 800,
-                                  fontSize: 11, letterSpacing: "0.03em", textTransform: "uppercase",
-                                  color: cg.color, background: `${cg.color}14`,
-                                  borderRight: "2px solid #cbd5e1", borderBottom: "1px solid var(--line)"
+                                  padding: "6px 8px", textAlign: "center", fontWeight: 700,
+                                  fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase",
+                                  color: cg.color, background: `${cg.color}10`,
+                                  borderRight: "2px solid #cbd5e1"
                                 }}>
                                   {cg.name}
                                 </th>
                               ))}
-                              <th rowSpan={3} style={{ ...thStyle, width: 68, borderBottom: "2px solid var(--line)" }}>Reason</th>
+                              <th rowSpan={3} style={{ ...thStyle, width: 140 }}>Actions</th>
                             </tr>
                             {/* Row 2 — Platform */}
-                            <tr style={{ background: "#f5f6f8" }}>
+                            <tr style={{ background: "#fafbfc" }}>
                               {(() => {
                                 let platColIdx = 0;
                                 return platGroups.map((pg, pi) => {
@@ -1063,52 +1068,34 @@ export default function MonitoringPage() {
                                   platColIdx += pg.span;
                                   return (
                                     <th key={pi} colSpan={pg.span} style={{
-                                      padding: "6px 4px", textAlign: "center", fontWeight: 700,
-                                      fontSize: 11, color: pg.color, background: `${pg.color}0d`,
-                                      borderRight: isCoEnd ? "2px solid #cbd5e1" : "1px solid var(--line)",
-                                      borderBottom: "1px solid var(--line)"
+                                      padding: "6px 6px", textAlign: "center", fontWeight: 600,
+                                      fontSize: 11, color: pg.color, background: `${pg.color}08`,
+                                      borderRight: isCoEnd ? "2px solid #cbd5e1" : undefined,
                                     }}>
-                                      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+                                      <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
                                         {pg.postLink ? (
                                           <a
                                             href={pg.postLink}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            title={`Go to ${pg.platformName} Post`}
+                                            title={`Open ${pg.platformName} Post`}
                                             style={{
                                               color: pg.color,
-                                              textDecoration: "underline",
                                               display: "inline-flex",
                                               alignItems: "center",
-                                              gap: 3,
-                                              fontWeight: 800
+                                              gap: 4,
+                                              fontWeight: 700,
+                                              textDecoration: "none",
                                             }}
+                                            onMouseEnter={(e) => (e.currentTarget.style.textDecoration = "underline")}
+                                            onMouseLeave={(e) => (e.currentTarget.style.textDecoration = "none")}
                                           >
                                             <span>{pg.platformName}</span>
                                             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14 21 3"/></svg>
                                           </a>
                                         ) : (
-                                          <span style={{ color: pg.color, opacity: 0.7 }}>{pg.platformName}</span>
+                                          <span style={{ color: pg.color, opacity: 0.85 }}>{pg.platformName}</span>
                                         )}
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleEditPostLink(pg.postID, pg.platformName, pg.postLink);
-                                          }}
-                                          style={{
-                                            border: "none",
-                                            background: "none",
-                                            cursor: "pointer",
-                                            padding: "2px 4px",
-                                            color: "var(--text-3)",
-                                            fontSize: 11,
-                                            display: "inline-flex",
-                                            alignItems: "center"
-                                          }}
-                                          title="Update Link"
-                                        >
-                                          ✏️
-                                        </button>
                                       </div>
                                     </th>
                                   );
@@ -1116,18 +1103,22 @@ export default function MonitoringPage() {
                               })()}
                             </tr>
                             {/* Row 3 — Action */}
-                            <tr style={{ background: "#fafbfc", borderBottom: "2px solid var(--line)" }}>
+                            <tr style={{ background: "#f8fafc" }}>
                               {actionCols.map((col, ci) => {
                                 const platColor = PLATFORM_COLORS[col.platformName] || "var(--accent)";
                                 const isLastInCo = coEndIndices.has(ci);
                                 return (
                                   <th key={ci} style={{
-                                    ...thStyle, fontSize: 9.5, width: 46,
+                                    ...thStyle, fontSize: 10, fontWeight: 600, width: 48,
                                     color: col.disabled ? "var(--text-4)" : platColor,
                                     opacity: col.disabled ? 0.35 : 1,
-                                    borderRight: isLastInCo ? "2px solid #cbd5e1" : "1px solid var(--line)"
+                                    borderRight: isLastInCo ? "2px solid #cbd5e1" : undefined,
+                                    padding: "5px 3px"
                                   }}>
-                                    {col.icon} {col.label}
+                                    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3.5 }}>
+                                      <ActionIcon type={col.actionKey} platform={col.platformName} />
+                                      <span>{col.label}</span>
+                                    </div>
                                   </th>
                                 );
                               })}
@@ -1135,7 +1126,6 @@ export default function MonitoringPage() {
                           </thead>
                           <tbody>
                             {staffRows.map((row, idx) => {
-                              
                               const reason = row.engagements.find(e => e.reason)?.reason;
                               const isRowSel = selectedStaffID === row.staffID;
 
@@ -1144,18 +1134,18 @@ export default function MonitoringPage() {
                                   key={row.staffID}
                                   onClick={() => setSelectedStaffID(row.staffID)}
                                   style={{
-                                    background: isRowSel ? "#f5f3ff" : idx % 2 === 0 ? "var(--white)" : "#fafbfc",
-                                    borderBottom: "1px solid var(--line)",
+                                    background: isRowSel ? "rgba(99, 102, 241, 0.06)" : idx % 2 === 0 ? "var(--white)" : "#f8fafc",
                                     cursor: "pointer",
                                     transition: "background 0.1s"
                                   }}
                                 >
-
-                                  <td style={{ ...tdStyle, color: "var(--text-4)", fontSize: 12 }}>{idx + 1}</td>
-                                  <td style={{ ...tdStyle, textAlign: "left", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap" }}>
-                                    {row.staffName}
+                                  <td style={{ ...tdStyle, color: "var(--text-4)", fontSize: 11.5 }}>
+                                    {idx + 1}
                                   </td>
-                                  <td style={{ ...tdStyle, textAlign: "left", color: "var(--text-3)", fontSize: 12, whiteSpace: "nowrap" }}>
+                                  <td style={{ ...tdStyle, textAlign: "left", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", paddingLeft: 12 }}>
+                                    {toTitleCase(row.staffName)}
+                                  </td>
+                                  <td style={{ ...tdStyle, textAlign: "left", color: "var(--text-3)", fontSize: 12, whiteSpace: "nowrap", paddingLeft: 10, borderRight: "2px solid #cbd5e1" }}>
                                     {row.department || "—"}
                                   </td>
                                   {actionCols.map((col, ci) => {
@@ -1170,7 +1160,7 @@ export default function MonitoringPage() {
                                     return (
                                       <td key={ci} style={{
                                         ...tdStyle,
-                                        borderRight: isLastInGroup ? "2px solid #d1d5db" : "1px solid var(--line)"
+                                        borderRight: isLastInGroup ? "2px solid #cbd5e1" : undefined
                                       }}>
                                         {eng ? (
                                           col.disabled ? (
@@ -1191,39 +1181,49 @@ export default function MonitoringPage() {
                                       </td>
                                     );
                                   })}
-                                   <td style={tdStyle}>
-                                     <button
-                                       onClick={(e) => { e.stopPropagation(); handleMarkAllComplete(row.staffID); }}
-                                       title="Mark all 3 as complete"
-                                       style={{
-                                         fontSize: 11, padding: "3px 6px", borderRadius: 6,
-                                         border: "1.5px solid var(--green-line)",
-                                         cursor: "pointer", fontWeight: 700,
-                                         background: "var(--green-soft)",
-                                         color: "#166534",
-                                         whiteSpace: "nowrap", marginRight: 4,
-                                         fontFamily: "inherit"
-                                       }}
-                                     >
-                                       ✓ Mark All 3
-                                     </button>
-                                     <button
-                                       onClick={(e) => { e.stopPropagation(); openReasonModal(row); }}
-                                       title={reason || "Add reason"}
-                                       style={{
-                                         fontSize: 11, padding: "3px 6px", borderRadius: 6,
-                                         border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
-                                         cursor: "pointer", fontWeight: 700,
-                                         background: reason ? "rgba(99,102,241,0.06)" : "transparent",
-                                         color: reason ? "var(--accent)" : "var(--text-3)",
-                                         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                                         maxWidth: 70, fontFamily: "inherit"
-                                       }}
-                                     >
-                                       {reason ? `📝 ${reason}` : "+ Reason"}
-                                     </button>
-                                   </td>
-                                 </tr>
+                                  <td style={{ ...tdStyle, padding: "4px 8px" }}>
+                                    <div style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); handleMarkAllClick(row); }}
+                                        title="Mark all 3 as complete"
+                                        style={{
+                                          fontSize: 10.5, padding: "3px 7px", borderRadius: 6,
+                                          border: "1px solid rgba(16, 185, 129, 0.3)",
+                                          cursor: "pointer", fontWeight: 600,
+                                          background: "rgba(16, 185, 129, 0.08)",
+                                          color: "#16a34a",
+                                          whiteSpace: "nowrap",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 3.5,
+                                          fontFamily: "inherit"
+                                        }}
+                                      >
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+                                        All 3
+                                      </button>
+                                      <button
+                                        onClick={(e) => { e.stopPropagation(); openReasonModal(row); }}
+                                        title={reason || "Add reason"}
+                                        style={{
+                                          fontSize: 10.5, padding: "3px 7px", borderRadius: 6,
+                                          border: reason ? "1px solid rgba(99, 102, 241, 0.4)" : "1px solid var(--line)",
+                                          cursor: "pointer", fontWeight: 600,
+                                          background: reason ? "rgba(99, 102, 241, 0.08)" : "transparent",
+                                          color: reason ? "var(--accent)" : "var(--text-3)",
+                                          whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                                          maxWidth: 80, fontFamily: "inherit",
+                                          display: "inline-flex",
+                                          alignItems: "center",
+                                          gap: 3.5
+                                        }}
+                                      >
+                                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                        {reason ? reason : "Reason"}
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
                               );
                             })}
                           </tbody>
@@ -1239,43 +1239,59 @@ export default function MonitoringPage() {
         </div>
       </div>
 
-      {/* Bulk Attestation Dialog */}
-      {showBulkAttest && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowBulkAttest(false)}>
-          <div className="modal-box" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+      {/* Bulk Attest Modal */}
+      {bulkAttestStaff && typeof document !== "undefined" && createPortal(
+        <div
+          className="modal-overlay"
+          style={{ position: "fixed", inset: 0, zIndex: 9999 }}
+          onClick={(e) => e.target === e.currentTarget && !savingBulk && setBulkAttestStaff(null)}
+        >
+          <div className="modal-box" style={{ maxWidth: 420 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h2 className="modal-title">Bulk Attestation Required</h2>
-              <button onClick={() => setShowBulkAttest(false)} className="btn btn-ghost btn-icon btn-sm">
+              <h2 className="modal-title">Mark All Complete</h2>
+              <button onClick={() => !savingBulk && setBulkAttestStaff(null)} className="btn btn-ghost btn-icon btn-sm">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
               </button>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
-              <p style={{ fontSize: 13, color: 'var(--text-2)' }}>
-                Marking all 3 actions (Like, Comment, Share) as complete requires attestation. Please confirm you verified these actions on-platform.
-              </p>
-              <textarea
-                className="input"
-                placeholder="Enter attestation reason (e.g., Verified on-platform at 14:30)"
-                value={bulkReason}
-                onChange={e => setBulkReason(e.target.value)}
-                rows={3}
-                style={{ resize: 'vertical' }}
-              />
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-                <button className="btn btn-ghost" onClick={() => setShowBulkAttest(false)}>Cancel</button>
-                <button className="btn btn-primary" onClick={handleBulkAttest} disabled={!bulkReason.trim()}>Attest & Mark Complete</button>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12, marginTop: 14 }}>
+              <div style={{ padding: "8px 12px", background: "var(--surface-2)", borderRadius: 8, border: "1px solid var(--line)" }}>
+                <p style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{toTitleCase(bulkAttestStaff.staffName)}</p>
+                <p style={{ fontSize: 11.5, color: "var(--text-3)", marginTop: 2 }}>
+                  Will mark Like, Comment, and Share as completed for this staff across all platforms in this session.
+                </p>
+              </div>
+
+              <div>
+                <label className="input-label" style={{ marginBottom: 4 }}>Attestation Reason / Note (Optional)</label>
+                <textarea
+                  className="input"
+                  placeholder="e.g. Verified on platform, Urusan Rasmi..."
+                  value={bulkReason}
+                  onChange={(e) => setBulkReason(e.target.value)}
+                  rows={2}
+                  style={{ resize: "vertical", fontSize: 12.5 }}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", marginTop: 4 }}>
+                <button className="btn btn-secondary" onClick={() => setBulkAttestStaff(null)} disabled={savingBulk}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleConfirmMarkAll} disabled={savingBulk}>
+                  {savingBulk ? <><span className="spin" style={{ width: 12, height: 12 }} /> Saving...</> : "Confirm & Complete"}
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ══════════════════════════════════════════════════════════════
           3-STEP WIZARD MODAL: Create New Session
          ══════════════════════════════════════════════════════════════ */}
-      {showCreate && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowCreate(false)}>
-          <div className="modal-box" style={{ maxWidth: 520 }}>
+      {showCreate && typeof document !== "undefined" && createPortal(
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, zIndex: 9999 }} onClick={(e) => e.target === e.currentTarget && setShowCreate(false)}>
+          <div className="modal-box" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h2 className="modal-title">Create New Session</h2>
               <button onClick={() => setShowCreate(false)} className="btn btn-ghost btn-icon btn-sm">
@@ -1463,9 +1479,9 @@ export default function MonitoringPage() {
                 {/* Summary */}
                 <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, padding: "10px 14px" }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 4 }}>Session Summary</p>
-                  <p style={{ fontSize: 12, color: "var(--text-3)" }}>📅 {new Date(sessionDate + "T00:00:00").toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" })}</p>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>🏢 {selectedCompanies.size} company selected</p>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>📱 {selectedPlatforms.size} platform selected</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)" }}>{new Date(sessionDate + "T00:00:00").toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{selectedCompanies.size} company selected</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{selectedPlatforms.size} platform selected</p>
                 </div>
 
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -1474,23 +1490,24 @@ export default function MonitoringPage() {
                     Back
                   </button>
                   <button type="submit" disabled={saving || selectedPlatforms.size === 0} className="btn btn-primary" style={{ flex: 1 }}>
-                    {saving ? <><span className="spin" style={{ width: 12, height: 12 }} /> Saving...</> : "🚀 Launch Session"}
+                    {saving ? <><span className="spin" style={{ width: 12, height: 12 }} /> Saving...</> : "Launch Session"}
                   </button>
                 </div>
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       
       {/* ══════════════════════════════════════════════════════════════
           EDIT SESSION WIZARD MODAL
          ══════════════════════════════════════════════════════════════ */}
-      {showEdit && editSession && (
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowEdit(false)}>
-          <div className="modal-box" style={{ maxWidth: 520 }}>
+      {showEdit && editSession && typeof document !== "undefined" && createPortal(
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, zIndex: 9999 }} onClick={(e) => e.target === e.currentTarget && setShowEdit(false)}>
+          <div className="modal-box" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
-              <h2 className="modal-title">✏️ Edit Session</h2>
+              <h2 className="modal-title">Edit Session</h2>
               <button onClick={() => setShowEdit(false)} className="btn btn-ghost btn-icon btn-sm">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
                   <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
@@ -1676,9 +1693,9 @@ export default function MonitoringPage() {
                 {/* Summary */}
                 <div style={{ background: "var(--accent-soft)", border: "1px solid var(--accent-border)", borderRadius: 8, padding: "10px 14px" }}>
                   <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-2)", marginBottom: 4 }}>Changes Summary</p>
-                  <p style={{ fontSize: 12, color: "var(--text-3)" }}>📅 {new Date(editDate + "T00:00:00").toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" })}</p>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>🏢 {editCompanies.size} company selected</p>
-                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>📱 {editPlatforms.size} platform selected</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)" }}>{new Date(editDate + "T00:00:00").toLocaleDateString("en-US", { day: "2-digit", month: "long", year: "numeric" })}</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{editCompanies.size} company selected</p>
+                  <p style={{ fontSize: 12, color: "var(--text-3)", marginTop: 2 }}>{editPlatforms.size} platform selected</p>
                 </div>
 
                 <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
@@ -1687,22 +1704,22 @@ export default function MonitoringPage() {
                     Back
                   </button>
                   <button type="submit" disabled={editSaving || editPlatforms.size === 0} className="btn btn-primary" style={{ flex: 1 }}>
-                    {editSaving ? <><span className="spin" style={{ width: 12, height: 12 }} /> Saving...</> : "💾 Save Changes"}
+                    {editSaving ? <><span className="spin" style={{ width: 12, height: 12 }} /> Saving...</> : "Save Changes"}
                   </button>
                 </div>
               </form>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ══════════════════════════════════════════════════════════════
           ADD STAFF TO SESSION MODAL
          ══════════════════════════════════════════════════════════════ */}
-      {showAddStaffModal && selectedSession && (
-
-        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowAddStaffModal(false)}>
-          <div className="modal-box" style={{ maxWidth: 520 }}>
+      {showAddStaffModal && selectedSession && typeof document !== "undefined" && createPortal(
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, zIndex: 9999 }} onClick={(e) => e.target === e.currentTarget && setShowAddStaffModal(false)}>
+          <div className="modal-box" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
             <div className="modal-head">
               <h2 className="modal-title">Add Staff to Session</h2>
               <button onClick={() => setShowAddStaffModal(false)} className="btn btn-ghost btn-icon btn-sm">
@@ -1713,7 +1730,7 @@ export default function MonitoringPage() {
             </div>
             
             <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 16 }}>
-              Select staff to add to this monitoring session (📅 {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })})
+              Select staff to add to this monitoring session ({parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })})
             </p>
             
             <div style={{ maxHeight: 320, overflowY: "auto", border: "1px solid var(--line)", borderRadius: 10, padding: 8 }}>
@@ -1759,7 +1776,7 @@ export default function MonitoringPage() {
                           />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-1)" }}>
-                              {staff.fullName}
+                              {toTitleCase(staff.fullName)}
                             </div>
                             <div style={{ fontSize: 12, color: "var(--text-3)" }}>
                               {staff.department || "No Department"} • {staff.status}
@@ -1786,21 +1803,28 @@ export default function MonitoringPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
       
       {/* ── Reason Modal ── */}
-      {reasonModal && (
-        <div style={{
-          position: "fixed", inset: 0, zIndex: 1000,
-          background: "rgba(0,0,0,0.45)", backdropFilter: "blur(4px)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-        }} onClick={() => setReasonModal(null)}>
-          <div style={{
-            background: "var(--surface)", borderRadius: 14, padding: 24, width: 360,
-            boxShadow: "0 8px 40px rgba(0,0,0,0.25)", border: "1px solid var(--line)"
-          }} onClick={(e) => e.stopPropagation()}>
-            <p style={{ fontWeight: 700, fontSize: 15, marginBottom: 6 }}>📝 Reason — {reasonModal.staffName}</p>
+      {reasonModal && typeof document !== "undefined" && createPortal(
+        <div
+          className="modal-overlay"
+          style={{ position: "fixed", inset: 0, zIndex: 9999 }}
+          onClick={() => setReasonModal(null)}
+        >
+          <div
+            className="modal-box"
+            style={{ maxWidth: 380 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-head">
+              <h2 className="modal-title">Reason — {toTitleCase(reasonModal.staffName)}</h2>
+              <button onClick={() => setReasonModal(null)} className="btn btn-ghost btn-icon btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
             <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 14 }}>Enter reason (applies to all posts for this staff in the session)</p>
             <textarea
               className="input"
@@ -1821,7 +1845,8 @@ export default function MonitoringPage() {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       {/* ── Confirmation Dialog (replaces native confirm/alert) ── */}

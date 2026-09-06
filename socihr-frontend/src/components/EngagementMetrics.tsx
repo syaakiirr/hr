@@ -98,7 +98,7 @@ function getDateRange(filter: string): { from?: string; to?: string } {
 }
 
 export default function EngagementMetrics({ filter = "month", kpiData: kpiProp }: { filter?: string; kpiData?: KpiData | null }) {
-  const [mode, setMode] = useState<"session" | "overall">("overall");
+  const [mode, setMode] = useState<"session" | "overall">("session");
   const [metrics, setMetrics] = useState<MetricRow[]>([]);
   const [loading, setLoading] = useState(true);
 

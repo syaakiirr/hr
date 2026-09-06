@@ -49,6 +49,12 @@ public class AppDbContext : DbContext
             e.Property(x => x.Username).HasColumnName("Username");
             e.Property(x => x.PasswordHash).HasColumnName("PasswordHash");
             e.Property(x => x.Role).HasColumnName("Role");
+            e.Property(x => x.DepartmentID).HasColumnName("DepartmentID");
+            e.HasOne(x => x.Department)
+             .WithMany()
+             .HasForeignKey(x => x.DepartmentID)
+             .OnDelete(DeleteBehavior.SetNull)
+             .IsRequired(false);
         });
 
         // ── MonitoringSession ──

@@ -822,8 +822,57 @@ public class MonitoringSessionController : ControllerBase
             c.Style.Font.FontColor = Html(color);
         }
 
-        // ── Table Headers ──
+        // ── Company Breakdown Table ──
         int tableRow = cardRow + 3;
+        if (data.CompanyStats.Count > 0)
+        {
+            ws.Cell(tableRow, startCol).Value = "Company Engagement Breakdown";
+            ws.Cell(tableRow, startCol).Style.Font.Bold = true;
+            ws.Cell(tableRow, startCol).Style.Font.FontSize = 11;
+            ws.Cell(tableRow, startCol).Style.Font.FontColor = Html("#1e40af");
+
+            var coHeaders = new[] { "Company", "Total Likes", "Total Comments", "Total Shares", "Completed", "Expected", "Rate (%)" };
+            for (int i = 0; i < coHeaders.Length; i++)
+            {
+                var cell = ws.Cell(tableRow + 1, startCol + i);
+                cell.Value = coHeaders[i];
+                cell.Style.Font.Bold = true;
+                cell.Style.Font.FontSize = 8.5f;
+                cell.Style.Fill.BackgroundColor = Html("#1e40af");
+                cell.Style.Font.FontColor = Html("#ffffff");
+                cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+            }
+
+            for (int i = 0; i < data.CompanyStats.Count; i++)
+            {
+                var cs = data.CompanyStats[i];
+                var r = tableRow + 2 + i;
+                var bg = i % 2 == 0 ? "#ffffff" : "#f8fafc";
+
+                ws.Cell(r, startCol).Value = cs.CompanyName;
+                ws.Cell(r, startCol + 1).Value = cs.Likes;
+                ws.Cell(r, startCol + 2).Value = cs.Comments;
+                ws.Cell(r, startCol + 3).Value = cs.Shares;
+                ws.Cell(r, startCol + 4).Value = cs.CompletedTicks;
+                ws.Cell(r, startCol + 5).Value = cs.TotalExpectedTicks;
+                ws.Cell(r, startCol + 6).Value = $"{cs.Rate}%";
+
+                for (int c = 0; c < 7; c++)
+                {
+                    var cell = ws.Cell(r, startCol + c);
+                    cell.Style.Fill.BackgroundColor = Html(bg);
+                    cell.Style.Font.FontSize = 8.5f;
+                    cell.Style.Border.SetBottomBorder(XLBorderStyleValues.Thin).Border.SetBottomBorderColor(Html("#cbd5e1"));
+                    if (c > 0) cell.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                }
+                var rColor = cs.Rate >= 80 ? "#16a34a" : cs.Rate >= 50 ? "#d97706" : "#dc2626";
+                ws.Cell(r, startCol + 6).Style.Font.FontColor = Html(rColor);
+                ws.Cell(r, startCol + 6).Style.Font.Bold = true;
+            }
+            tableRow += 3 + data.CompanyStats.Count;
+        }
+
+        // ── Table Headers ──
         int col = startCol;
 
         // Fixed columns: #, Staff Name, Department
@@ -983,9 +1032,34 @@ public class MonitoringSessionController : ControllerBase
         public List<CompanyGroup> CompanyGroups { get; set; } = new();  // Grouped for header
         public List<PlatformGroup> PlatformGroups { get; set; } = new();  // Grouped for sub-header
         public List<StaffRowData> StaffRows { get; set; } = new();
+        public List<CompanyEngagementStat> CompanyStats { get; set; } = new();
+        public List<PlatformEngagementStat> PlatformStats { get; set; } = new();
         public int TotalLikes { get; set; }
         public int TotalComments { get; set; }
         public int TotalShares { get; set; }
+        public bool IsUnit { get; set; }
+    }
+
+    internal class CompanyEngagementStat
+    {
+        public string CompanyName { get; set; } = "";
+        public int Likes { get; set; }
+        public int Comments { get; set; }
+        public int Shares { get; set; }
+        public int CompletedTicks { get; set; }
+        public int TotalExpectedTicks { get; set; }
+        public double Rate => TotalExpectedTicks > 0 ? Math.Round((double)CompletedTicks / TotalExpectedTicks * 100, 1) : 0;
+    }
+
+    internal class PlatformEngagementStat
+    {
+        public string PlatformName { get; set; } = "";
+        public int Likes { get; set; }
+        public int Comments { get; set; }
+        public int Shares { get; set; }
+        public int CompletedTicks { get; set; }
+        public int TotalExpectedTicks { get; set; }
+        public double Rate => TotalExpectedTicks > 0 ? Math.Round((double)CompletedTicks / TotalExpectedTicks * 100, 1) : 0;
     }
 
     internal class ColumnInfo
@@ -1019,6 +1093,10 @@ public class MonitoringSessionController : ControllerBase
     {
         public string StaffName { get; set; } = "";
         public string Department { get; set; } = "";
+        public string Position { get; set; } = "";
+        public int Likes { get; set; }
+        public int Comments { get; set; }
+        public int Shares { get; set; }
         public List<bool> EngagementValues { get; set; } = new();  // Per column (like/comment/share)
         public string? Reason { get; set; }  // Reason for missing engagements
         // Tick stats for consistent sorting (matches TickHelper / StaffRankingHelper logic)
@@ -1027,9 +1105,13 @@ public class MonitoringSessionController : ControllerBase
         public double CompletionRate => TotalTicks > 0 ? Math.Round((double)CompletedTicks / TotalTicks * 100, 1) : 0;
     }
 
-    internal static ReportData BuildReportData(MonitoringSession session, List<Engagement> engagements)
+    internal static ReportData BuildReportData(MonitoringSession? session, List<Engagement> engagements)
     {
-        var data = new ReportData { SessionDate = session.SessionDate };
+        var data = new ReportData
+        {
+            SessionDate = session != null ? session.SessionDate : DateOnly.FromDateTime(DateTime.Now),
+            IsUnit = session == null
+        };
 
         // Get unique posts from engagements, sorted by company then platform
         var platformOrder = new Dictionary<string, int> { { "Facebook", 0 }, { "Instagram", 1 }, { "TikTok", 2 } };
@@ -1115,10 +1197,15 @@ public class MonitoringSessionController : ControllerBase
 
         foreach (var group in staffGroups)
         {
+            var firstEng = group.First();
             var row = new StaffRowData
             {
                 StaffName = group.Key.FullName ?? "Unknown",
-                Department = group.Key.Department ?? "N/A"
+                Department = group.Key.Department ?? "N/A",
+                Position = firstEng.Staff?.Position ?? "-",
+                Likes = group.Count(e => e.IsLiked),
+                Comments = group.Count(e => e.IsCommented),
+                Shares = group.Count(e => e.IsShared)
             };
 
             // Get the reason (take the first non-null reason from the staff's engagements)
@@ -1173,6 +1260,38 @@ public class MonitoringSessionController : ControllerBase
             .ThenBy(r => r.StaffName)
             .ToList();
 
+        // Build company stats breakdown with Likes, Comments, Shares
+        data.CompanyStats = engagements
+            .Where(e => e.Post?.Company != null)
+            .GroupBy(e => e.Post!.Company!.CompanyName)
+            .Select(g => new CompanyEngagementStat
+            {
+                CompanyName = g.Key,
+                Likes = g.Count(e => e.IsLiked),
+                Comments = g.Count(e => e.IsCommented),
+                Shares = g.Count(e => e.IsShared),
+                CompletedTicks = g.Sum(e => socihr_backend.Helpers.TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                TotalExpectedTicks = g.Sum(e => socihr_backend.Helpers.TickHelper.Expected(e.Post!.Platform!.PlatformName))
+            })
+            .OrderBy(c => c.CompanyName)
+            .ToList();
+
+        // Build platform stats breakdown with Likes, Comments, Shares
+        data.PlatformStats = engagements
+            .Where(e => e.Post?.Platform != null)
+            .GroupBy(e => e.Post!.Platform!.PlatformName)
+            .Select(g => new PlatformEngagementStat
+            {
+                PlatformName = g.Key,
+                Likes = g.Count(e => e.IsLiked),
+                Comments = g.Count(e => e.IsCommented),
+                Shares = g.Count(e => e.IsShared),
+                CompletedTicks = g.Sum(e => socihr_backend.Helpers.TickHelper.Ticked(e.Post!.Platform!.PlatformName, e.IsLiked, e.IsCommented, e.IsShared)),
+                TotalExpectedTicks = g.Sum(e => socihr_backend.Helpers.TickHelper.Expected(e.Post!.Platform!.PlatformName))
+            })
+            .OrderBy(p => p.PlatformName)
+            .ToList();
+
         return data;
     }
 
@@ -1186,14 +1305,18 @@ public class MonitoringSessionController : ControllerBase
                 page.Margin(16);
                 page.PageColor(Colors.White);
 
-                page.Header().PaddingBottom(8).Row(row =>
+                page.Header().PaddingBottom(10).Row(row =>
                 {
                     row.RelativeItem().Column(c =>
                     {
-                        c.Item().Text("Monitoring Session Report").FontSize(16).Bold().FontColor("#1e40af");
-                        c.Item().Text($"System crafted by @syaakiirr").FontSize(8).FontColor("#9ca3af");
+                        c.Item().Text("MONITORING SESSION ENGAGEMENT REPORT").FontSize(16).Bold().FontColor("#1e1b4b");
+                        c.Item().PaddingTop(2).Text($"System crafted by @syaakiirr").FontSize(8).FontColor("#94a3b8");
                     });
-                    row.ConstantItem(150).AlignRight().Text($"{data.SessionDate:dd MMMM yyyy}").FontSize(11).Bold().FontColor("#475569");
+                    row.ConstantItem(320).AlignRight().Background("#eff6ff").Border(1.5f).BorderColor("#3b82f6").Padding(6).Column(c =>
+                    {
+                        c.Item().Text("MONITORING SESSION DATE").FontSize(8).Bold().FontColor("#1d4ed8").AlignCenter();
+                        c.Item().PaddingTop(1).Text($"{data.SessionDate:dddd, dd MMMM yyyy}").FontSize(13).Bold().FontColor("#1e40af").AlignCenter();
+                    });
                 });
 
                 page.Content().Column(col =>
@@ -1207,6 +1330,60 @@ public class MonitoringSessionController : ControllerBase
                         row.ConstantItem(12);
                         row.RelativeItem().Element(c => Card(c, "Total Shares", data.TotalShares.ToString(), "#10b981"));
                     });
+
+                    // Company Engagement Breakdown Table
+                    if (data.CompanyStats.Count > 0)
+                    {
+                        col.Item().PaddingBottom(12).Column(cc =>
+                        {
+                            cc.Item().Text("Company Engagement Breakdown").FontSize(9.5f).Bold().FontColor("#1e40af");
+                            cc.Item().PaddingTop(3).Table(ct =>
+                            {
+                                ct.ColumnsDefinition(cd =>
+                                {
+                                    cd.RelativeColumn(3);  // Company
+                                    cd.ConstantColumn(75); // Likes
+                                    cd.ConstantColumn(75); // Comments
+                                    cd.ConstantColumn(75); // Shares
+                                    cd.ConstantColumn(85); // Completed
+                                    cd.ConstantColumn(85); // Expected
+                                    cd.ConstantColumn(70); // Rate
+                                });
+
+                                static IContainer HeaderCell(IContainer c) =>
+                                    c.DefaultTextStyle(t => t.Bold().FontSize(7.5f).FontColor(Colors.White)).Background("#1e40af").Padding(3).AlignCenter();
+
+                                ct.Header(h =>
+                                {
+                                    h.Cell().Element(HeaderCell).AlignLeft().Text("Company");
+                                    h.Cell().Element(HeaderCell).Text("Likes 👍");
+                                    h.Cell().Element(HeaderCell).Text("Comments 💬");
+                                    h.Cell().Element(HeaderCell).Text("Shares 🔁");
+                                    h.Cell().Element(HeaderCell).Text("Completed");
+                                    h.Cell().Element(HeaderCell).Text("Expected");
+                                    h.Cell().Element(HeaderCell).Text("Rate (%)");
+                                });
+
+                                for (int ci = 0; ci < data.CompanyStats.Count; ci++)
+                                {
+                                    var cs = data.CompanyStats[ci];
+                                    var bg = ci % 2 == 1 ? "#f8fafc" : "#ffffff";
+
+                                    static IContainer DataCell(IContainer c, string bgCol) =>
+                                        c.Background(bgCol).BorderBottom(1).BorderColor("#cbd5e1").Padding(3).AlignCenter();
+
+                                    ct.Cell().Element(c => DataCell(c, bg)).AlignLeft().Text(cs.CompanyName).Bold().FontSize(7.5f);
+                                    ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Likes.ToString()).FontColor("#2563eb").Bold().FontSize(7.5f);
+                                    ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Comments.ToString()).FontColor("#0284c7").Bold().FontSize(7.5f);
+                                    ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Shares.ToString()).FontColor("#059669").Bold().FontSize(7.5f);
+                                    ct.Cell().Element(c => DataCell(c, bg)).Text(cs.CompletedTicks.ToString()).FontSize(7.5f);
+                                    ct.Cell().Element(c => DataCell(c, bg)).Text(cs.TotalExpectedTicks.ToString()).FontSize(7.5f);
+                                    var rateColor = cs.Rate >= 80 ? Colors.Green.Darken1 : cs.Rate >= 50 ? Colors.Orange.Darken2 : Colors.Red.Darken1;
+                                    ct.Cell().Element(c => DataCell(c, bg)).Text($"{cs.Rate}%").FontColor(rateColor).Bold().FontSize(7.5f);
+                                }
+                            });
+                        });
+                    }
 
                     // Engagement Matrix - Single Table
                     col.Item().Table(table =>
@@ -1357,20 +1534,22 @@ public class MonitoringSessionController : ControllerBase
 
                     page.Header().Column(h =>
                     {
-                        h.Item().Background(accent).Padding(6).Row(row =>
-                        {
-                            row.RelativeItem().Text($"SESSION {sIdx + 1} OF {sessions.Count}")
-                                .FontSize(11).Bold().FontColor("#ffffff");
-                            row.RelativeItem().AlignRight().Text($"{session.SessionDate:dd MMMM yyyy}")
-                                .FontSize(11).Bold().FontColor("#ffffff");
-                        });
-                        h.Item().PaddingTop(4).Row(row =>
+                        h.Item().Background(accent).Padding(8).Row(row =>
                         {
                             row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("Combined Monitoring Report").FontSize(16).Bold().FontColor("#1e40af");
-                                c.Item().Text("System crafted by @syaakiirr").FontSize(8).FontColor("#9ca3af");
+                                c.Item().Text($"MONITORING SESSION {sIdx + 1} OF {sessions.Count}").FontSize(10).Bold().FontColor("#e0e7ff");
+                                c.Item().Text("COMBINED MONITORING REPORT").FontSize(15).Bold().FontColor("#ffffff");
                             });
+                            row.ConstantItem(320).AlignRight().Column(c =>
+                            {
+                                c.Item().Text("MONITORING SESSION DATE").FontSize(8).Bold().FontColor("#e0e7ff");
+                                c.Item().Text($"{session.SessionDate:dddd, dd MMMM yyyy}").FontSize(13).Bold().FontColor("#ffffff");
+                            });
+                        });
+                        h.Item().PaddingTop(2).Row(row =>
+                        {
+                            row.RelativeItem().Text("System crafted by @syaakiirr").FontSize(7.5f).FontColor("#9ca3af");
                         });
                     });
 
@@ -1388,6 +1567,60 @@ public class MonitoringSessionController : ControllerBase
                             row.ConstantItem(12);
                             row.RelativeItem().Element(c => Card(c, "Total Shares", reportData.TotalShares.ToString(), "#10b981"));
                         });
+
+                        // Company Engagement Breakdown Table
+                        if (reportData.CompanyStats.Count > 0)
+                        {
+                            col.Item().PaddingBottom(12).Column(cc =>
+                            {
+                                cc.Item().Text("Company Engagement Breakdown").FontSize(9.5f).Bold().FontColor("#1e40af");
+                                cc.Item().PaddingTop(3).Table(ct =>
+                                {
+                                    ct.ColumnsDefinition(cd =>
+                                    {
+                                        cd.RelativeColumn(3);  // Company
+                                        cd.ConstantColumn(75); // Likes
+                                        cd.ConstantColumn(75); // Comments
+                                        cd.ConstantColumn(75); // Shares
+                                        cd.ConstantColumn(85); // Completed
+                                        cd.ConstantColumn(85); // Expected
+                                        cd.ConstantColumn(70); // Rate
+                                    });
+
+                                    static IContainer HeaderCell(IContainer c) =>
+                                        c.DefaultTextStyle(t => t.Bold().FontSize(7.5f).FontColor(Colors.White)).Background("#1e40af").Padding(3).AlignCenter();
+
+                                    ct.Header(h =>
+                                    {
+                                        h.Cell().Element(HeaderCell).AlignLeft().Text("Company");
+                                        h.Cell().Element(HeaderCell).Text("Likes 👍");
+                                        h.Cell().Element(HeaderCell).Text("Comments 💬");
+                                        h.Cell().Element(HeaderCell).Text("Shares 🔁");
+                                        h.Cell().Element(HeaderCell).Text("Completed");
+                                        h.Cell().Element(HeaderCell).Text("Expected");
+                                        h.Cell().Element(HeaderCell).Text("Rate (%)");
+                                    });
+
+                                    for (int ci = 0; ci < reportData.CompanyStats.Count; ci++)
+                                    {
+                                        var cs = reportData.CompanyStats[ci];
+                                        var bg = ci % 2 == 1 ? "#f8fafc" : "#ffffff";
+
+                                        static IContainer DataCell(IContainer c, string bgCol) =>
+                                            c.Background(bgCol).BorderBottom(1).BorderColor("#cbd5e1").Padding(3).AlignCenter();
+
+                                        ct.Cell().Element(c => DataCell(c, bg)).AlignLeft().Text(cs.CompanyName).Bold().FontSize(7.5f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Likes.ToString()).FontColor("#2563eb").Bold().FontSize(7.5f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Comments.ToString()).FontColor("#0284c7").Bold().FontSize(7.5f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Shares.ToString()).FontColor("#059669").Bold().FontSize(7.5f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.CompletedTicks.ToString()).FontSize(7.5f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.TotalExpectedTicks.ToString()).FontSize(7.5f);
+                                        var rateColor = cs.Rate >= 80 ? Colors.Green.Darken1 : cs.Rate >= 50 ? Colors.Orange.Darken2 : Colors.Red.Darken1;
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text($"{cs.Rate}%").FontColor(rateColor).Bold().FontSize(7.5f);
+                                    }
+                                });
+                            });
+                        }
 
                         col.Item().Table(table =>
                         {
@@ -1532,21 +1765,22 @@ public class MonitoringSessionController : ControllerBase
 
                     page.Header().Column(h =>
                     {
-                        h.Item().Background(accent).Padding(6).Row(row =>
-                        {
-                            row.RelativeItem().Text($"SESSION {sIdx + 1} OF {sessions.Count}")
-                                .FontSize(11).Bold().FontColor("#ffffff");
-                            row.RelativeItem().AlignRight().Text($"{session.SessionDate:dd MMMM yyyy}")
-                                .FontSize(11).Bold().FontColor("#ffffff");
-                        });
-                        h.Item().PaddingTop(4).Row(row =>
+                        h.Item().Background(accent).Padding(8).Row(row =>
                         {
                             row.RelativeItem().Column(c =>
                             {
-                                c.Item().Text("Custom Monitoring Report").FontSize(16).Bold().FontColor("#1e40af");
-                                if (!string.IsNullOrEmpty(dateLabel))
-                                    c.Item().Text(dateLabel).FontSize(9).FontColor("#64748b");
+                                c.Item().Text($"MONITORING SESSION {sIdx + 1} OF {sessions.Count}").FontSize(10).Bold().FontColor("#e0e7ff");
+                                c.Item().Text("CUSTOM MODULAR MONITORING REPORT").FontSize(15).Bold().FontColor("#ffffff");
                             });
+                            row.ConstantItem(320).AlignRight().Column(c =>
+                            {
+                                c.Item().Text("MONITORING SESSION DATE").FontSize(8).Bold().FontColor("#e0e7ff");
+                                c.Item().Text($"{session.SessionDate:dddd, dd MMMM yyyy}").FontSize(13).Bold().FontColor("#ffffff");
+                            });
+                        });
+                        h.Item().PaddingTop(2).Row(row =>
+                        {
+                            row.RelativeItem().Text(string.IsNullOrEmpty(dateLabel) ? "System crafted by @syaakiirr" : $"Date Range: {dateLabel}  •  System crafted by @syaakiirr").FontSize(7.5f).FontColor("#9ca3af");
                         });
                     });
 
@@ -1562,6 +1796,59 @@ public class MonitoringSessionController : ControllerBase
                                 row.ConstantItem(12);
                                 row.RelativeItem().Element(c => Card(c, "Total Shares", reportData.TotalShares.ToString(), "#10b981"));
                             });
+
+                            if (reportData.CompanyStats.Count > 0)
+                            {
+                                col.Item().PaddingBottom(12).Column(cc =>
+                                {
+                                    cc.Item().Text("Company Engagement Breakdown").FontSize(9.5f).Bold().FontColor("#1e40af");
+                                    cc.Item().PaddingTop(3).Table(ct =>
+                                    {
+                                        ct.ColumnsDefinition(cd =>
+                                        {
+                                            cd.RelativeColumn(3);  // Company
+                                            cd.ConstantColumn(75); // Likes
+                                            cd.ConstantColumn(75); // Comments
+                                            cd.ConstantColumn(75); // Shares
+                                            cd.ConstantColumn(85); // Completed
+                                            cd.ConstantColumn(85); // Expected
+                                            cd.ConstantColumn(70); // Rate
+                                        });
+
+                                        static IContainer HeaderCell(IContainer c) =>
+                                            c.DefaultTextStyle(t => t.Bold().FontSize(7.5f).FontColor(Colors.White)).Background("#1e40af").Padding(3).AlignCenter();
+
+                                        ct.Header(h =>
+                                        {
+                                            h.Cell().Element(HeaderCell).AlignLeft().Text("Company");
+                                            h.Cell().Element(HeaderCell).Text("Likes 👍");
+                                            h.Cell().Element(HeaderCell).Text("Comments 💬");
+                                            h.Cell().Element(HeaderCell).Text("Shares 🔁");
+                                            h.Cell().Element(HeaderCell).Text("Completed");
+                                            h.Cell().Element(HeaderCell).Text("Expected");
+                                            h.Cell().Element(HeaderCell).Text("Rate (%)");
+                                        });
+
+                                        for (int ci = 0; ci < reportData.CompanyStats.Count; ci++)
+                                        {
+                                            var cs = reportData.CompanyStats[ci];
+                                            var bg = ci % 2 == 1 ? "#f8fafc" : "#ffffff";
+
+                                            static IContainer DataCell(IContainer c, string bgCol) =>
+                                                c.Background(bgCol).BorderBottom(1).BorderColor("#cbd5e1").Padding(3).AlignCenter();
+
+                                            ct.Cell().Element(c => DataCell(c, bg)).AlignLeft().Text(cs.CompanyName).Bold().FontSize(7.5f);
+                                            ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Likes.ToString()).FontColor("#2563eb").Bold().FontSize(7.5f);
+                                            ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Comments.ToString()).FontColor("#0284c7").Bold().FontSize(7.5f);
+                                            ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Shares.ToString()).FontColor("#059669").Bold().FontSize(7.5f);
+                                            ct.Cell().Element(c => DataCell(c, bg)).Text(cs.CompletedTicks.ToString()).FontSize(7.5f);
+                                            ct.Cell().Element(c => DataCell(c, bg)).Text(cs.TotalExpectedTicks.ToString()).FontSize(7.5f);
+                                            var rateColor = cs.Rate >= 80 ? Colors.Green.Darken1 : cs.Rate >= 50 ? Colors.Orange.Darken2 : Colors.Red.Darken1;
+                                            ct.Cell().Element(c => DataCell(c, bg)).Text($"{cs.Rate}%").FontColor(rateColor).Bold().FontSize(7.5f);
+                                        }
+                                    });
+                                });
+                            }
                         }
 
                         if (req.IncludeMonitoringTable && reportData.StaffRows.Count > 0)

@@ -3,10 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from
 import PageTransition from "./components/PageTransition";
 import LoginTransition from "./components/LoginTransition";
 import { DateFilterProvider } from "./contexts/DateFilterContext";
-
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
+import { ThemeProvider } from "./contexts/ThemeContext";
 
 import LoginPage           from "./pages/LoginPage";
 const DashboardPage       = lazy(() => import("./pages/DashboardPage"));
+const LeaderboardPage     = lazy(() => import("./pages/LeaderboardPage"));
 const SnapshotsPage       = lazy(() => import("./pages/SnapshotsPage"));
 const ArchivedPage        = lazy(() => import("./pages/ArchivedPage"));
 const StaffPage           = lazy(() => import("./pages/StaffPage"));
@@ -16,6 +18,7 @@ const ReportsPage         = lazy(() => import("./pages/ReportsPage"));
 const AuditPage           = lazy(() => import("./pages/AuditPage"));
 const CompanyPage         = lazy(() => import("./pages/CompanyPage"));
 const DepartmentPage      = lazy(() => import("./pages/DepartmentPage"));
+const UsersPage           = lazy(() => import("./pages/UsersPage"));
 
 
 function PageLoader() {
@@ -33,6 +36,15 @@ function ProtectedRoute({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+// SuperAdmin-only route — DeptAdmin gets redirected to dashboard
+function SuperAdminRoute({ children }: { children: ReactNode }) {
+  const token = localStorage.getItem("token");
+  const { isSuperAdmin } = useAuth();
+  if (!token) return <Navigate replace to="/" />;
+  if (!isSuperAdmin()) return <Navigate replace to="/dashboard" />;
+  return <>{children}</>;
+}
+
 // AnimatedRoutes — needs to be inside BrowserRouter to use useLocation
 function AnimatedRoutes() {
   const location = useLocation();
@@ -42,25 +54,20 @@ function AnimatedRoutes() {
         {/* Login — no PageTransition wrapper */}
         <Route path="/" element={<LoginPage />} />
 
-        {/* All protected pages — wrapped with slide transition */}
+        {/* ── Both roles can access these ── */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <PageTransition><DashboardPage /></PageTransition>
           </ProtectedRoute>
         } />
+        <Route path="/leaderboard" element={
+          <ProtectedRoute>
+            <PageTransition><LeaderboardPage /></PageTransition>
+          </ProtectedRoute>
+        } />
         <Route path="/staff" element={
           <ProtectedRoute>
             <PageTransition><StaffPage /></PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/company" element={
-          <ProtectedRoute>
-            <PageTransition><CompanyPage /></PageTransition>
-          </ProtectedRoute>
-        } />
-        <Route path="/departments" element={
-          <ProtectedRoute>
-            <PageTransition><DepartmentPage /></PageTransition>
           </ProtectedRoute>
         } />
         <Route path="/staff-engagement" element={
@@ -78,21 +85,39 @@ function AnimatedRoutes() {
             <PageTransition><ReportsPage /></PageTransition>
           </ProtectedRoute>
         } />
+
+        {/* ── SuperAdmin only ── */}
+        <Route path="/company" element={
+          <SuperAdminRoute>
+            <PageTransition><CompanyPage /></PageTransition>
+          </SuperAdminRoute>
+        } />
+        <Route path="/departments" element={
+          <SuperAdminRoute>
+            <PageTransition><DepartmentPage /></PageTransition>
+          </SuperAdminRoute>
+        } />
         <Route path="/audit" element={
-          <ProtectedRoute>
+          <SuperAdminRoute>
             <PageTransition><AuditPage /></PageTransition>
-          </ProtectedRoute>
+          </SuperAdminRoute>
         } />
         <Route path="/snapshots" element={
-          <ProtectedRoute>
+          <SuperAdminRoute>
             <PageTransition><SnapshotsPage /></PageTransition>
-          </ProtectedRoute>
+          </SuperAdminRoute>
         } />
         <Route path="/archived" element={
-          <ProtectedRoute>
+          <SuperAdminRoute>
             <PageTransition><ArchivedPage /></PageTransition>
-          </ProtectedRoute>
+          </SuperAdminRoute>
         } />
+        <Route path="/users" element={
+          <SuperAdminRoute>
+            <PageTransition><UsersPage /></PageTransition>
+          </SuperAdminRoute>
+        } />
+
         <Route path="*" element={<Navigate replace to="/" />} />
       </Routes>
   );
@@ -134,9 +159,13 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <DateFilterProvider>
-        <AppContent />
-      </DateFilterProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <DateFilterProvider>
+            <AppContent />
+          </DateFilterProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

@@ -39,20 +39,19 @@ export default function LoginTransition({ onMidpoint }: LoginTransitionProps) {
         alignItems: "center",
         gap: 16,
       }}>
-        <div style={{
-          width: 54, height: 54, borderRadius: 14,
-          background: "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)",
-          display: "flex", alignItems: "center", justifyContent: "center",
-          boxShadow: "0 0 40px rgba(99, 102, 241, 0.4)",
-        }}>
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="2" strokeLinecap="round">
-            <circle cx="12" cy="12" r="3" />
-            <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-          </svg>
-        </div>
+        <img
+          src="/logo.png"
+          alt="SociHR Logo"
+          style={{
+            width: 64,
+            height: 64,
+            objectFit: "contain",
+            filter: "drop-shadow(0 0 30px rgba(99, 102, 241, 0.6))",
+          }}
+        />
         <h1 style={{
           fontSize: 22, fontWeight: 800,
-          background: "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)",
+          background: "linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #f472b6 100%)",
           WebkitBackgroundClip: "text",
           WebkitTextFillColor: "transparent",
           letterSpacing: "-0.02em",

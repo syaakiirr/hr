@@ -62,26 +62,21 @@ export default function DashboardEntrance({ onComplete }: DashboardEntranceProps
         style={{
           width: 100,
           height: 100,
-          borderRadius: 28,
-          background: "linear-gradient(135deg, #6366f1 0%, #a855f7 50%, #ec4899 100%)",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          boxShadow: "0 20px 60px rgba(99, 102, 241, 0.35)",
+          filter: "drop-shadow(0 20px 60px rgba(99, 102, 241, 0.5))",
         }}
       >
-        <svg
-          width="50"
-          height="50"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="#ffffff"
-          strokeWidth="2"
-          strokeLinecap="round"
-        >
-          <circle cx="12" cy="12" r="3" />
-          <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-        </svg>
+        <img
+          src="/logo.png"
+          alt="SociHR Logo"
+          style={{
+            width: "100%",
+            height: "100%",
+            objectFit: "contain",
+          }}
+        />
       </motion.div>
 
       {/* Light rays emanating from center */}

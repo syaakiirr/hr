@@ -170,9 +170,44 @@ catch (Exception ex)
         Console.WriteLine($"   Inner: {ex.InnerException.Message}");
 }
 
+// ── Ensure DeptAdmin infrastructure (column + role rename) ──
+try
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await EnsureUserInfrastructureAsync(db);
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"⚠️ User infrastructure migration warning: {ex.Message}");
+}
+
 
 // ── SEED ADMIN USER automatically if not exists ──
 await SeedAdminUserAsync(app, args);
+
+// Migrate Users table: add DepartmentID column + rename Admin→SuperAdmin
+static async Task EnsureUserInfrastructureAsync(AppDbContext db)
+{
+    // Add DepartmentID column if not exists
+    await db.Database.ExecuteSqlRawAsync("""
+        ALTER TABLE "Users"
+        ADD COLUMN IF NOT EXISTS "DepartmentID" UUID
+        REFERENCES "Department"("DepartmentID") ON DELETE SET NULL;
+        """);
+
+    // Ensure admin user and existing Admin roles are SuperAdmin
+    await db.Database.ExecuteSqlRawAsync("""
+        UPDATE "Users" 
+        SET "Role" = 'SuperAdmin' 
+        WHERE "Username" = 'admin' 
+           OR "Role" = 'Admin' 
+           OR "Role" IS NULL 
+           OR BTRIM("Role") = '';
+        """);
+
+    Console.WriteLine("✅ User infrastructure: DepartmentID column ensured, Admin→SuperAdmin migrated.");
+}
 
 static async Task EnsureDepartmentInfrastructureAsync(AppDbContext db)
 {
@@ -248,7 +283,7 @@ async Task SeedAdminUserAsync(WebApplication app, string[] args)
                 UserID = Guid.NewGuid(),
                 Username = "admin",
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
-                Role = "Admin"
+                Role = "SuperAdmin"
             };
             await db.Users.AddAsync(adminUser);
             await db.SaveChangesAsync();
@@ -335,6 +370,21 @@ app.MapControllers();
 
 // Health-check endpoint (lightweight, no DB) — use with cron-job.org / UptimeRobot to prevent cold starts
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
+
+// Auto-generate transparent logo assets from logo/socihr.jpg if available
+try
+{
+    var logoJpg = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "logo", "socihr.jpg"));
+    var out1 = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "logo", "socihr_transparent.png"));
+    var out2 = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "socihr-frontend", "src", "assets", "logo.png"));
+    var out3 = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "socihr-frontend", "public", "logo.png"));
+    var out4 = Path.GetFullPath(Path.Combine(Directory.GetCurrentDirectory(), "..", "socihr-frontend", "public", "favicon.png"));
+    socihr_backend.Helpers.LogoProcessor.ProcessLogo(logoJpg, new[] { out1, out2, out3, out4 });
+}
+catch (Exception ex)
+{
+    Console.WriteLine($"[LogoProcessor Error] {ex.Message}");
+}
 
 app.MapFallbackToFile("index.html");
 

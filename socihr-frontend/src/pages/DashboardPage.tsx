@@ -9,7 +9,9 @@ import { LegacyGridContainLabel } from "echarts/features";
 import Layout from "../components/Layout";
 import EngagementMetrics from "../components/EngagementMetrics";
 import Toast, { type ToastState } from "../components/Toast";
+import SessionComparisonModal from "../components/SessionComparisonModal";
 import { useDateFilter, getDateRange, DATE_FILTERS } from "../contexts/DateFilterContext";
+import { useAuth } from "../contexts/AuthContext";
 import {
   getDashboardKpi,
   getMonthlyTrend,
@@ -17,9 +19,11 @@ import {
   getCompanyPerformance,
   getStaffRanking,
   getWeeklyTrend,
+  getDashboardTrend,
   createSnapshot,
   getHeatmap,
   type KpiData,
+  type TrendPoint,
 } from "../services/api";
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -86,6 +90,8 @@ function makeStaffBarOption(data: number[], labels: string[], gradient: BarGradi
 export default function DashboardPage() {
   const navigate = useNavigate();
   const { filter, setFilter, customFrom, setCustomFrom, customTo, setCustomTo } = useDateFilter();
+  const { isDeptAdmin, user } = useAuth();
+  const deptName = user?.departmentName ?? localStorage.getItem("departmentName") ?? "";
   const [kpi, setKpi] = useState<KpiData | null>(null);
   const [monthly, setMonthly] = useState<{ month: number; completed: number; missed: number; total: number }[]>([]);
   const [weekly, setWeekly] = useState<{ week: string; completed: number; missed: number; total: number }[]>([]);
@@ -108,6 +114,12 @@ export default function DashboardPage() {
   const [snapshotNotes, setSnapshotNotes] = useState("");
   const [savingSnapshot, setSavingSnapshot] = useState(false);
 
+  // Session Comparison modal state
+  const [showComparisonModal, setShowComparisonModal] = useState(false);
+
+  // Multi-metric Timeline Trend state
+  const [trends, setTrends] = useState<TrendPoint[]>([]);
+
   useEffect(() => {
     if (!showSnapshotModal) return;
     const handler = (e: KeyboardEvent) => {
@@ -125,13 +137,10 @@ export default function DashboardPage() {
   useEffect(() => {
     const controller = new AbortController();
     const { signal } = controller;
-    const { from, to } = getDateRange(filter);
     setLoading(true);
     setError(null);
 
-    const { from: rangeFrom, to: rangeTo } = getDateRange(filter, customFrom, customTo);
-    const from = rangeFrom;
-    const to = rangeTo;
+    const { from, to } = getDateRange(filter, customFrom, customTo);
     Promise.all([
       getDashboardKpi(from, to, signal),
       getMonthlyTrend(new Date().getFullYear(), signal),
@@ -141,7 +150,8 @@ export default function DashboardPage() {
       getStaffRanking("bottom", 10, from, to, signal),
       getCompanyPerformance(from, to, signal),
       getHeatmap(currentYear, signal),
-    ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData]) => {
+      getDashboardTrend(from, to),
+    ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData]) => {
       setKpi(kpiData);
       setMonthly(monthData);
       setWeekly(weekData);
@@ -154,6 +164,7 @@ export default function DashboardPage() {
         completed: d.completed,
         total: d.total,
       })));
+      setTrends(trendData || []);
     }).catch((err) => {
       if (err instanceof DOMException && err.name === "AbortError") return;
       console.error(err);
@@ -334,6 +345,111 @@ export default function DashboardPage() {
     };
   }, [platforms]);
 
+  // Multi-metric Trend Area/Line option
+  const trendOption = useMemo(() => {
+    if (trends.length === 0) return null;
+    const labels = trends.map((t) => t.label);
+    const likes = trends.map((t) => t.likes);
+    const comments = trends.map((t) => t.comments);
+    const shares = trends.map((t) => t.shares);
+    const rates = trends.map((t) => t.rate);
+
+    return {
+      ...lightChartTheme,
+      animation: true,
+      animationDuration: 500,
+      tooltip: {
+        trigger: "axis" as const,
+        ...customTooltip,
+      },
+      legend: {
+        data: ["Likes", "Comments", "Shares", "Rate %"],
+        top: 0,
+        textStyle: { color: "#64748b", fontSize: 11 },
+        itemGap: 14,
+      },
+      grid: { left: 15, right: 35, bottom: 10, top: 35, containLabel: true },
+      xAxis: {
+        type: "category" as const,
+        data: labels,
+        axisLabel: { color: "#64748b", fontSize: 10.5 },
+        axisLine: { lineStyle: { color: "#cbd5e1" } },
+      },
+      yAxis: [
+        {
+          type: "value" as const,
+          name: "Actions",
+          nameTextStyle: { color: "#64748b", fontSize: 10 },
+          axisLabel: { color: "#64748b", fontSize: 10 },
+          splitLine: { lineStyle: { color: "#f1f5f9" } },
+        },
+        {
+          type: "value" as const,
+          name: "Rate",
+          min: 0,
+          max: 100,
+          nameTextStyle: { color: "#64748b", fontSize: 10 },
+          axisLabel: { color: "#64748b", formatter: "{value}%", fontSize: 10 },
+          splitLine: { show: false },
+        },
+      ],
+      series: [
+        {
+          name: "Likes",
+          type: "line" as const,
+          smooth: true,
+          showSymbol: false,
+          areaStyle: {
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "rgba(37, 99, 235, 0.35)" },
+              { offset: 1, color: "rgba(37, 99, 235, 0.02)" },
+            ]),
+          },
+          itemStyle: { color: "#2563eb" },
+          data: likes,
+        },
+        {
+          name: "Comments",
+          type: "line" as const,
+          smooth: true,
+          showSymbol: false,
+          areaStyle: {
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "rgba(99, 102, 241, 0.35)" },
+              { offset: 1, color: "rgba(99, 102, 241, 0.02)" },
+            ]),
+          },
+          itemStyle: { color: "#6366f1" },
+          data: comments,
+        },
+        {
+          name: "Shares",
+          type: "line" as const,
+          smooth: true,
+          showSymbol: false,
+          areaStyle: {
+            color: new graphic.LinearGradient(0, 0, 0, 1, [
+              { offset: 0, color: "rgba(22, 163, 74, 0.35)" },
+              { offset: 1, color: "rgba(22, 163, 74, 0.02)" },
+            ]),
+          },
+          itemStyle: { color: "#16a34a" },
+          data: shares,
+        },
+        {
+          name: "Rate %",
+          type: "line" as const,
+          yAxisIndex: 1,
+          smooth: true,
+          lineStyle: { width: 3, type: "dashed" as const },
+          itemStyle: { color: "#f59e0b" },
+          data: rates,
+        },
+      ],
+    };
+  }, [trends]);
+
+
   // Staff ranking top - memoized for performance
   const topLabels = useMemo(() => topStaff.map((s) => s.fullName ? s.fullName.split(" ")[0] : "Staff"), [topStaff]);
   const topData = useMemo(() => topStaff.map((s) => Math.round(s.completionRate ?? 0)), [topStaff]);
@@ -444,60 +560,129 @@ export default function DashboardPage() {
     }]
   }), [heatmapData, heatmapRange, currentYear]);
 
+  // Keyboard shortcuts for power users (Alex persona)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Don't trigger if inside an input or modal
+      if (showSnapshotModal || e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (e.key >= "1" && e.key <= "7") {
+        const index = parseInt(e.key, 10) - 1;
+        if (index < DATE_FILTERS.length) {
+          e.preventDefault();
+          setFilter(DATE_FILTERS[index].value);
+          showToast(`Switched filter: ${DATE_FILTERS[index].label}`, "success");
+        }
+      } else if (e.key.toLowerCase() === "s" && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        setShowSnapshotModal(true);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showSnapshotModal, setFilter]);
+
   return (
     <>
       <Layout>
         <div>
+          {/* Header */}
           <div className="page-hd">
             <div>
               <h1 className="page-title">Dashboard</h1>
-              <p className="page-sub">Staff social media engagement performance analytics</p>
+              <p className="page-sub">Staff social media engagement performance &amp; compliance analytics</p>
+              {/* DeptAdmin department banner */}
+              {isDeptAdmin() && deptName && (
+                <div style={{
+                  display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6,
+                  padding: "4px 10px", borderRadius: 20,
+                  background: "#eff6ff", border: "1px solid #bfdbfe",
+                  fontSize: 12, fontWeight: 700, color: "#1d4ed8",
+                }}>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                  Viewing: {deptName} only
+                </div>
+              )}
             </div>
 
             <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-              <button 
-                onClick={() => setShowSnapshotModal(true)}
+              <button
+                onClick={() => navigate('/leaderboard')}
                 className="btn btn-secondary btn-sm"
                 style={{ display: "flex", alignItems: "center", gap: 6 }}
-                aria-label="Save dashboard snapshot"
+                aria-label="View Leaderboard"
               >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2" />
-                  <circle cx="8.5" cy="8.5" r="1.5" />
-                  <path d="m21 15-5-5L5 21" />
-                </svg>
-                Save Snapshot
-              </button>
-              
-              <button 
-                onClick={() => navigate('/snapshots')}
-className="btn btn-primary btn-sm"
-                style={{ display: "flex", alignItems: "center", gap: 6 }}
-                aria-label="View saved snapshots"
-              >
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                  <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-                View Snapshots
+                <span style={{ fontSize: 13 }}>🏆</span>
+                Leaderboard
               </button>
 
-                <button onClick={async () => { const { downloadPageAsPDF } = await import("../utils/pdf"); downloadPageAsPDF("Dashboard"); }} className="btn btn-ghost btn-sm" style={{ display: "flex", alignItems: "center", gap: 6 }} aria-label="Download dashboard as PDF">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-                    <polyline points="7 10 12 15 17 10" />
-                    <line x1="12" y1="15" x2="12" y2="3" />
-                  </svg>
-                  Download PDF
-                </button>
+              <button
+                onClick={() => setShowComparisonModal(true)}
+                className="btn btn-secondary btn-sm"
+                style={{ display: "flex", alignItems: "center", gap: 6 }}
+                aria-label="Compare Sessions"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5" />
+                </svg>
+                Compare Sessions
+              </button>
+
+              {!isDeptAdmin() && (
+                <>
+                  <button 
+                    onClick={() => setShowSnapshotModal(true)}
+                    className="btn btn-secondary btn-sm"
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    title="Save snapshot (Key: S)"
+                    aria-label="Save dashboard snapshot"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="3" y="3" width="18" height="18" rx="2" />
+                      <circle cx="8.5" cy="8.5" r="1.5" />
+                      <path d="m21 15-5-5L5 21" />
+                    </svg>
+                    Save Snapshot <span style={{ opacity: 0.6, fontSize: 10, padding: "1px 4px", borderRadius: 3, background: "rgba(0,0,0,0.06)" }}>S</span>
+                  </button>
+                  
+                  <button 
+                    onClick={() => navigate('/snapshots')}
+                    className="btn btn-primary btn-sm"
+                    style={{ display: "flex", alignItems: "center", gap: 6 }}
+                    aria-label="View saved snapshots"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <path d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                    </svg>
+                    View Snapshots
+                  </button>
+                </>
+              )}
+
+              <button 
+                onClick={async () => { const { downloadPageAsPDF } = await import("../utils/pdf"); downloadPageAsPDF("Dashboard"); }} 
+                className="btn btn-ghost btn-sm" 
+                style={{ display: "flex", alignItems: "center", gap: 6 }} 
+                aria-label="Download dashboard as PDF"
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                  <polyline points="7 10 12 15 17 10" />
+                  <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Download PDF
+              </button>
 
               <div style={{ width: 1, height: 24, background: "var(--line)", margin: "0 4px" }} />
 
+              {/* Date Filter Pills with keyboard accelerator indicators */}
               <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
-                {DATE_FILTERS.map((f) => (
+                {DATE_FILTERS.map((f, idx) => (
                   <button
                     key={f.value}
                     onClick={() => setFilter(f.value)}
                     className={`btn btn-sm ${filter === f.value ? "btn-primary" : "btn-secondary"}`}
+                    title={`Shortcut: ${idx + 1}`}
                   >
                     {f.label}
                   </button>
@@ -532,235 +717,257 @@ className="btn btn-primary btn-sm"
             <div className="spin" />Loading dashboard data...
           </div>
         ) : kpi ? (
-          <div
+          <div>
+            {/* ══════════════════════════════════════════════════════════════
+                TIER 1: EXECUTIVE KPI SUMMARY
+                ══════════════════════════════════════════════════════════════ */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 24 }}>
+              <KpiCard label="Active Staff" value={kpi.totalStaff} sub="Enrolled in system" colorClass="kpi-indigo" />
+              <KpiCard label="Tracked Sessions" value={kpi.totalSessions} sub="In selected period" colorClass="kpi-blue" />
+              <KpiCard label="Expected Actions" value={kpi.totalExpected} sub="Required engagement ticks" colorClass="kpi-amber" />
+              <KpiCard label="Completed Actions" value={kpi.totalCompleted} sub="Successful employee ticks" colorClass="kpi-green" />
+              <KpiCard label="Missed Actions" value={kpi.totalMissed} sub="Uncompleted engagements" colorClass="kpi-red" />
+              <KpiCard label="Overall Compliance" value={`${Math.round(kpi.completionRate)}%`} sub="Action completion rate" colorClass={`kpi-${getRateColor(kpi.completionRate)}`} />
+            </div>
 
-          >
-              {/* KPI grid without staggered delay to let the page-wide transition shine */}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 24 }}>
-                <KpiCard label="Total Staff" value={kpi.totalStaff} colorClass="kpi-indigo" />
-                <KpiCard label="Total Sessions" value={kpi.totalSessions} colorClass="kpi-blue" />
-                <KpiCard label="Expected Ticks" value={kpi.totalExpected} colorClass="kpi-amber" />
-                  <KpiCard label="Completed Ticks" value={kpi.totalCompleted} colorClass="kpi-green" />
-                  <KpiCard label="Missed Ticks" value={kpi.totalMissed} colorClass="kpi-red" />
-                <KpiCard label="Completion Rate" value={`${Math.round(kpi.completionRate)}%`} colorClass={`kpi-${getRateColor(kpi.completionRate)}`} />
+            {/* ══════════════════════════════════════════════════════════════
+                TIER 1.5: MULTI-METRIC ENGAGEMENT TIMELINE TREND
+                ══════════════════════════════════════════════════════════════ */}
+            {trendOption && (
+              <div className="chart-wrap" style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <p className="chart-label" style={{ marginBottom: 2 }}>Engagement Action Timeline &amp; Compliance Trends</p>
+                    <p style={{ fontSize: 11.5, color: "var(--text-3)" }}>Volume of Likes, Comments, Shares, and overall compliance rate %</p>
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button
+                      onClick={() => navigate("/monitoring")}
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 11.5 }}
+                    >
+                      View All Sessions →
+                    </button>
+                  </div>
+                </div>
+                <ReactEChartsCore 
+                  echarts={treeShakenECharts}
+                  option={trendOption} 
+                  style={{ height: 230 }}
+                  opts={{ renderer: 'canvas' }}
+                  notMerge={true}
+                  lazyUpdate={true}
+                />
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                TIER 2: CHANNELS & COMPANY BREAKDOWN
+                ══════════════════════════════════════════════════════════════ */}
+            <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 16 }}>
+              {/* Platform Engagement Breakdown */}
+              <div className="chart-wrap">
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                  <p className="chart-label" style={{ marginBottom: 0 }}>Social Platform Compliance (%)</p>
+                  <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                    {platforms.map((p) => {
+                      const rate = p.total > 0 ? Math.round(p.completed / p.total * 100) : 0;
+                      return (
+                        <div key={p.platform} style={{
+                          display: "inline-flex", alignItems: "center", gap: 6,
+                          padding: "3px 8px", borderRadius: 6, background: "var(--surface-2)",
+                          fontSize: 11.5, fontWeight: 600, color: "var(--text-2)"
+                        }}>
+                          <span style={{ width: 6, height: 6, borderRadius: "50%", background: PLATFORM_COLORS[p.platform] ?? "var(--accent)" }} />
+                          <span>{p.platform}:</span>
+                          <span style={{ color: `var(--${getRateColor(rate)})` }}>{rate}%</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+                <ReactEChartsCore 
+                  echarts={treeShakenECharts}
+                  option={platformOption} 
+                  style={{ height: 210 }}
+                  opts={{ renderer: 'canvas' }}
+                  notMerge={true}
+                  lazyUpdate={true}
+                />
               </div>
 
-          {/* Quick Platform Badges */}
-          <div style={{ display: "flex", gap: 12, marginBottom: 24, flexWrap: "wrap" }}>
-            {platforms.map((p) => {
-              const rate = p.total > 0 ? Math.round(p.completed / p.total * 100) : 0;
-              return (
-                <div key={p.platform} style={{
-                  background: "var(--white)", border: "1px solid var(--line)",
-                  borderRadius: 8, padding: "8px 12px", display: "flex", alignItems: "center", gap: 8,
-                  fontSize: 13, fontWeight: 500, color: "var(--text-2)", boxShadow: "var(--shadow-xs)"
-                }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: PLATFORM_COLORS[p.platform] ?? "var(--accent)" }} />
-                  <strong>{p.platform}</strong>
-                  <span style={{ color: "var(--text-3)" }}>{rate}% rate</span>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Company Performance Quick Badges */}
-          {companyPerf.length > 0 && (
-            <div style={{ display: "flex", gap: 10, marginBottom: 24, flexWrap: "wrap" }}>
-              {companyPerf.map((c, i) => (
-                <div key={c.companyID} style={{
-                  background: "var(--white)",
-                  border: `1px solid ${companyColors[i % companyColors.length]}30`,
-                  borderRadius: 8, padding: "8px 14px",
-                  display: "flex", alignItems: "center", gap: 8,
-                  fontSize: 13, fontWeight: 500, color: "var(--text-2)",
-                  boxShadow: "var(--shadow-xs)"
-                }}>
-                  <span style={{ width: 8, height: 8, borderRadius: "50%", background: companyColors[i % companyColors.length] }} />
-                  <strong style={{ color: companyColors[i % companyColors.length] }}>{c.company}</strong>
-                  <span style={{
-                    padding: "2px 7px", borderRadius: 5, fontSize: 11, fontWeight: 700,
-                    background: `var(--${getRateColor(c.rate)}-soft)`,
-                    color: `var(--${getRateColor(c.rate)})`,
+              {/* Action Distribution Share */}
+              <div className="chart-wrap">
+                <p className="chart-label">Completed Action Distribution</p>
+                <div style={{ display: "flex", height: 210, alignItems: "center", position: "relative" }}>
+                  <ReactEChartsCore 
+                    echarts={treeShakenECharts}
+                    option={distributionOption} 
+                    style={{ height: "100%", width: "100%" }}
+                    opts={{ renderer: 'canvas' }}
+                    notMerge={true}
+                    lazyUpdate={true}
+                  />
+                  <div style={{
+                    position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
+                    textAlign: "center", pointerEvents: "none"
                   }}>
-                    {Math.round(c.rate)}%
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Row 1 Charts */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-            <div className="chart-wrap">
-              <p className="chart-label">Monthly Trend (This Year)</p>
-              <ReactEChartsCore 
-                echarts={treeShakenECharts}
-                option={monthlyOption} 
-                style={{ height: 220 }} 
-                opts={{ renderer: 'canvas' }}
-                notMerge={true}
-                lazyUpdate={true}
-              />
-            </div>
-            <div className="chart-wrap">
-              <p className="chart-label">Weekly Trend</p>
-              <ReactEChartsCore 
-                echarts={treeShakenECharts}
-                option={weeklyOption} 
-                style={{ height: 220 }}
-                opts={{ renderer: 'canvas' }}
-                notMerge={true}
-                lazyUpdate={true}
-              />
-            </div>
-          </div>
-
-          {/* Row 2 Charts */}
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 16 }}>
-            <div className="chart-wrap">
-              <p className="chart-label">Performance by Platform (Completion Rate %)</p>
-              <ReactEChartsCore 
-                echarts={treeShakenECharts}
-                option={platformOption} 
-                style={{ height: 220 }}
-                opts={{ renderer: 'canvas' }}
-                notMerge={true}
-                lazyUpdate={true}
-              />
-            </div>
-            <div className="chart-wrap">
-              <p className="chart-label">Completed Engagement Distribution</p>
-              <div style={{ display: "flex", height: 220, alignItems: "center", position: "relative" }}>
-                <ReactEChartsCore 
-                  echarts={treeShakenECharts}
-                  option={distributionOption} 
-                  style={{ height: "100%", width: "100%" }}
-                  opts={{ renderer: 'canvas' }}
-                  notMerge={true}
-                  lazyUpdate={true}
-                />
-                <div style={{
-                  position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
-                  textAlign: "center", pointerEvents: "none"
-                }}>
-                  <p style={{ fontSize: 11, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Total Done</p>
-                  <p style={{ fontSize: 18, fontWeight: 800, color: "var(--text-1)" }}>{kpi.totalCompleted}</p>
+                    <p style={{ fontSize: 10, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.04em" }}>Done</p>
+                    <p style={{ fontSize: 17, fontWeight: 800, color: "var(--text-1)" }}>{kpi.totalCompleted}</p>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Row 3 Charts — Performers */}
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
-            <div className="chart-wrap">
-              <p className="chart-label" style={{ color: "var(--green)" }}>Top Performing Staff (% Completion Rate)</p>
-              {topStaff.length === 0 ? (
-                <p style={{ color: "var(--text-4)", fontSize: 13, padding: "20px 0" }}>No data available</p>
-              ) : (
+            {/* Company Performance Overview (Consolidated Single Source) */}
+            {companyPerf.length > 0 && (
+              <div className="chart-wrap" style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <p className="chart-label" style={{ marginBottom: 2 }}>Company Performance Breakdown</p>
+                    <p style={{ fontSize: 11, color: "var(--text-4)" }}>Overall employee compliance rate grouped by registered organization</p>
+                  </div>
+                </div>
+
+                <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 16, alignItems: "center" }}>
+                  <ReactEChartsCore
+                    echarts={treeShakenECharts}
+                    option={companyOption}
+                    style={{ height: 190 }}
+                    opts={{ renderer: 'canvas' }}
+                    notMerge={true}
+                    lazyUpdate={true}
+                  />
+                  {/* Company breakdown table */}
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {companyPerf.map((c, i) => (
+                      <div key={c.companyID} style={{
+                        display: "flex", alignItems: "center", gap: 10,
+                        padding: "8px 12px", borderRadius: 8,
+                        background: "var(--surface-2)",
+                        border: `1px solid ${companyColors[i % companyColors.length]}20`,
+                      }}>
+                        <div style={{ width: 8, height: 8, borderRadius: "50%", background: companyColors[i % companyColors.length], flexShrink: 0 }} />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.company}</p>
+                          <p style={{ fontSize: 10.5, color: "var(--text-4)" }}>{c.completed} of {c.total} actions</p>
+                        </div>
+                        <div style={{ textAlign: "right" }}>
+                          <span style={{
+                            display: "inline-block", padding: "2px 8px", borderRadius: 6,
+                            fontSize: 11.5, fontWeight: 800,
+                            background: `var(--${getRateColor(c.rate)}-soft)`,
+                            color: `var(--${getRateColor(c.rate)})`,
+                          }}>
+                            {Math.round(c.rate)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ══════════════════════════════════════════════════════════════
+                TIER 3: PERFORMANCE TRENDS & STAFF STANDINGS
+                ══════════════════════════════════════════════════════════════ */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div className="chart-wrap">
+                <p className="chart-label">Monthly Volume (This Year)</p>
                 <ReactEChartsCore 
                   echarts={treeShakenECharts}
-                  option={topOption} 
-                  style={{ height: 240 }}
+                  option={monthlyOption} 
+                  style={{ height: 220 }} 
                   opts={{ renderer: 'canvas' }}
                   notMerge={true}
                   lazyUpdate={true}
                 />
-              )}
-            </div>
-            <div className="chart-wrap">
-              <p className="chart-label" style={{ color: "var(--red)" }}>Staff Needing Attention (% Completion Rate)</p>
-              {bottomStaff.length === 0 ? (
-                <p style={{ color: "var(--text-4)", fontSize: 13, padding: "20px 0" }}>No data available</p>
-              ) : (
+              </div>
+              <div className="chart-wrap">
+                <p className="chart-label">Weekly Volume Velocity</p>
                 <ReactEChartsCore 
                   echarts={treeShakenECharts}
-                  option={bottomOption} 
-                  style={{ height: 240 }}
+                  option={weeklyOption} 
+                  style={{ height: 220 }}
                   opts={{ renderer: 'canvas' }}
                   notMerge={true}
                   lazyUpdate={true}
                 />
-              )}
+              </div>
             </div>
-          </div>
 
-          {/* Engagement Metrics Component — pass kpi to avoid duplicate fetch */}
-          <EngagementMetrics filter={filter} kpiData={kpi} />
+            {/* Staff Standings */}
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+              <div className="chart-wrap">
+                <p className="chart-label" style={{ color: "var(--green)" }}>Top Performing Staff (% Completion Rate)</p>
+                {topStaff.length === 0 ? (
+                  <p style={{ color: "var(--text-4)", fontSize: 13, padding: "20px 0" }}>No data available</p>
+                ) : (
+                  <ReactEChartsCore 
+                    echarts={treeShakenECharts}
+                    option={topOption} 
+                    style={{ height: 230 }}
+                    opts={{ renderer: 'canvas' }}
+                    notMerge={true}
+                    lazyUpdate={true}
+                  />
+                )}
+              </div>
+              <div className="chart-wrap">
+                <p className="chart-label" style={{ color: "var(--red)" }}>Staff Needing Attention (% Completion Rate)</p>
+                {bottomStaff.length === 0 ? (
+                  <p style={{ color: "var(--text-4)", fontSize: 13, padding: "20px 0" }}>No data available</p>
+                ) : (
+                  <ReactEChartsCore 
+                    echarts={treeShakenECharts}
+                    option={bottomOption} 
+                    style={{ height: 230 }}
+                    opts={{ renderer: 'canvas' }}
+                    notMerge={true}
+                    lazyUpdate={true}
+                  />
+                )}
+              </div>
+            </div>
 
-          {/* Company Performance Chart */}
-          {companyPerf.length > 0 && (
-            <div className="chart-wrap" style={{ marginTop: 16 }}>
-              <p className="chart-label" style={{ color: "#6366f1" }}>🏢 Company Performance by Tick (Completion Rate %)</p>
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, alignItems: "start" }}>
+            {/* ══════════════════════════════════════════════════════════════
+                TIER 4: ACTIVITY LOG & SESSION DETAIL
+                ══════════════════════════════════════════════════════════════ */}
+            {/* Daily Engagement Activity Heatmap */}
+            {heatmapData.length > 0 && (
+              <div className="chart-wrap" style={{ marginBottom: 16 }}>
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <p className="chart-label" style={{ marginBottom: 2 }}>Daily Engagement Heatmap</p>
+                    <p style={{ fontSize: 11, color: "var(--text-4)" }}>
+                      Activity calendar colored by compliance percentage across active monitoring sessions
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "var(--text-4)" }}>
+                    <span>0%</span>
+                    <span style={{
+                      width: 80, height: 8, borderRadius: 4,
+                      background: "linear-gradient(90deg, #eef2ff, #a5b4fc, #6366f1)"
+                    }} />
+                    <span>100%</span>
+                  </div>
+                </div>
                 <ReactEChartsCore
                   echarts={treeShakenECharts}
-                  option={companyOption}
-                  style={{ height: 200 }}
+                  option={heatmapOption}
+                  style={{ height: 180, marginTop: 6 }}
                   opts={{ renderer: 'canvas' }}
                   notMerge={true}
                   lazyUpdate={true}
                 />
-                {/* Company breakdown table */}
-                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  {companyPerf.map((c, i) => (
-                    <div key={c.companyID} style={{
-                      display: "flex", alignItems: "center", gap: 10,
-                      padding: "10px 14px", borderRadius: 8,
-                      background: "var(--surface-2)",
-                      border: `1px solid ${companyColors[i % companyColors.length]}20`,
-                    }}>
-                      <div style={{ width: 10, height: 10, borderRadius: "50%", background: companyColors[i % companyColors.length], flexShrink: 0 }} />
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <p style={{ fontSize: 12, fontWeight: 700, color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.company}</p>
-                      </div>
-                      <div style={{ textAlign: "right" }}>
-                        <span style={{
-                          display: "inline-block", padding: "3px 8px", borderRadius: 6,
-                          fontSize: 12, fontWeight: 800,
-                          background: `var(--${getRateColor(c.rate)}-soft)`,
-                          color: `var(--${getRateColor(c.rate)})`,
-                        }}>
-                          {Math.round(c.rate)}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* Daily Engagement Activity Heatmap */}
-          {heatmapData.length > 0 && (
-            <div className="chart-wrap" style={{ marginTop: 16 }}>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
-                <div>
-                  <p className="chart-label" style={{ color: "#6366f1", marginBottom: 2 }}>📅 Daily Engagement Activity</p>
-                  <p style={{ fontSize: 11, color: "var(--text-4)" }}>
-                    Each cell is a day with a monitoring session, colored by completion rate.
-                  </p>
-                </div>
-                <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 10.5, color: "var(--text-4)" }}>
-                  <span>Low</span>
-                  <span style={{
-                    width: 70, height: 8, borderRadius: 4,
-                    background: "linear-gradient(90deg, #eef2ff, #a5b4fc, #6366f1)"
-                  }} />
-                  <span>High</span>
-                </div>
-              </div>
-              <ReactEChartsCore
-                echarts={treeShakenECharts}
-                option={heatmapOption}
-                style={{ height: 190, marginTop: 8 }}
-                opts={{ renderer: 'canvas' }}
-                notMerge={true}
-                lazyUpdate={true}
-              />
-            </div>
-          )}
+            {/* Session Engagement Log Table */}
+            <EngagementMetrics filter={filter} kpiData={kpi} />
 
-        </div>
+          </div>
         ) : null}
 
 
@@ -864,6 +1071,10 @@ className="btn btn-primary btn-sm"
           </div>
         )}
       </Layout>
+      <SessionComparisonModal
+        isOpen={showComparisonModal}
+        onClose={() => setShowComparisonModal(false)}
+      />
       <Toast
         isOpen={toast.isOpen}
         message={toast.message}
