@@ -1118,16 +1118,13 @@ export default function MonitoringPage() {
                                 const isLastInCo = coEndIndices.has(ci);
                                 return (
                                   <th key={ci} style={{
-                                    ...thStyle, fontSize: 10, fontWeight: 600, width: 48,
+                                    ...thStyle, fontSize: 10, fontWeight: 600, width: 60, minWidth: 60,
                                     color: col.disabled ? "var(--text-4)" : platColor,
                                     opacity: col.disabled ? 0.35 : 1,
                                     borderRight: isLastInCo ? "2px solid #cbd5e1" : undefined,
-                                    padding: "5px 3px"
+                                    padding: "5px 4px"
                                   }}>
-                                    <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 3.5 }}>
-                                      <ActionIcon type={col.actionKey} platform={col.platformName} />
-                                      <span>{col.label}</span>
-                                    </div>
+                                    {col.label}
                                   </th>
                                 );
                               })}

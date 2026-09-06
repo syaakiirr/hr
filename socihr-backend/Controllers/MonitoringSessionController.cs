@@ -1250,11 +1250,11 @@ public class MonitoringSessionController : ControllerBase
             data.StaffRows.Add(row);
         }
 
-        // Sort by completion rate → completed ticks → total ticks → name
-        // This matches the canonical StaffRankingHelper tiebreak priority used by
-        // Dashboard Top 10, Snapshots, and PDF/Excel Reports for full consistency.
+        // Sort by Department (asc) → within each department: completion rate desc → completed ticks desc → name asc
+        // Grouping by department allows PDF to inject divider rows between units cleanly.
         data.StaffRows = data.StaffRows
-            .OrderByDescending(r => r.CompletionRate)
+            .OrderBy(r => r.Department)
+            .ThenByDescending(r => r.CompletionRate)
             .ThenByDescending(r => r.CompletedTicks)
             .ThenByDescending(r => r.TotalTicks)
             .ThenBy(r => r.StaffName)
@@ -1441,31 +1441,44 @@ public class MonitoringSessionController : ControllerBase
                             }
                         });
 
-                        // Data Rows
+                        // Data Rows — grouped by Department with divider sub-heading rows
                         int rowNum = 1;
+                        string lastDept = "";
+                        // totalCols = rank + name + dept + N action cols + reason
+                        uint totalCols1 = (uint)(3 + data.ActionColumns.Count + 1);
+
+                        static IContainer DataCell(IContainer container, string bg) =>
+                            container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
+                        static IContainer ActionCell(IContainer container, string bg) =>
+                            container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
+
                         foreach (var staffRow in data.StaffRows)
                         {
-                            var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
+                            // Inject department divider row when department changes
+                            if (staffRow.Department != lastDept)
+                            {
+                                lastDept = staffRow.Department;
+                                table.Cell().ColumnSpan(totalCols1)
+                                    .Background("#e0e7ff").BorderBottom(1).BorderColor("#6366f1")
+                                    .Padding(4).AlignMiddle()
+                                    .Text(t =>
+                                    {
+                                        t.Span("▸  ").FontSize(7.5f).Bold().FontColor("#4338ca");
+                                        t.Span(staffRow.Department.ToUpperInvariant()).FontSize(7.5f).Bold().FontColor("#3730a3");
+                                    });
+                            }
 
-                            static IContainer DataCell(IContainer container, string bg) =>
-                                container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
+                            var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
 
                             // Rank
                             table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter().Text(rowNum.ToString()).FontSize(7).FontColor("#64748b");
-                            
                             table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.StaffName).FontSize(7).Bold().FontColor("#1e293b"));
-                            
                             table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Department).FontSize(7).FontColor("#475569"));
-
-                            // Engagement Values
-                            static IContainer ActionCell(IContainer container, string bg) =>
-                                container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
 
                             for (int i = 0; i < staffRow.EngagementValues.Count; i++)
                             {
                                 var value = staffRow.EngagementValues[i];
                                 var cell = table.Cell().Element(c => ActionCell(c, bgColor)).AlignCenter();
-                                
                                 if (value)
                                 {
                                     cell.AlignCenter().AlignMiddle()
@@ -1480,9 +1493,8 @@ public class MonitoringSessionController : ControllerBase
                                     cell.Text("");
                                 }
                             }
-                            
-                            table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Reason ?? "").FontSize(6).FontColor("#475569"));
 
+                            table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Reason ?? "").FontSize(6).FontColor("#475569"));
                             rowNum++;
                         }
                     });
@@ -1669,19 +1681,34 @@ public class MonitoringSessionController : ControllerBase
                             });
 
                             int rowNum = 1;
+                            string lastDeptM = "";
+                            uint totalColsM = (uint)(3 + reportData.ActionColumns.Count + 1);
+
+                            static IContainer DataCell(IContainer container, string bg) =>
+                                container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
+                            static IContainer ActionCell(IContainer container, string bg) =>
+                                container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
+
                             foreach (var staffRow in reportData.StaffRows)
                             {
-                                var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
+                                if (staffRow.Department != lastDeptM)
+                                {
+                                    lastDeptM = staffRow.Department;
+                                    table.Cell().ColumnSpan(totalColsM)
+                                        .Background("#e0e7ff").BorderBottom(1).BorderColor("#6366f1")
+                                        .Padding(4).AlignMiddle()
+                                        .Text(t =>
+                                        {
+                                            t.Span("▸  ").FontSize(7.5f).Bold().FontColor("#4338ca");
+                                            t.Span(staffRow.Department.ToUpperInvariant()).FontSize(7.5f).Bold().FontColor("#3730a3");
+                                        });
+                                }
 
-                                static IContainer DataCell(IContainer container, string bg) =>
-                                    container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
+                                var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
 
                                 table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter().Text(rowNum.ToString()).FontSize(7).FontColor("#64748b");
                                 table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.StaffName).FontSize(7).Bold().FontColor("#1e293b"));
                                 table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Department).FontSize(7).FontColor("#475569"));
-
-                                static IContainer ActionCell(IContainer container, string bg) =>
-                                    container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
 
                                 for (int i = 0; i < staffRow.EngagementValues.Count; i++)
                                 {
@@ -1903,14 +1930,31 @@ public class MonitoringSessionController : ControllerBase
                                 });
 
                                 int rowNum = 1;
+                                string lastDeptC = "";
+                                // totalCols = rank + name + dept + N action cols + (reason col if enabled)
+                                uint totalColsC = (uint)(3 + reportData.ActionColumns.Count + (req.IncludeReasonColumn ? 1 : 0));
+
+                                static IContainer DataCell(IContainer container, string bg) =>
+                                    container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
+                                static IContainer ActionCell(IContainer container, string bg) =>
+                                    container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
+
                                 foreach (var staffRow in reportData.StaffRows)
                                 {
-                                    var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
+                                    if (staffRow.Department != lastDeptC)
+                                    {
+                                        lastDeptC = staffRow.Department;
+                                        table.Cell().ColumnSpan(totalColsC)
+                                            .Background("#e0e7ff").BorderBottom(1).BorderColor("#6366f1")
+                                            .Padding(4).AlignMiddle()
+                                            .Text(t =>
+                                            {
+                                                t.Span("▸  ").FontSize(7.5f).Bold().FontColor("#4338ca");
+                                                t.Span(staffRow.Department.ToUpperInvariant()).FontSize(7.5f).Bold().FontColor("#3730a3");
+                                            });
+                                    }
 
-                                    static IContainer DataCell(IContainer container, string bg) =>
-                                        container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(4).AlignMiddle();
-                                    static IContainer ActionCell(IContainer container, string bg) =>
-                                        container.Background(bg).Border(1).BorderColor("#cbd5e1").Padding(2).AlignMiddle();
+                                    var bgColor = rowNum % 2 == 0 ? "#f8fafc" : "#ffffff";
 
                                     table.Cell().Element(c => DataCell(c, bgColor)).AlignCenter().Text(rowNum.ToString()).FontSize(7).FontColor("#64748b");
                                     table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.StaffName).FontSize(7).Bold().FontColor("#1e293b"));
