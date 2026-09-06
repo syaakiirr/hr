@@ -85,7 +85,7 @@ function makeStaffBarOption(data: number[], labels: string[], gradient: BarGradi
 
 export default function DashboardPage() {
   const navigate = useNavigate();
-  const { filter, setFilter } = useDateFilter();
+  const { filter, setFilter, customFrom, setCustomFrom, customTo, setCustomTo } = useDateFilter();
   const [kpi, setKpi] = useState<KpiData | null>(null);
   const [monthly, setMonthly] = useState<{ month: number; completed: number; missed: number; total: number }[]>([]);
   const [weekly, setWeekly] = useState<{ week: string; completed: number; missed: number; total: number }[]>([]);
@@ -129,6 +129,9 @@ export default function DashboardPage() {
     setLoading(true);
     setError(null);
 
+    const { from: rangeFrom, to: rangeTo } = getDateRange(filter, customFrom, customTo);
+    const from = rangeFrom;
+    const to = rangeTo;
     Promise.all([
       getDashboardKpi(from, to, signal),
       getMonthlyTrend(new Date().getFullYear(), signal),
@@ -168,7 +171,7 @@ export default function DashboardPage() {
 
     setSavingSnapshot(true);
     try {
-      const { from, to } = getDateRange(filter);
+      const { from, to } = getDateRange(filter, customFrom, customTo);
       await createSnapshot(snapshotName, snapshotNotes, from, to);
       showToast("Dashboard snapshot saved successfully!", "success");
       setShowSnapshotModal(false);
@@ -489,7 +492,7 @@ className="btn btn-primary btn-sm"
 
               <div style={{ width: 1, height: 24, background: "var(--line)", margin: "0 4px" }} />
 
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
                 {DATE_FILTERS.map((f) => (
                   <button
                     key={f.value}
@@ -499,6 +502,13 @@ className="btn btn-primary btn-sm"
                     {f.label}
                   </button>
                 ))}
+                {filter === "custom" && (
+                  <>
+                    <input className="input" type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={{ width: 130, height: 28, fontSize: 12 }} />
+                    <span style={{ color: "var(--text-3)", fontSize: 12, alignSelf: "center" }}>to</span>
+                    <input className="input" type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={{ width: 130, height: 28, fontSize: 12 }} />
+                  </>
+                )}
               </div>
             </div>
           </div>

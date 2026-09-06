@@ -43,6 +43,7 @@ export default function ReportsPage() {
   const [downloading, setDownloading] = useState<"pdf" | "excel" | null>(null);
 
   const [showCustomModal, setShowCustomModal] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
   const [customShowCards, setCustomShowCards] = useState(true);
   const [customShowRanking, setCustomShowRanking] = useState(true);
   const [customShowPlatformCompany, setCustomShowPlatformCompany] = useState(true);
@@ -50,11 +51,31 @@ export default function ReportsPage() {
   const [customShowStaffTable, setCustomShowStaffTable] = useState(true);
   const [customShowMonitoringSessions, setCustomShowMonitoringSessions] = useState(true);
   const [generatingCustom, setGeneratingCustom] = useState(false);
+  const [activePreset, setActivePreset] = useState<string>("");
+
+  const PRESETS = [
+    { label: "Executive", desc: "KPI + Top/Bottom + Summary", cards: true, ranking: true, platformCompany: false, daily: false, monitoringSessions: false, staffTable: false },
+    { label: "Full Audit", desc: "All sections included", cards: true, ranking: true, platformCompany: true, daily: true, monitoringSessions: true, staffTable: true },
+    { label: "Staff Only", desc: "Ranking + Staff table", cards: false, ranking: true, platformCompany: false, daily: false, monitoringSessions: false, staffTable: true },
+  ];
+
+  function applyPreset(name: string) {
+    setActivePreset(name);
+    const preset = PRESETS.find(p => p.label === name);
+    if (preset) {
+      setCustomShowCards(preset.cards);
+      setCustomShowRanking(preset.ranking);
+      setCustomShowPlatformCompany(preset.platformCompany);
+      setCustomShowDaily(preset.daily);
+      setCustomShowMonitoringSessions(preset.monitoringSessions);
+      setCustomShowStaffTable(preset.staffTable);
+    }
+    setShowCustomModal(true);
+  }
 
   async function handleDownload(format: "pdf" | "excel") {
     const { from, to } = getRange(reportType, customFrom, customTo);
 
-    // Validate custom date range
     if (reportType === "custom" && from > to) {
       alert("Start Date cannot be later than End Date. Please fix your date range.");
       return;
@@ -66,18 +87,33 @@ export default function ReportsPage() {
 
     setDownloading(format);
     try {
-      const token = localStorage.getItem("token") ?? "";
-      const url = buildReportUrl(format, from, to);
-
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error("Failed to generate report.");
-
-      const blob = await res.blob();
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = `SociHR_Report_${from}_to_${to}.${format === "pdf" ? "pdf" : "xlsx"}`;
-      a.click();
-      URL.revokeObjectURL(a.href);
+      if (reportType === "custom") {
+        if (format === "pdf") {
+          await downloadCustomReportPdf(from, to, {
+            showCards: customShowCards, showRanking: customShowRanking,
+            showPlatformCompany: customShowPlatformCompany, showDaily: customShowDaily,
+            showMonitoringSessions: customShowMonitoringSessions, showStaffTable: customShowStaffTable,
+          });
+        } else {
+          await downloadCustomReportExcel(from, to, {
+            showCards: customShowCards, showRanking: customShowRanking,
+            showPlatformCompany: customShowPlatformCompany, showDaily: customShowDaily,
+            showMonitoringSessions: customShowMonitoringSessions, showStaffTable: customShowStaffTable,
+          });
+        }
+      } else {
+        const token = localStorage.getItem("token") ?? "";
+        const url = buildReportUrl(format, from, to);
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error("Failed to generate report.");
+        const blob = await res.blob();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `SociHR_Report_${from}_to_${to}.${format === "pdf" ? "pdf" : "xlsx"}`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }
+      setShowPreview(false);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "An error occurred.");
     } finally {
@@ -164,6 +200,20 @@ export default function ReportsPage() {
                 </div>
               </div>
             )}
+          </div>
+
+          <p className="section-label" style={{ paddingLeft: 0, marginTop: 8 }}>Presets</p>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {PRESETS.map((p) => (
+              <button
+                key={p.label}
+                onClick={() => applyPreset(p.label)}
+                className={`btn btn-sm ${activePreset === p.label ? "btn-primary" : "btn-secondary"}`}
+                style={{ height: 32 }}
+              >
+                {p.label}
+              </button>
+            ))}
           </div>
 
           <p className="section-label" style={{ paddingLeft: 0, marginTop: 8 }}>Export Document</p>
@@ -333,6 +383,63 @@ export default function ReportsPage() {
           </div>
         </div>
       )}
-    </Layout>
+
+      {/* Preview Modal */}
+      {showPreview && (
+        <div className="modal-overlay" onClick={() => setShowPreview(false)}>
+          <div className="modal-box" style={{ maxWidth: 520 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-head">
+              <h2 className="modal-title">Report Preview</h2>
+              <button onClick={() => setShowPreview(false)} className="btn btn-ghost btn-icon btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 16 }}>
+              <p style={{ fontSize: 12, color: 'var(--text-3)' }}>
+                Period: <strong>{from}</strong> to <strong>{to}</strong> ({reportType})
+              </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: 12, background: 'var(--surface-2)', borderRadius: 8 }}>
+                <p style={{ fontSize: 12 }}>✓ Summary Cards: {customShowCards ? 'On' : 'Off'}</p>
+                <p style={{ fontSize: 12 }}>✓ Staff Ranking: {customShowRanking ? 'On' : 'Off'}</p>
+                <p style={{ fontSize: 12 }}>✓ Platform & Company: {customShowPlatformCompany ? 'On' : 'Off'}</p>
+                <p style={{ fontSize: 12 }}>✓ Daily Breakdown: {customShowDaily ? 'On' : 'Off'}</p>
+                <p style={{ fontSize: 12 }}>✓ Monitoring Sessions: {customShowMonitoringSessions ? 'On' : 'Off'}</p>
+                <p style={{ fontSize: 12 }}>✓ Staff Table: {customShowStaffTable ? 'On' : 'Off'}</p>
+              </div>
+              <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+                <button className="btn btn-ghost" onClick={() => setShowPreview(false)} style={{ flex: 1 }}>Cancel</button>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => handleDownload("pdf")}
+                  disabled={downloading !== null}
+                  style={{ flex: 1 }}
+                >
+                  {downloading === "pdf" ? "..." : "Download PDF"}
+                </button>
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => handleDownload("excel")}
+                  disabled={downloading !== null}
+                  style={{ flex: 1, border: "1px solid var(--green-line)", color: "var(--green)" }}
+                >
+                  {downloading === "excel" ? "..." : "Download Excel"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Preview button */}
+      <button
+        onClick={() => setShowPreview(true)}
+        disabled={downloading !== null || reportType !== "custom"}
+        className="btn btn-primary"
+        style={{ display: "flex", alignItems: "center", gap: 6 }}
+      >
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        Preview
+      </button>
+    </motion.div>
   );
 }

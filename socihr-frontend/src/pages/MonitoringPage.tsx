@@ -57,6 +57,8 @@ export default function MonitoringPage() {
   const [loadingEng, setLoadingEng] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedForReport, setSelectedForReport] = useState<Set<string>>(new Set());
+  const [bulkReason, setBulkReason] = useState("");
+  const [showBulkAttest, setShowBulkAttest] = useState(false);
 
   // Track the current session ID to prevent stale async updates from a previous session
   // bleeding into the current session's engagement state (Bug #2 fix)
@@ -265,7 +267,6 @@ export default function MonitoringPage() {
     if (!reasonModal) return;
     setSavingReason(true);
     try {
-      // Save reason to all engagements for this staff row
       await Promise.all(reasonModal.engagementIDs.map(id => updateEngagementReason(id, reasonInput)));
       setEngagements((prev) => prev.map((e) =>
         reasonModal.engagementIDs.includes(e.engagementID) ? { ...e, reason: reasonInput || null } : e
@@ -276,6 +277,36 @@ export default function MonitoringPage() {
     } finally {
       setSavingReason(false);
     }
+  }
+
+  async function handleMarkAllComplete(staffId: string) {
+    const staffEngs = engagements.filter(e => e.staffID === staffId);
+    if (staffEngs.length === 0) return;
+    const allComplete = staffEngs.every(e => e.isLiked && e.isCommented && e.isShared);
+    if (allComplete) return;
+    if (!bulkReason.trim()) {
+      setShowBulkAttest(true);
+      return;
+    }
+    try {
+      const ids = staffEngs.map(e => e.engagementID);
+      await Promise.all(ids.map(id => updateEngagementAction(id, "like", true)));
+      await Promise.all(ids.map(id => updateEngagementAction(id, "comment", true)));
+      await Promise.all(ids.map(id => updateEngagementAction(id, "share", true)));
+      await Promise.all(ids.map(id => updateEngagementReason(id, bulkReason)));
+      setEngagements((prev) => prev.map((e) =>
+        ids.includes(e.engagementID) ? { ...e, isLiked: true, isCommented: true, isShared: true, status: "Completed", reason: bulkReason || null } : e
+      ));
+      setBulkReason("");
+      setShowBulkAttest(false);
+    } catch (err) {
+      console.error("Failed to mark all complete:", err);
+    }
+  }
+
+  async function handleBulkAttest() {
+    if (!bulkReason.trim()) return;
+    setShowBulkAttest(false);
   }
 
   async function handleDeleteSession(id: string) {
@@ -1160,24 +1191,39 @@ export default function MonitoringPage() {
                                       </td>
                                     );
                                   })}
-                                  <td style={tdStyle}>
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); openReasonModal(row); }}
-                                      title={reason || "Add reason"}
-                                      style={{
-                                        fontSize: 11, padding: "3px 6px", borderRadius: 6,
-                                        border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
-                                        cursor: "pointer", fontWeight: 700,
-                                        background: reason ? "rgba(99,102,241,0.06)" : "transparent",
-                                        color: reason ? "var(--accent)" : "var(--text-3)",
-                                        whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
-                                        maxWidth: 70, fontFamily: "inherit"
-                                      }}
-                                    >
-                                      {reason ? `📝 ${reason}` : "+ Reason"}
-                                    </button>
-                                  </td>
-                                </tr>
+                                   <td style={tdStyle}>
+                                     <button
+                                       onClick={(e) => { e.stopPropagation(); handleMarkAllComplete(row.staffID); }}
+                                       title="Mark all 3 as complete"
+                                       style={{
+                                         fontSize: 11, padding: "3px 6px", borderRadius: 6,
+                                         border: "1.5px solid var(--green-line)",
+                                         cursor: "pointer", fontWeight: 700,
+                                         background: "var(--green-soft)",
+                                         color: "#166534",
+                                         whiteSpace: "nowrap", marginRight: 4,
+                                         fontFamily: "inherit"
+                                       }}
+                                     >
+                                       ✓ Mark All 3
+                                     </button>
+                                     <button
+                                       onClick={(e) => { e.stopPropagation(); openReasonModal(row); }}
+                                       title={reason || "Add reason"}
+                                       style={{
+                                         fontSize: 11, padding: "3px 6px", borderRadius: 6,
+                                         border: reason ? "1.5px solid var(--accent)" : "1.5px solid var(--line)",
+                                         cursor: "pointer", fontWeight: 700,
+                                         background: reason ? "rgba(99,102,241,0.06)" : "transparent",
+                                         color: reason ? "var(--accent)" : "var(--text-3)",
+                                         whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis",
+                                         maxWidth: 70, fontFamily: "inherit"
+                                       }}
+                                     >
+                                       {reason ? `📝 ${reason}` : "+ Reason"}
+                                     </button>
+                                   </td>
+                                 </tr>
                               );
                             })}
                           </tbody>
@@ -1192,6 +1238,37 @@ export default function MonitoringPage() {
           </div>
         </div>
       </div>
+
+      {/* Bulk Attestation Dialog */}
+      {showBulkAttest && (
+        <div className="modal-overlay" onClick={(e) => e.target === e.currentTarget && setShowBulkAttest(false)}>
+          <div className="modal-box" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+            <div className="modal-head">
+              <h2 className="modal-title">Bulk Attestation Required</h2>
+              <button onClick={() => setShowBulkAttest(false)} className="btn btn-ghost btn-icon btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginTop: 16 }}>
+              <p style={{ fontSize: 13, color: 'var(--text-2)' }}>
+                Marking all 3 actions (Like, Comment, Share) as complete requires attestation. Please confirm you verified these actions on-platform.
+              </p>
+              <textarea
+                className="input"
+                placeholder="Enter attestation reason (e.g., Verified on-platform at 14:30)"
+                value={bulkReason}
+                onChange={e => setBulkReason(e.target.value)}
+                rows={3}
+                style={{ resize: 'vertical' }}
+              />
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+                <button className="btn btn-ghost" onClick={() => setShowBulkAttest(false)}>Cancel</button>
+                <button className="btn btn-primary" onClick={handleBulkAttest} disabled={!bulkReason.trim()}>Attest & Mark Complete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ══════════════════════════════════════════════════════════════
           3-STEP WIZARD MODAL: Create New Session
