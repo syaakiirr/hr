@@ -98,7 +98,13 @@ public class AuthController : ControllerBase
                 Console.WriteLine("✅ Updated user password to BCrypt hash!");
             }
 
-            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"]!));
+            var jwtKey = Environment.GetEnvironmentVariable("JWT__Key") 
+                ?? Environment.GetEnvironmentVariable("JWT_KEY") 
+                ?? _config["Jwt:Key"];
+            if (string.IsNullOrWhiteSpace(jwtKey))
+                jwtKey = "SociHR_SuperSecretKEy_Muhammadsyakirbinmuhammadridzuan";
+
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtKey));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
             var claimsList = new List<Claim>
