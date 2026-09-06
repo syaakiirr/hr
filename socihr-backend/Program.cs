@@ -22,11 +22,15 @@ builder.Configuration
 QuestPDF.Settings.License = LicenseType.Community;
 QuestPDF.Settings.EnableDebugging = true;
 
-// Database — support both URI format (postgres://...) and key=value format
-var rawConnectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+// Database — read from env var first, fall back to JSON config
+var rawConnectionString = Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+    ?? builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException(
         "❌ 'ConnectionStrings:DefaultConnection' is not set. " +
         "Set the environment variable 'ConnectionStrings__DefaultConnection' in Render.");
+
+if (string.IsNullOrWhiteSpace(rawConnectionString))
+    throw new InvalidOperationException("❌ 'ConnectionStrings:DefaultConnection' is empty. Set env var 'ConnectionStrings__DefaultConnection'.");
 
 // Convert postgres:// URI to Npgsql key=value format if needed
 string connectionString;
@@ -94,7 +98,8 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddFluentValidationAutoValidation();
 
 // JWT Authentication
-var jwtKey = builder.Configuration["Jwt:Key"]!;
+var jwtKey = Environment.GetEnvironmentVariable("JWT__Key") ?? builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("❌ 'Jwt:Key' is not set. Set env var 'JWT__Key'.");
+if (string.IsNullOrWhiteSpace(jwtKey)) throw new InvalidOperationException("❌ 'Jwt:Key' is empty. Set env var 'JWT__Key'.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

@@ -6,7 +6,7 @@ using socihr_backend.Models;
 
 namespace socihr_backend.Controllers;
 
-[Authorize]
+[Authorize(Roles = "SuperAdmin,DeptAdmin")]
 [ApiController]
 [Route("api/[controller]")]
 public class EngagementController : ControllerBase

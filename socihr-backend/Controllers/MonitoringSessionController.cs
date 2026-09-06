@@ -12,7 +12,7 @@ using ClosedXML.Excel;
 
 namespace socihr_backend.Controllers;
 
-[Authorize]
+[Authorize(Roles = "SuperAdmin,DeptAdmin")]
 [ApiController]
 [Route("api/[controller]")]
 public class MonitoringSessionController : ControllerBase
