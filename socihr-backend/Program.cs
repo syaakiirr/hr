@@ -100,6 +100,8 @@ builder.Services.AddFluentValidationAutoValidation();
 // JWT Authentication
 var jwtKey = Environment.GetEnvironmentVariable("JWT__Key") ?? builder.Configuration["Jwt:Key"] ?? throw new InvalidOperationException("❌ 'Jwt:Key' is not set. Set env var 'JWT__Key'.");
 if (string.IsNullOrWhiteSpace(jwtKey)) throw new InvalidOperationException("❌ 'Jwt:Key' is empty. Set env var 'JWT__Key'.");
+var openAiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY") ?? builder.Configuration["OpenAI:ApiKey"];
+if (!string.IsNullOrWhiteSpace(openAiKey) && openAiKey == "your-openai-api-key-here") throw new InvalidOperationException("❌ OpenAI ApiKey placeholder detected. Set env var 'OPENAI_API_KEY'.");
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {

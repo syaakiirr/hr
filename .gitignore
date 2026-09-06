@@ -1,4 +1,16 @@
 
+# Secrets / local config
+socihr-backend/appsettings.Development.json
+socihr-backend/appsettings.Production.json
+build_log.txt
+socihr-backend/build_log.txt
+
+# Build artifacts
+socihr-backend/bin/
+socihr-backend/obj/
+socihr-backend.Tests/bin/
+socihr-backend.Tests/obj/
+
 # Playwright
 node_modules/
 /test-results/
