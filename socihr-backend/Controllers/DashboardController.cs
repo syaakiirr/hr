@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -16,7 +16,7 @@ public class DashboardController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly IMemoryCache _cache;
-    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30);
+    private static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds(30); // B5: TL 30s stale â€” draft fix suggests 5s for leaderboard or explicit invalidation on Engagement mutation
 
     public DashboardController(AppDbContext db, IMemoryCache cache) { _db = db; _cache = cache; }
 
@@ -298,7 +298,7 @@ public class DashboardController : ControllerBase
         try
         {
             var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
+            var userId = userIdClaim != null && Guid.TryParse(userIdClaim, out var _parsedUserId) ? _parsedUserId : Guid.Empty;
 
             DateTime? snapshotFrom = null;
             DateTime? snapshotTo = null;
@@ -437,3 +437,5 @@ public class DashboardController : ControllerBase
 }
 
 public record CreateSnapshotRequest(string Name, string? FromDate, string? ToDate, string? Notes);
+
+
