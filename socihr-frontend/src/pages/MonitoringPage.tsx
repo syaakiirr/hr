@@ -124,6 +124,7 @@ export default function MonitoringPage() {
   const [filterName, setFilterName] = useState("");
   const [filterDept, setFilterDept] = useState("");
   const [filterCompany, setFilterCompany] = useState("");
+  const [filterStaffType, setFilterStaffType] = useState("");
 
   // Selected staff in split pane checklist
   const [selectedStaffID, setSelectedStaffID] = useState<string | null>(null);
@@ -234,6 +235,7 @@ export default function MonitoringPage() {
     setFilterName("");
     setFilterDept("");
     setFilterCompany("");
+    setFilterStaffType("");
     setLoadingEng(true);
     try {
       const eng = await getEngagements(thisSessionID);
@@ -468,7 +470,7 @@ export default function MonitoringPage() {
 
 
 
-  type StaffRow = { staffID: string; staffName: string; department: string; engagements: Engagement[] };
+  type StaffRow = { staffID: string; staffName: string; department: string; staffType?: string; engagements: Engagement[] };
 
   // Group engagements by staff (memoized)
   const { allStaffRows, sessionDepts, sessionCompanies } = useMemo(() => {
@@ -479,6 +481,7 @@ export default function MonitoringPage() {
           staffID: eng.staffID,
           staffName: eng.staffName,
           department: eng.department,
+          staffType: eng.staffType,
           engagements: []
         });
       }
@@ -500,9 +503,10 @@ export default function MonitoringPage() {
       const nameOk = !debouncedFilterName || row.staffName.toLowerCase().includes(debouncedFilterName.toLowerCase());
       const deptOk = !filterDept || row.department === filterDept;
       const compOk = !filterCompany || row.engagements.some((e: Engagement) => e.companyID === filterCompany);
-      return nameOk && deptOk && compOk;
+      const typeOk = !filterStaffType || (row.staffType || "Permanent") === filterStaffType;
+      return nameOk && deptOk && compOk && typeOk;
     });
-  }, [allStaffRows, debouncedFilterName, filterDept, filterCompany]);
+  }, [allStaffRows, debouncedFilterName, filterDept, filterCompany, filterStaffType]);
   
   
   // Calculate total ticks for stat chips
@@ -982,11 +986,16 @@ export default function MonitoringPage() {
                     <option value="">All Companies</option>
                     {sessionCompanies.map(c => <option key={c.id} value={c.id!}>{c.name}</option>)}
                   </select>
-                  {(filterName || filterDept || filterCompany) && (
+                  <select className="fi-sel" value={filterStaffType} onChange={e => setFilterStaffType(e.target.value)}>
+                    <option value="">All Staff (Permanent & Intern)</option>
+                    <option value="Permanent">Permanent Staff</option>
+                    <option value="Intern">🎓 Intern Only</option>
+                  </select>
+                  {(filterName || filterDept || filterCompany || filterStaffType) && (
                     <button
                       className="btn btn-ghost btn-sm"
                       style={{ fontSize: 12, color: "var(--text-3)", height: 32, whiteSpace: "nowrap" }}
-                      onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); }}
+                      onClick={() => { setFilterName(""); setFilterDept(""); setFilterCompany(""); setFilterStaffType(""); }}
                     >✕ Clear</button>
                   )}
                 </div>
@@ -1143,7 +1152,23 @@ export default function MonitoringPage() {
                                     {idx + 1}
                                   </td>
                                   <td style={{ ...tdStyle, textAlign: "left", fontWeight: 600, color: "var(--text-1)", whiteSpace: "nowrap", paddingLeft: 12 }}>
-                                    {toTitleCase(row.staffName)}
+                                    <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                                      {toTitleCase(row.staffName)}
+                                      {row.staffType === "Intern" && (
+                                        <span style={{
+                                          fontSize: "0.68rem",
+                                          fontWeight: 700,
+                                          padding: "1px 6px",
+                                          borderRadius: 9999,
+                                          background: "#fef3c7",
+                                          color: "#92400e",
+                                          border: "1px solid #fde68a",
+                                          lineHeight: 1.4,
+                                        }}>
+                                          🎓 Intern
+                                        </span>
+                                      )}
+                                    </span>
                                   </td>
                                   <td style={{ ...tdStyle, textAlign: "left", color: "var(--text-3)", fontSize: 12, whiteSpace: "nowrap", paddingLeft: 10, borderRight: "2px solid #cbd5e1" }}>
                                     {row.department || "—"}
@@ -1775,8 +1800,22 @@ export default function MonitoringPage() {
                             style={{ accentColor: "var(--accent)", width: 15, height: 15 }}
                           />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-1)" }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 6 }}>
                               {toTitleCase(staff.fullName)}
+                              {staff.staffType === "Intern" && (
+                                <span style={{
+                                  fontSize: "0.65rem",
+                                  fontWeight: 700,
+                                  padding: "1px 6px",
+                                  borderRadius: 9999,
+                                  background: "#fef3c7",
+                                  color: "#92400e",
+                                  border: "1px solid #fde68a",
+                                  lineHeight: 1.4,
+                                }}>
+                                  🎓 Intern
+                                </span>
+                              )}
                             </div>
                             <div style={{ fontSize: 12, color: "var(--text-3)" }}>
                               {staff.department || "No Department"} • {staff.status}

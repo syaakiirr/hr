@@ -1469,12 +1469,11 @@ public class MonitoringSessionController : ControllerBase
                                 if (value)
                                 {
                                     cell.AlignCenter().AlignMiddle()
-                                        .Padding(1)
+                                        .Width(9).Height(9)
                                         .Background("#10b981")
                                         .Border(1).BorderColor("#059669")
-                                        .AlignCenter().AlignMiddle()
-                                        .Padding(1)
-                                        .Text("v").FontSize(6).Bold().FontColor("#ffffff");
+                                        .Padding(1.5f)
+                                        .Svg("""<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>""");
                                 }
                                 else
                                 {
@@ -1691,12 +1690,11 @@ public class MonitoringSessionController : ControllerBase
                                     if (value)
                                     {
                                         cell.AlignCenter().AlignMiddle()
-                                            .Padding(1)
+                                            .Width(9).Height(9)
                                             .Background("#10b981")
                                             .Border(1).BorderColor("#059669")
-                                            .AlignCenter().AlignMiddle()
-                                            .Padding(1)
-                                            .Text("v").FontSize(6).Bold().FontColor("#ffffff");
+                                            .Padding(1.5f)
+                                            .Svg("""<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>""");
                                     }
                                     else
                                     {
@@ -1925,12 +1923,11 @@ public class MonitoringSessionController : ControllerBase
                                         if (value)
                                         {
                                             cell.AlignCenter().AlignMiddle()
-                                                .Padding(1)
+                                                .Width(9).Height(9)
                                                 .Background("#10b981")
                                                 .Border(1).BorderColor("#059669")
-                                                .AlignCenter().AlignMiddle()
-                                                .Padding(1)
-                                                .Text("v").FontSize(6).Bold().FontColor("#ffffff");
+                                                .Padding(1.5f)
+                                                .Svg("""<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>""");
                                         }
                                         else
                                         {

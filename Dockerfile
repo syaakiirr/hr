@@ -12,6 +12,14 @@ RUN dotnet publish -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
+
+# Install fontconfig and Unicode fonts so Linux container can render glyphs and symbols properly
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    fontconfig \
+    fonts-dejavu-core \
+    fonts-noto-color-emoji \
+    && rm -rf /var/lib/apt/lists/*
+
 COPY --from=build-backend /app .
 COPY --from=build-frontend /src/dist ./wwwroot
 EXPOSE 8080

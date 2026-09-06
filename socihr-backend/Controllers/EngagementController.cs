@@ -40,6 +40,7 @@ public class EngagementController : ControllerBase
                     e.StaffID,
                     StaffName = e.Staff!.FullName ?? "[deleted staff]",
                     Department = e.Staff!.Department ?? "-",
+                    StaffType = e.Staff!.StaffType ?? "Permanent",
                     CompanyID = e.Post!.CompanyID,
                     CompanyName = e.Post!.Company != null ? e.Post.Company.CompanyName : "No Company",
                     PlatformID = e.Post!.PlatformID,

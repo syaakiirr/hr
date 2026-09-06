@@ -5,7 +5,7 @@ import { getDepartments, type Department } from "../services/api";
 
 interface Props {
   staff: Staff | null;
-  onSave: (data: { fullName: string; department: string; position: string }) => void;
+  onSave: (data: { fullName: string; department: string; position: string; staffType: string }) => void;
   onClose: () => void;
   loading: boolean;
 }
@@ -14,6 +14,7 @@ export default function StaffForm({ staff, onSave, onClose, loading }: Props) {
   const [fullName, setFullName] = useState("");
   const [department, setDepartment] = useState("");
   const [position, setPosition] = useState("");
+  const [staffType, setStaffType] = useState<"Permanent" | "Intern">("Permanent");
   const [departments, setDepartments] = useState<Department[]>([]);
 
   useEffect(() => {
@@ -33,16 +34,18 @@ export default function StaffForm({ staff, onSave, onClose, loading }: Props) {
       setFullName(staff.fullName);
       setDepartment(staff.department || "");
       setPosition(staff.position || "");
+      setStaffType((staff.staffType as "Permanent" | "Intern") || "Permanent");
     } else {
       setFullName("");
       setDepartment("");
       setPosition("");
+      setStaffType("Permanent");
     }
   }, [staff]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    onSave({ fullName, department, position });
+    onSave({ fullName, department, position, staffType });
   }
 
   return (
@@ -114,6 +117,45 @@ export default function StaffForm({ staff, onSave, onClose, loading }: Props) {
                 onChange={(e) => setPosition(e.target.value)}
                 placeholder="e.g. Manager, Executive, Officer"
               />
+            </div>
+
+            {/* Staff Type toggle — Permanent or Intern */}
+            <div>
+              <label className="input-label">Staff Type</label>
+              <div style={{ display: "flex", gap: 8 }}>
+                {(["Permanent", "Intern"] as const).map((type) => (
+                  <button
+                    key={type}
+                    type="button"
+                    onClick={() => setStaffType(type)}
+                    style={{
+                      flex: 1,
+                      padding: "9px 14px",
+                      borderRadius: "var(--r-md)",
+                      border: staffType === type
+                        ? (type === "Intern" ? "2px solid #f59e0b" : "2px solid var(--accent)")
+                        : "1.5px solid var(--line-2)",
+                      background: staffType === type
+                        ? (type === "Intern" ? "#fef3c7" : "var(--accent-soft)")
+                        : "var(--surface)",
+                      color: staffType === type
+                        ? (type === "Intern" ? "#92400e" : "var(--accent)")
+                        : "var(--text-3)",
+                      fontWeight: 700,
+                      fontSize: "0.82rem",
+                      cursor: "pointer",
+                      letterSpacing: "0.02em",
+                      transition: "all 0.15s ease",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      gap: 6,
+                    }}
+                  >
+                    {type === "Intern" ? "\uD83C\uDF93" : "\uD83C\uDFE2"} {type}
+                  </button>
+                ))}
+              </div>
             </div>
 
             <div style={{ display: "flex", gap: 8, marginTop: 12 }}>

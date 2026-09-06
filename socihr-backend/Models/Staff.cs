@@ -7,6 +7,12 @@ public class Staff
     public string? Department { get; set; }
     public string? Position { get; set; }
     public string Status { get; set; } = "Active";
+    
+    /// <summary>
+    /// "Permanent" (default) or "Intern"
+    /// </summary>
+    public string StaffType { get; set; } = "Permanent";
+    
     public DateTime CreatedAt { get; set; }
     
     // Archive fields

@@ -241,8 +241,10 @@ export default function StaffPage() {
 
   const activeCount = useMemo(() => staffList.filter((s) => s.status === "Active").length, [staffList]);
   const inactiveCount = useMemo(() => staffList.filter((s) => s.status === "Inactive").length, [staffList]);
+  const internCount = useMemo(() => staffList.filter((s) => s.staffType === "Intern").length, [staffList]);
+  const [filterStaffType, setFilterStaffType] = useState("");
 
-  async function handleSave(data: { fullName: string; department: string; position: string; companyID?: string }) {
+  async function handleSave(data: { fullName: string; department: string; position: string; staffType?: string; companyID?: string }) {
     setSaving(true);
     try {
       if (editingStaff) await updateStaff(editingStaff.staffID, data);
@@ -330,9 +332,14 @@ export default function StaffPage() {
     );
   }
 
+  const filteredStaff = useMemo(() => {
+    if (!filterStaffType) return staffList;
+    return staffList.filter((s) => s.staffType === filterStaffType);
+  }, [staffList, filterStaffType]);
+
   const paginatedStaff = useMemo(() => {
-    return staffList.slice((page - 1) * pageSize, page * pageSize);
-  }, [staffList, page, pageSize]);
+    return filteredStaff.slice((page - 1) * pageSize, page * pageSize);
+  }, [filteredStaff, page, pageSize]);
 
   return (
     <Layout>
@@ -471,6 +478,26 @@ export default function StaffPage() {
             </div>
             <span style={{ color: "var(--text-4)" }}><BuildingIcon size={16} /></span>
           </div>
+
+          <div
+            style={{
+              padding: "12px 16px",
+              borderRadius: "var(--r-md)",
+              background: "#fef3c7",
+              border: "1px solid #fde68a",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+            }}
+          >
+            <div>
+              <span style={{ fontSize: "0.74rem", color: "#92400e", fontWeight: 500 }}>Interns</span>
+              <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "#92400e", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                {internCount}
+              </p>
+            </div>
+            <span style={{ fontSize: 18 }}>🎓</span>
+          </div>
         </div>
 
         {/* Search & Filter Bar */}
@@ -577,6 +604,28 @@ export default function StaffPage() {
           )}
 
           <select
+            id="filter-staff-type"
+            value={filterStaffType}
+            onChange={(e) => setFilterStaffType(e.target.value)}
+            style={{
+              padding: "8px 12px",
+              borderRadius: "var(--r-md)",
+              border: "1px solid var(--line-2)",
+              background: "var(--white)",
+              color: "var(--text-1)",
+              fontSize: "0.85rem",
+              outline: "none",
+              fontWeight: 500,
+              cursor: "pointer",
+              height: 38,
+            }}
+          >
+            <option value="">All Types</option>
+            <option value="Permanent">Permanent</option>
+            <option value="Intern">Intern</option>
+          </select>
+
+          <select
             id="filter-status"
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -677,9 +726,28 @@ export default function StaffPage() {
                           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
                             <Avatar name={staff.fullName} />
                             <div>
-                              <p style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "0.9rem", lineHeight: 1.3 }}>
-                                {toTitleCase(staff.fullName)}
-                              </p>
+                              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                                <p style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "0.9rem", lineHeight: 1.3 }}>
+                                  {toTitleCase(staff.fullName)}
+                                </p>
+                                {staff.staffType === "Intern" && (
+                                  <span
+                                    style={{
+                                      padding: "1px 7px",
+                                      borderRadius: 99,
+                                      fontSize: "0.67rem",
+                                      fontWeight: 700,
+                                      background: "#fef3c7",
+                                      color: "#92400e",
+                                      border: "1px solid #fde68a",
+                                      letterSpacing: "0.04em",
+                                      textTransform: "uppercase",
+                                    }}
+                                  >
+                                    Intern
+                                  </span>
+                                )}
+                              </div>
                             </div>
                           </div>
                         </td>

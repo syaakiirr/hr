@@ -30,6 +30,7 @@ public class AppDbContext : DbContext
             e.Property(x => x.Department).HasColumnName("Department");
             e.Property(x => x.Position).HasColumnName("Position");
             e.Property(x => x.Status).HasColumnName("Status");
+            e.Property(x => x.StaffType).HasColumnName("StaffType").HasDefaultValue("Permanent");
             e.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
             e.Property(x => x.IsArchived).HasColumnName("IsArchived").HasDefaultValue(false);
             e.Property(x => x.ArchivedBy).HasColumnName("ArchivedBy");
@@ -38,6 +39,7 @@ public class AppDbContext : DbContext
             // Indexes for performance
             e.HasIndex(x => x.IsArchived);
             e.HasIndex(x => x.Department);
+            e.HasIndex(x => x.StaffType);
         });
 
         // ── Users ──

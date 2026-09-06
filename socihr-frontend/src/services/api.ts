@@ -73,6 +73,7 @@ export interface Staff {
   department: string;
   position?: string;
   status: string;
+  staffType: string; // "Permanent" | "Intern"
   createdAt: string;
 }
 
@@ -87,12 +88,12 @@ export async function getStaffList(params?: { search?: string; department?: stri
   return handleResponse<Staff[]>(res);
 }
 
-export async function createStaff(data: { fullName: string; department?: string; position?: string }): Promise<Staff> {
+export async function createStaff(data: { fullName: string; department?: string; position?: string; staffType?: string }): Promise<Staff> {
   const res = await fetch(`${BASE_URL}/staff`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<Staff>(res);
 }
 
-export async function updateStaff(id: string, data: { fullName: string; department?: string; position?: string }): Promise<Staff> {
+export async function updateStaff(id: string, data: { fullName: string; department?: string; position?: string; staffType?: string }): Promise<Staff> {
   const res = await fetch(`${BASE_URL}/staff/${id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<Staff>(res);
 }
@@ -255,6 +256,7 @@ export interface Engagement {
   staffID: string;
   staffName: string;
   department: string;
+  staffType?: string;
   companyID?: string;
   companyName?: string;
   platformID: string;

@@ -2681,8 +2681,11 @@ public class ReportsController : ControllerBase
                     if (value)
                     {
                         cell.AlignCenter().AlignMiddle()
+                            .Width(9).Height(9)
                             .Background("#10b981")
-                            .Text("✓").FontSize(6).Bold().FontColor("#ffffff");
+                            .Border(1).BorderColor("#059669")
+                            .Padding(1.5f)
+                            .Svg("""<svg viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>""");
                     }
                     else
                     {

@@ -215,7 +215,13 @@ static async Task EnsureUserInfrastructureAsync(AppDbContext db)
            OR BTRIM("Role") = '';
         """);
 
-    Console.WriteLine("✅ User infrastructure: DepartmentID column ensured, Admin→SuperAdmin migrated.");
+    // Add StaffType column if not exists (Permanent / Intern)
+    await db.Database.ExecuteSqlRawAsync("""
+        ALTER TABLE "Staff"
+        ADD COLUMN IF NOT EXISTS "StaffType" TEXT NOT NULL DEFAULT 'Permanent';
+        """);
+
+    Console.WriteLine("✅ User infrastructure: DepartmentID column ensured, Admin→SuperAdmin migrated, StaffType column ensured.");
 }
 
 static async Task EnsureDepartmentInfrastructureAsync(AppDbContext db)

@@ -171,12 +171,15 @@ public class StaffController : ControllerBase
     private async Task<IActionResult> CreateStaffInternal(StaffRequest req)
     {
         await EnsureDepartmentExistsAsync(req.Department);
+        var validTypes = new[] { "Permanent", "Intern" };
+        var staffType = validTypes.Contains(req.StaffType) ? req.StaffType : "Permanent";
         var staff = new Staff
         {
             StaffID = Guid.NewGuid(),
             FullName = req.FullName,
             Department = req.Department,
             Position = req.Position,
+            StaffType = staffType,
             Status = "Active",
             CreatedAt = DateTime.UtcNow
         };
@@ -212,9 +215,11 @@ public class StaffController : ControllerBase
             await EnsureDepartmentExistsAsync(req.Department);
         }
 
+        var validTypes = new[] { "Permanent", "Intern" };
         staff.FullName = req.FullName;
         staff.Department = req.Department;
         staff.Position = req.Position;
+        staff.StaffType = validTypes.Contains(req.StaffType) ? req.StaffType : staff.StaffType;
         await _db.SaveChangesAsync();
         return Ok(staff);
     }
@@ -477,5 +482,5 @@ public class StaffController : ControllerBase
     }
 }
 
-public record StaffRequest(string FullName, string? Department, string? Position);
+public record StaffRequest(string FullName, string? Department, string? Position, string StaffType = "Permanent");
 
