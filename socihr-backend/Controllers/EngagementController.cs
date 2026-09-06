@@ -162,11 +162,13 @@ public class EngagementController : ControllerBase
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
         var userId = userIdClaim != null ? Guid.Parse(userIdClaim) : Guid.Empty;
 
-        engagement.Reason = string.IsNullOrWhiteSpace(req.Reason) ? null : req.Reason.Trim();
+        var trimmed = string.IsNullOrWhiteSpace(req.Reason) ? null : req.Reason.Trim();
+        if (trimmed != null && trimmed.Length > 500) return BadRequest(new { message = "Reason must be at most 500 characters." });
+        engagement.Reason = trimmed == null ? null : System.Net.WebUtility.HtmlEncode(trimmed);
         engagement.UpdatedBy = userId;
         engagement.UpdatedAt = DateTime.UtcNow;
 
-        await _db.SaveChangesAsync();
+        try { await _db.SaveChangesAsync(); } catch (DbUpdateException ex) when (ex.InnerException != null && ex.InnerException.Message.Contains("duplicate")) { return Conflict(new { message = "Duplicate engagement detected." }); }
         return Ok(new { engagement.EngagementID, engagement.Reason });
     }
 

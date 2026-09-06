@@ -117,6 +117,8 @@ public class AppDbContext : DbContext
             e.HasIndex(x => x.PostID);
             // Composite covering index for dashboard aggregation queries
             e.HasIndex(x => new { x.SessionID, x.IsLiked, x.IsCommented, x.IsShared });
+            // Unique constraint to prevent duplicate tick abuse (H-04)
+            e.HasIndex(x => new { x.SessionID, x.PostID, x.StaffID }).IsUnique();
         });
 
         // ── AuditTrail ──

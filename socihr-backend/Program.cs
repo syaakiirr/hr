@@ -292,7 +292,7 @@ app.Use(async (context, next) =>
 
         context.Response.StatusCode = 500;
         context.Response.ContentType = "application/json";
-        await context.Response.WriteAsJsonAsync(new { message = ex.Message });
+        await context.Response.WriteAsJsonAsync(new { message = "An unexpected error occurred. Please try again later." });
     }
 });
 
