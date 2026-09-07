@@ -679,6 +679,55 @@ export default function ReportsPage() {
               Period: <strong>{from}</strong> to <strong>{to}</strong>
             </p>
 
+            {/* Quick preset buttons */}
+            <div style={{ display: "flex", gap: 6, marginBottom: 12, flexWrap: "wrap" }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ fontSize: 11, padding: "3px 8px", background: "var(--bg-2)", border: "1px solid var(--border-color, #e2e8f0)" }}
+                onClick={() => {
+                  setCustomShowCards(true);
+                  setCustomShowRanking(true);
+                  setCustomShowPlatformCompany(true);
+                  setCustomShowDaily(true);
+                  setCustomShowMonitoringSessions(true);
+                  setCustomShowStaffTable(true);
+                }}
+              >
+                All Sections
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ fontSize: 11, padding: "3px 8px", background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe", fontWeight: 600 }}
+                onClick={() => {
+                  setCustomShowCards(false);
+                  setCustomShowRanking(false);
+                  setCustomShowPlatformCompany(false);
+                  setCustomShowDaily(false);
+                  setCustomShowMonitoringSessions(true);
+                  setCustomShowStaffTable(false);
+                }}
+              >
+                Monitoring Session Only
+              </button>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ fontSize: 11, padding: "3px 8px", background: "var(--bg-2)", border: "1px solid var(--border-color, #e2e8f0)" }}
+                onClick={() => {
+                  setCustomShowCards(false);
+                  setCustomShowRanking(false);
+                  setCustomShowPlatformCompany(false);
+                  setCustomShowDaily(false);
+                  setCustomShowMonitoringSessions(false);
+                  setCustomShowStaffTable(false);
+                }}
+              >
+                Clear All
+              </button>
+            </div>
+
             <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 20 }}>
               {[
                 { label: "Summary Cards (totals & rate)", key: "cards" },

@@ -1356,9 +1356,9 @@ public class MonitoringSessionController : ControllerBase
                                 ct.Header(h =>
                                 {
                                     h.Cell().Element(HeaderCell).AlignLeft().Text("Company");
-                                    h.Cell().Element(HeaderCell).Text("Likes 👍");
-                                    h.Cell().Element(HeaderCell).Text("Comments 💬");
-                                    h.Cell().Element(HeaderCell).Text("Shares 🔁");
+                                    h.Cell().Element(HeaderCell).Text("Likes");
+                                    h.Cell().Element(HeaderCell).Text("Comments");
+                                    h.Cell().Element(HeaderCell).Text("Shares");
                                     h.Cell().Element(HeaderCell).Text("Completed");
                                     h.Cell().Element(HeaderCell).Text("Expected");
                                     h.Cell().Element(HeaderCell).Text("Rate (%)");
@@ -1531,82 +1531,91 @@ public class MonitoringSessionController : ControllerBase
 
         var accentColors = new[] { "#1e40af", "#059669", "#d97706", "#7c3aed", "#dc2626" };
 
+        // Pre-build all session report data before entering the document builder
+        var sessionReports = sessions.Select((session, sIdx) => new
+        {
+            Session = session,
+            Index = sIdx,
+            Accent = accentColors[sIdx % accentColors.Length],
+            ReportData = BuildReportData(session, engagements.Where(e => e.SessionID == session.SessionID).ToList())
+        }).ToList();
+
         return Document.Create(container =>
         {
-            for (int sIdx = 0; sIdx < sessions.Count; sIdx++)
+            // Single page definition — QuestPDF auto-overflows to new physical pages when content is full.
+            // Sessions are separated by a styled divider bar so they pack together to save pages.
+            container.Page(page =>
             {
-                var session = sessions[sIdx];
-                var accent = accentColors[sIdx % accentColors.Length];
+                page.Size(PageSizes.A3.Landscape());
+                page.Margin(16);
 
-                container.Page(page =>
+                page.Header().Column(h =>
                 {
-                    page.Size(PageSizes.A3.Landscape());
-                    page.Margin(16);
-
-                    page.Header().Column(h =>
+                    h.Item().Background("#1e40af").Padding(8).Row(row =>
                     {
-                        h.Item().Background(accent).Padding(8).Row(row =>
+                        row.RelativeItem().Column(c =>
                         {
-                            row.RelativeItem().Column(c =>
-                            {
-                                c.Item().Text($"MONITORING SESSION {sIdx + 1} OF {sessions.Count}").FontSize(10).Bold().FontColor("#e0e7ff");
-                                c.Item().Text("COMBINED MONITORING REPORT").FontSize(15).Bold().FontColor("#ffffff");
-                            });
-                            row.ConstantItem(320).AlignRight().Column(c =>
-                            {
-                                c.Item().Text("MONITORING SESSION DATE").FontSize(8).Bold().FontColor("#e0e7ff");
-                                c.Item().Text($"{session.SessionDate:dddd, dd MMMM yyyy}").FontSize(13).Bold().FontColor("#ffffff");
-                            });
+                            c.Item().Text("COMBINED MONITORING REPORT").FontSize(15).Bold().FontColor("#ffffff");
+                            c.Item().Text($"{sessions.Count} session(s)  •  System crafted by @syaakiirr").FontSize(8).FontColor("#bfdbfe");
                         });
-                        h.Item().PaddingTop(2).Row(row =>
+                        row.ConstantItem(260).AlignRight().Column(c =>
                         {
-                            row.RelativeItem().Text("System crafted by @syaakiirr").FontSize(7.5f).FontColor("#9ca3af");
+                            c.Item().Text($"Total Likes: {totalLikes}  •  Comments: {totalComments}  •  Shares: {totalShares}").FontSize(8).Bold().FontColor("#bfdbfe");
                         });
                     });
+                });
 
-                    var sessionEngagements = engagements.Where(e => e.SessionID == session.SessionID).ToList();
-                    var reportData = BuildReportData(session, sessionEngagements);
-
-                    page.Content().Column(col =>
+                page.Content().Column(mainCol =>
+                {
+                    foreach (var sr in sessionReports)
                     {
-                        // Summary Totals cards
-                        col.Item().PaddingBottom(12).Row(row =>
-                        {
-                            row.RelativeItem().Element(c => Card(c, "Total Likes", reportData.TotalLikes.ToString(), "#3b82f6"));
-                            row.ConstantItem(12);
-                            row.RelativeItem().Element(c => Card(c, "Total Comments", reportData.TotalComments.ToString(), "#0ea5e9"));
-                            row.ConstantItem(12);
-                            row.RelativeItem().Element(c => Card(c, "Total Shares", reportData.TotalShares.ToString(), "#10b981"));
-                        });
+                        var reportData = sr.ReportData;
+                        var accent = sr.Accent;
 
-                        // Company Engagement Breakdown Table
+                        // ── Session divider / banner ──
+                        mainCol.Item().PaddingTop(sr.Index == 0 ? 10 : 16).Element(c =>
+                            c.Background(accent).Padding(6).Row(row =>
+                            {
+                                row.RelativeItem().Column(col =>
+                                {
+                                    col.Item().Text($"SESSION {sr.Index + 1} OF {sessions.Count}").FontSize(8).Bold().FontColor("#e0e7ff");
+                                    col.Item().Text($"{sr.Session.SessionDate:dddd, dd MMMM yyyy}").FontSize(11).Bold().FontColor("#ffffff");
+                                });
+                                row.ConstantItem(200).AlignRight().Column(col =>
+                                {
+                                    col.Item().Text($"Likes: {reportData.TotalLikes}  Comments: {reportData.TotalComments}  Shares: {reportData.TotalShares}")
+                                        .FontSize(8).FontColor("#e0e7ff");
+                                });
+                            }));
+
+                        // Company Breakdown
                         if (reportData.CompanyStats.Count > 0)
                         {
-                            col.Item().PaddingBottom(12).Column(cc =>
+                            mainCol.Item().PaddingTop(6).PaddingBottom(6).Column(cc =>
                             {
-                                cc.Item().Text("Company Engagement Breakdown").FontSize(9.5f).Bold().FontColor("#1e40af");
+                                cc.Item().Text("Company Engagement Breakdown").FontSize(9f).Bold().FontColor(accent);
                                 cc.Item().PaddingTop(3).Table(ct =>
                                 {
                                     ct.ColumnsDefinition(cd =>
                                     {
-                                        cd.RelativeColumn(3);  // Company
-                                        cd.ConstantColumn(75); // Likes
-                                        cd.ConstantColumn(75); // Comments
-                                        cd.ConstantColumn(75); // Shares
-                                        cd.ConstantColumn(85); // Completed
-                                        cd.ConstantColumn(85); // Expected
-                                        cd.ConstantColumn(70); // Rate
+                                        cd.RelativeColumn(3);
+                                        cd.ConstantColumn(65);
+                                        cd.ConstantColumn(65);
+                                        cd.ConstantColumn(65);
+                                        cd.ConstantColumn(75);
+                                        cd.ConstantColumn(75);
+                                        cd.ConstantColumn(60);
                                     });
 
                                     static IContainer HeaderCell(IContainer c) =>
-                                        c.DefaultTextStyle(t => t.Bold().FontSize(7.5f).FontColor(Colors.White)).Background("#1e40af").Padding(3).AlignCenter();
+                                        c.DefaultTextStyle(t => t.Bold().FontSize(7f).FontColor(Colors.White)).Background("#334155").Padding(3).AlignCenter();
 
                                     ct.Header(h =>
                                     {
                                         h.Cell().Element(HeaderCell).AlignLeft().Text("Company");
-                                        h.Cell().Element(HeaderCell).Text("Likes 👍");
-                                        h.Cell().Element(HeaderCell).Text("Comments 💬");
-                                        h.Cell().Element(HeaderCell).Text("Shares 🔁");
+                                        h.Cell().Element(HeaderCell).Text("Likes");
+                                        h.Cell().Element(HeaderCell).Text("Comments");
+                                        h.Cell().Element(HeaderCell).Text("Shares");
                                         h.Cell().Element(HeaderCell).Text("Completed");
                                         h.Cell().Element(HeaderCell).Text("Expected");
                                         h.Cell().Element(HeaderCell).Text("Rate (%)");
@@ -1618,33 +1627,32 @@ public class MonitoringSessionController : ControllerBase
                                         var bg = ci % 2 == 1 ? "#f8fafc" : "#ffffff";
 
                                         static IContainer DataCell(IContainer c, string bgCol) =>
-                                            c.Background(bgCol).BorderBottom(1).BorderColor("#cbd5e1").Padding(3).AlignCenter();
+                                            c.Background(bgCol).BorderBottom(1).BorderColor("#e2e8f0").Padding(3).AlignCenter();
 
-                                        ct.Cell().Element(c => DataCell(c, bg)).AlignLeft().Text(cs.CompanyName).Bold().FontSize(7.5f);
-                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Likes.ToString()).FontColor("#2563eb").Bold().FontSize(7.5f);
-                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Comments.ToString()).FontColor("#0284c7").Bold().FontSize(7.5f);
-                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Shares.ToString()).FontColor("#059669").Bold().FontSize(7.5f);
-                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.CompletedTicks.ToString()).FontSize(7.5f);
-                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.TotalExpectedTicks.ToString()).FontSize(7.5f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).AlignLeft().Text(cs.CompanyName).Bold().FontSize(7f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Likes.ToString()).FontColor("#2563eb").Bold().FontSize(7f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Comments.ToString()).FontColor("#0284c7").Bold().FontSize(7f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.Shares.ToString()).FontColor("#059669").Bold().FontSize(7f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.CompletedTicks.ToString()).FontSize(7f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text(cs.TotalExpectedTicks.ToString()).FontSize(7f);
                                         var rateColor = cs.Rate >= 80 ? Colors.Green.Darken1 : cs.Rate >= 50 ? Colors.Orange.Darken2 : Colors.Red.Darken1;
-                                        ct.Cell().Element(c => DataCell(c, bg)).Text($"{cs.Rate}%").FontColor(rateColor).Bold().FontSize(7.5f);
+                                        ct.Cell().Element(c => DataCell(c, bg)).Text($"{cs.Rate}%").FontColor(rateColor).Bold().FontSize(7f);
                                     }
                                 });
                             });
                         }
 
-                        col.Item().Table(table =>
+                        // Engagement Matrix
+                        mainCol.Item().PaddingBottom(4).Table(table =>
                         {
                             table.ColumnsDefinition(columns =>
                             {
-                                columns.ConstantColumn(18);   // Rank
-                                columns.ConstantColumn(115);  // Staff Name
-
-                                columns.ConstantColumn(65);   // Department
+                                columns.ConstantColumn(18);
+                                columns.ConstantColumn(115);
+                                columns.ConstantColumn(65);
                                 foreach (var _ in reportData.ActionColumns)
                                     columns.RelativeColumn();
-
-                                columns.ConstantColumn(50);   // Reason
+                                columns.ConstantColumn(50);
                             });
 
                             table.Header(header =>
@@ -1657,10 +1665,8 @@ public class MonitoringSessionController : ControllerBase
                                 header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#f1f5f9")).Text("Dept").FontSize(7.5f).Bold().FontColor("#475569");
 
                                 foreach (var coGroup in reportData.CompanyGroups)
-                                {
                                     header.Cell().ColumnSpan((uint)coGroup.Span).Element(c => BaseHeader(c, "#dbeafe"))
                                         .Text(t => t.Span(coGroup.Name).FontSize(9f).Bold().FontColor("#1e40af"));
-                                }
 
                                 header.Cell().RowSpan(3).Element(c => BaseHeader(c, "#fef3c7")).Text("Reason").FontSize(7.5f).Bold().FontColor("#92400e");
 
@@ -1674,10 +1680,8 @@ public class MonitoringSessionController : ControllerBase
                                 }
 
                                 foreach (var ac in reportData.ActionColumns)
-                                {
                                     header.Cell().Element(c => BaseHeader(c, "#f0fdf4"))
-                                        .Text(t => t.Span(ac.ActionLabel).FontSize(6.5f).Bold().FontColor("#15803d").WrapAnywhere());
-                                }
+                                        .Text(t => t.Span(ac.ActionLabel).FontSize(6.5f).Bold().FontColor("#15803d"));
                             });
 
                             int rowNum = 1;
@@ -1732,24 +1736,24 @@ public class MonitoringSessionController : ControllerBase
                                 table.Cell().Element(c => DataCell(c, bgColor)).Text(t => t.Span(staffRow.Reason ?? "").FontSize(6).FontColor("#475569"));
                                 rowNum++;
                             }
-                        });
-                    });
+                        }); // end table
+                    } // end foreach session
+                }); // end page.Content().Column
 
-                    page.Footer().Column(f =>
+                page.Footer().Column(f =>
+                {
+                    f.Item().AlignCenter().Text("@syaakiirr").FontSize(7).FontColor("#94a3b8");
+                    f.Item().AlignCenter().Text(t =>
                     {
-                        f.Item().AlignCenter().Text("@syaakiirr").FontSize(7).FontColor("#94a3b8");
-                        f.Item().AlignCenter().Text(t =>
-                        {
-                            t.Span("Generated ").FontSize(8).FontColor("#9ca3af");
-                            t.Span($"{DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
-                            t.Span("  •  Page ").FontSize(8).FontColor("#9ca3af");
-                            t.CurrentPageNumber().FontSize(8).FontColor("#9ca3af");
-                            t.Span(" of ").FontSize(8).FontColor("#9ca3af");
-                            t.TotalPages().FontSize(8).FontColor("#9ca3af");
-                        });
+                        t.Span("Generated ").FontSize(8).FontColor("#9ca3af");
+                        t.Span($"{DateTime.UtcNow:dd MMMM yyyy HH:mm:ss} UTC").FontSize(8).FontColor("#9ca3af");
+                        t.Span("  •  Page ").FontSize(8).FontColor("#9ca3af");
+                        t.CurrentPageNumber().FontSize(8).FontColor("#9ca3af");
+                        t.Span(" of ").FontSize(8).FontColor("#9ca3af");
+                        t.TotalPages().FontSize(8).FontColor("#9ca3af");
                     });
                 });
-            }
+            }); // end container.Page
         }).GeneratePdf();
     }
 

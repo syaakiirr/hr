@@ -202,8 +202,8 @@ public class ReportsController : ControllerBase
         int curRow = 5;
 
         // 1. Performance Summary by Unit / Department
-        WriteSectionTitle(ws1, curRow, 1, "1. Performance Summary by Unit / Department", "#4f46e5");
-        var deptHeaders = new[] { "Unit / Department", "Total Staff", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Completion Rate (%)" };
+        WriteSectionTitle(ws1, curRow, 1, "1. Performance Summary by Unit", "#4f46e5");
+        var deptHeaders = new[] { "Unit", "Total Staff", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Completion Rate (%)" };
         WriteTableHeader(ws1, curRow + 1, 1, deptHeaders, "#4f46e5", "#ffffff");
         curRow += 2;
 
@@ -248,7 +248,7 @@ public class ReportsController : ControllerBase
         curRow += 4;
 
         // 3. Top 5 Performing Staff by Unit
-        WriteSectionTitle(ws1, curRow, 1, "3. Top 5 Performing Staff by Unit / Department", "#059669");
+        WriteSectionTitle(ws1, curRow, 1, "3. Top 5 Performing Staff by Unit", "#059669");
         curRow++;
 
         var unitRankHeaders = new[] { "Unit Rank", "Overall Rank", "Staff Name", "Department", "Position", "Completed", "Expected", "Rate (%)" };
@@ -672,8 +672,8 @@ public class ReportsController : ControllerBase
             if (req.IncludeSummaryCards)
             {
                 // Unit summary
-                WriteSectionTitle(wsSum, cRow, 1, "1. Performance Summary by Unit / Department", "#4f46e5");
-                var deptHeaders = new[] { "Unit / Department", "Total Staff", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Completion Rate (%)" };
+                WriteSectionTitle(wsSum, cRow, 1, "1. Performance Summary by Unit", "#4f46e5");
+                var deptHeaders = new[] { "Unit ", "Total Staff", "Completed Ticks", "Missed Ticks", "Expected Ticks", "Completion Rate (%)" };
                 WriteTableHeader(wsSum, cRow + 1, 1, deptHeaders, "#4f46e5", "#ffffff");
                 cRow += 2;
 
@@ -719,7 +719,7 @@ public class ReportsController : ControllerBase
 
             if (req.IncludeStaffRanking)
             {
-                WriteSectionTitle(wsSum, cRow, 1, "Top 5 Performing Staff by Unit / Department", "#059669");
+                WriteSectionTitle(wsSum, cRow, 1, "Top 5 Performing Staff by Unit", "#059669");
                 cRow++;
 
                 var unitRankHeaders = new[] { "Unit Rank", "Overall Rank", "Staff Name", "Department", "Position", "Completed", "Expected", "Rate (%)" };
@@ -910,26 +910,29 @@ public class ReportsController : ControllerBase
                 ws.Cell(2, 1).Value = $"Session {sIdx + 1} of {monitoringSessions.Count}";
                 StyleCell(ws.Cell(2, 1), "#ffffff", "#64748b", false, 10, XLBorderStyleValues.None);
 
-                var scRow = 4;
-                var summaryCards = new[] {
-                    ("Total Likes", rd.TotalLikes.ToString(), "#3b82f6"),
-                    ("Total Comments", rd.TotalComments.ToString(), "#0ea5e9"),
-                    ("Total Shares", rd.TotalShares.ToString(), "#10b981")
-                };
-                for (int ci = 0; ci < summaryCards.Length; ci++)
+                int tblRow = 4;
+                if (req.IncludeSummaryCards)
                 {
-                    var (label, val, color) = summaryCards[ci];
-                    var c = ws.Cell(scRow, ci * 2 + 1);
-                    c.Value = label;
-                    StyleCell(c, "#f8fafc", color, true, 10);
-                    c.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
-                    var vc = ws.Cell(scRow + 1, ci * 2 + 1);
-                    vc.Value = int.TryParse(val, out var n) ? n : val;
-                    StyleCell(vc, "#ffffff", color, true, 18);
-                    vc.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    var scRow = 4;
+                    var summaryCards = new[] {
+                        ("Total Likes", rd.TotalLikes.ToString(), "#3b82f6"),
+                        ("Total Comments", rd.TotalComments.ToString(), "#0ea5e9"),
+                        ("Total Shares", rd.TotalShares.ToString(), "#10b981")
+                    };
+                    for (int ci = 0; ci < summaryCards.Length; ci++)
+                    {
+                        var (label, val, color) = summaryCards[ci];
+                        var c = ws.Cell(scRow, ci * 2 + 1);
+                        c.Value = label;
+                        StyleCell(c, "#f8fafc", color, true, 10);
+                        c.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                        var vc = ws.Cell(scRow + 1, ci * 2 + 1);
+                        vc.Value = int.TryParse(val, out var n) ? n : val;
+                        StyleCell(vc, "#ffffff", color, true, 18);
+                        vc.Style.Alignment.SetHorizontal(XLAlignmentHorizontalValues.Center);
+                    }
+                    tblRow = scRow + 3;
                 }
-
-                int tblRow = scRow + 3;
                 int cCol = 1;
 
                 ws.Cell(tblRow, cCol).Value = "#";
@@ -1208,7 +1211,7 @@ public class ReportsController : ControllerBase
                             if (deptFilter?.Count == 1)
                             {
                                 // ── SINGLE DEPARTMENT SESSION FLOW ──
-                                if (!isFirstSection) col.Item().PageBreak();
+                                if (!isFirstSection) col.Item().PaddingTop(12);
                                 isFirstSection = false;
 
                                 // Session Header Card
@@ -1227,66 +1230,71 @@ public class ReportsController : ControllerBase
                                 });
 
                                 // Session KPI Summary Cards
-                                col.Item().PaddingBottom(6).Row(row =>
+                                if (showCards)
                                 {
-                                    row.RelativeItem().Element(c => Card(c, "Total Likes", rd.TotalLikes.ToString(), "#2563eb", "#eff6ff"));
-                                    row.ConstantItem(8);
-                                    row.RelativeItem().Element(c => Card(c, "Total Comments", rd.TotalComments.ToString(), "#0284c7", "#f0f9ff"));
-                                    row.ConstantItem(8);
-                                    row.RelativeItem().Element(c => Card(c, "Total Shares", rd.TotalShares.ToString(), "#059669", "#f0fdf4"));
-                                });
+                                    col.Item().PaddingBottom(6).Row(row =>
+                                    {
+                                        row.RelativeItem().Element(c => Card(c, "Total Likes", rd.TotalLikes.ToString(), "#2563eb", "#eff6ff"));
+                                        row.ConstantItem(8);
+                                        row.RelativeItem().Element(c => Card(c, "Total Comments", rd.TotalComments.ToString(), "#0284c7", "#f0f9ff"));
+                                        row.ConstantItem(8);
+                                        row.RelativeItem().Element(c => Card(c, "Total Shares", rd.TotalShares.ToString(), "#059669", "#f0fdf4"));
+                                    });
+                                }
 
                                 // 1. Company Engagement Breakdown Table
-                                if (rd.CompanyStats.Count > 0)
+                                if (showPlatformCompany && rd.CompanyStats.Count > 0)
                                 {
-                                    col.Item().PaddingBottom(6).Column(cc =>
+                                    col.Item().EnsureSpace(110).PaddingBottom(6).Column(cc =>
                                     {
-                                        cc.Item().PaddingBottom(2).Text($"Company Engagement Breakdown ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#0f172a");
+                                        cc.Item().PaddingBottom(2).Text($"Company Engagement Breakdown: {deptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#0f172a");
                                         cc.Item().Element(t => RenderCompanyBreakdownTable(t, rd.CompanyStats));
                                     });
                                 }
 
                                 // 2. Platform Engagement Breakdown Table
-                                if (rd.PlatformStats.Count > 0)
+                                if (showPlatformCompany && rd.PlatformStats.Count > 0)
                                 {
-                                    col.Item().PaddingBottom(6).Column(pc =>
+                                    col.Item().EnsureSpace(110).PaddingBottom(6).Column(pc =>
                                     {
-                                        pc.Item().PaddingBottom(2).Text($"Platform Engagement Breakdown ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#0f172a");
+                                        pc.Item().PaddingBottom(2).Text($"Platform Engagement Breakdown: {deptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#0f172a");
                                         pc.Item().Element(t => RenderPlatformBreakdownTable(t, rd.PlatformStats));
                                     });
                                 }
 
                                 // 3. Top 5 Table
-                                col.Item().PaddingBottom(6).Column(c =>
+                                if (showRanking && rd.StaffRows.Count > 0)
                                 {
-                                    c.Item().PaddingBottom(2).Text($"Top 5: {deptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#059669");
-                                    c.Item().Element(t => RenderSessionTop5Table(t, rd.StaffRows));
-                                });
+                                    col.Item().EnsureSpace(120).PaddingTop(2).PaddingBottom(4).Column(c =>
+                                    {
+                                        c.Item().PaddingBottom(2).Text($"Top 5: {deptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#059669");
+                                        c.Item().Element(t => RenderSessionTop5Table(t, rd.StaffRows));
+                                    });
+                                }
 
-                                // 4. Staff Tick Detail (dedicated page)
-                                col.Item().PageBreak();
-                                col.Item().PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                // 4. Staff Tick Detail
+                                if (showStaffTable && rd.StaffRows.Count > 0)
                                 {
-                                    r.RelativeItem().Text($"Staff Tick Detail: {deptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(11).Bold().FontColor("#0f172a");
-                                    r.ConstantItem(260).AlignRight().Text($"Scope: {deptName}  |  Total Staff: {rd.StaffRows.Count}").FontSize(8f).FontColor("#475569");
-                                });
-                                col.Item().PaddingTop(2).PaddingBottom(6).Element(t => RenderSessionStaffTickTable(t, rd.StaffRows));
+                                    col.Item().EnsureSpace(130).PaddingTop(6).PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                    {
+                                        r.RelativeItem().Text($"Staff Tick Detail: {deptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(11).Bold().FontColor("#0f172a");
+                                        r.ConstantItem(260).AlignRight().Text($"Scope: {deptName}  |  Total Staff: {rd.StaffRows.Count}").FontSize(8f).FontColor("#475569");
+                                    });
+                                    col.Item().PaddingTop(2).PaddingBottom(6).Element(t => RenderSessionStaffTickTable(t, rd.StaffRows));
+                                }
 
-                                // 5. Staff Engagement Matrix (dedicated page)
-                                col.Item().PageBreak();
-                                col.Item().PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                // 5. Staff Engagement Matrix (Monitoring Table)
+                                col.Item().EnsureSpace(160).PaddingTop(6).PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
                                 {
-                                    r.RelativeItem().Text($"Staff Engagement Matrix: {session.SessionDate:dddd, dd MMMM yyyy}").FontSize(11).Bold().FontColor("#0f172a");
+                                    r.RelativeItem().Text($"Staff Engagement Matrix: {deptName} ({session.SessionDate:dddd, dd MMMM yyyy})").FontSize(11).Bold().FontColor("#0f172a");
                                     r.ConstantItem(260).AlignRight().Text($"Scope: {deptName}  |  Staff: {rd.StaffRows.Count}  |  Likes: {rd.TotalLikes}  Comments: {rd.TotalComments}  Shares: {rd.TotalShares}").FontSize(8f).FontColor("#475569");
                                 });
-                                col.Item().PaddingTop(2).PaddingBottom(4).Element(t => RenderMonitoringTable(t, rd));
-
-
+                                col.Item().PaddingTop(2).PaddingBottom(6).Element(t => RenderMonitoringTable(t, rd));
                             }
                             else
                             {
-                                // ── OVERALL / SUPERADMIN SESSION FLOW (Grouped by Department without page mixing) ──
-                                if (!isFirstSection) col.Item().PageBreak();
+                                // ── OVERALL / SUPERADMIN SESSION FLOW (Continuous flow, split by title) ──
+                                if (!isFirstSection) col.Item().PaddingTop(12);
                                 isFirstSection = false;
 
                                 // Session Executive Overview Header
@@ -1305,38 +1313,19 @@ public class ReportsController : ControllerBase
                                 });
 
                                 // Session KPI Summary Cards
-                                col.Item().PaddingBottom(6).Row(row =>
+                                if (showCards)
                                 {
-                                    row.RelativeItem().Element(c => Card(c, "Total Likes", rd.TotalLikes.ToString(), "#2563eb", "#eff6ff"));
-                                    row.ConstantItem(8);
-                                    row.RelativeItem().Element(c => Card(c, "Total Comments", rd.TotalComments.ToString(), "#0284c7", "#f0f9ff"));
-                                    row.ConstantItem(8);
-                                    row.RelativeItem().Element(c => Card(c, "Total Shares", rd.TotalShares.ToString(), "#059669", "#f0fdf4"));
-                                });
-
-                                // Company Engagement Breakdown Table
-                                if (rd.CompanyStats.Count > 0)
-                                {
-                                    col.Item().PaddingBottom(6).Column(cc =>
+                                    col.Item().PaddingBottom(6).Row(row =>
                                     {
-                                        cc.Item().PaddingBottom(2).Text($"Company Engagement Breakdown ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#0f172a");
-                                        cc.Item().Element(t => RenderCompanyBreakdownTable(t, rd.CompanyStats));
+                                        row.RelativeItem().Element(c => Card(c, "Total Likes", rd.TotalLikes.ToString(), "#2563eb", "#eff6ff"));
+                                        row.ConstantItem(8);
+                                        row.RelativeItem().Element(c => Card(c, "Total Comments", rd.TotalComments.ToString(), "#0284c7", "#f0f9ff"));
+                                        row.ConstantItem(8);
+                                        row.RelativeItem().Element(c => Card(c, "Total Shares", rd.TotalShares.ToString(), "#059669", "#f0fdf4"));
                                     });
                                 }
 
-                                // Platform Engagement Breakdown Table
-                                if (rd.PlatformStats.Count > 0)
-                                {
-                                    col.Item().PaddingBottom(6).Column(pc =>
-                                    {
-                                        pc.Item().PaddingBottom(2).Text($"Platform Engagement Breakdown ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#0f172a");
-                                        pc.Item().Element(t => RenderPlatformBreakdownTable(t, rd.PlatformStats));
-                                    });
-                                }
-
-                                // Overall Top 5 shown once in PART 2 consolidated — skip here to avoid duplicate
-
-                                // ── PER-DEPARTMENT PAGES IN THIS SESSION (Guaranteed isolated page per department) ──
+                                // ── PER-DEPARTMENT (BY UNIT) FLOW IN THIS SESSION ──
                                 var sessionDeptGroups = rd.StaffRows
                                     .GroupBy(r => string.IsNullOrWhiteSpace(r.Department) ? "No Department" : r.Department)
                                     .OrderBy(g => g.Key == "No Department" ? "ZZZ" : g.Key)
@@ -1348,33 +1337,80 @@ public class ReportsController : ControllerBase
                                     var curDeptStaff = dGroup.ToList();
                                     var curDeptEngs = sessionEngs.Where(e => (e.Staff?.Department ?? "No Department") == curDeptName).ToList();
                                     var deptRd = MonitoringSessionController.BuildReportData(session, curDeptEngs);
+                                    bool hasUnitPreamble = (showPlatformCompany && (deptRd.CompanyStats.Count > 0 || deptRd.PlatformStats.Count > 0))
+                                                        || (showRanking && curDeptStaff.Count > 0)
+                                                        || (showStaffTable && curDeptStaff.Count > 0);
 
-                                    // Dedicated Page for Department's Staff Ticks:
-                                    col.Item().PageBreak();
-                                    col.Item().PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                    // Department Header Card (show only if there are preamble breakdown tables / top 5 / tick details for this unit;
+                                    // if only the Matrix is shown, the Matrix header card below already clearly states the Unit name and stats)
+                                    if (hasUnitPreamble)
                                     {
-                                        r.RelativeItem().Text($"Staff Tick Detail: {curDeptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(11).Bold().FontColor("#0f172a");
-                                        r.ConstantItem(260).AlignRight().Text($"Department: {curDeptName}  |  Staff: {curDeptStaff.Count}").FontSize(8f).FontColor("#475569");
-                                    });
+                                        col.Item().EnsureSpace(150).PaddingTop(10).PaddingBottom(6).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                        {
+                                            r.RelativeItem().Column(rc =>
+                                            {
+                                                rc.Item().Text($"Unit: {curDeptName}").FontSize(12).Bold().FontColor("#0f172a");
+                                                rc.Item().PaddingTop(1).Text($"Session Date: {session.SessionDate:dddd, dd MMMM yyyy}").FontSize(7.5f).FontColor("#64748b");
+                                            });
+                                            r.ConstantItem(280).AlignRight().Column(rc =>
+                                            {
+                                                rc.Item().Text($"Staff: {deptRd.StaffRows.Count}").FontSize(8.5f).Bold().FontColor("#0f172a");
+                                                rc.Item().PaddingTop(1).Text($"Likes: {deptRd.TotalLikes}  Comments: {deptRd.TotalComments}  Shares: {deptRd.TotalShares}").FontSize(7.5f).FontColor("#475569");
+                                            });
+                                        });
+                                    }
 
-                                    // Top 5 for this department in this session
-                                    col.Item().PaddingTop(2).PaddingBottom(4).Column(c =>
+                                    // 1. Company Engagement Breakdown Table (by unit)
+                                    if (showPlatformCompany && deptRd.CompanyStats.Count > 0)
                                     {
-                                        c.Item().PaddingBottom(2).Text($"Top 5: {curDeptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(8.5f).Bold().FontColor("#059669");
-                                        c.Item().Element(t => RenderSessionTop5Table(t, curDeptStaff));
-                                    });
+                                        col.Item().EnsureSpace(110).PaddingBottom(6).Column(cc =>
+                                        {
+                                            cc.Item().PaddingBottom(2).Text($"Company Engagement Breakdown: {curDeptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#0f172a");
+                                            cc.Item().Element(t => RenderCompanyBreakdownTable(t, deptRd.CompanyStats));
+                                        });
+                                    }
 
-                                    // Full staff ticks for this department
-                                    col.Item().PaddingTop(2).PaddingBottom(6).Element(t => RenderSessionStaffTickTable(t, curDeptStaff));
+                                    // 2. Platform Engagement Breakdown Table (by unit)
+                                    if (showPlatformCompany && deptRd.PlatformStats.Count > 0)
+                                    {
+                                        col.Item().EnsureSpace(110).PaddingBottom(6).Column(pc =>
+                                        {
+                                            pc.Item().PaddingBottom(2).Text($"Platform Engagement Breakdown: {curDeptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(9f).Bold().FontColor("#0f172a");
+                                            pc.Item().Element(t => RenderPlatformBreakdownTable(t, deptRd.PlatformStats));
+                                        });
+                                    }
 
-                                    // Dedicated Page for Department's Matrix:
-                                    col.Item().PageBreak();
-                                    col.Item().PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                    // 3. Top 5 Table (by unit)
+                                    if (showRanking && curDeptStaff.Count > 0)
+                                    {
+                                        col.Item().EnsureSpace(120).PaddingTop(2).PaddingBottom(4).Column(c =>
+                                        {
+                                            c.Item().PaddingBottom(2).Text($"Top 5: {curDeptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(8.5f).Bold().FontColor("#059669");
+                                            c.Item().Element(t => RenderSessionTop5Table(t, curDeptStaff));
+                                        });
+                                    }
+
+                                    // 4. Staff Tick Detail (by unit)
+                                    if (showStaffTable && curDeptStaff.Count > 0)
+                                    {
+                                        col.Item().EnsureSpace(130).PaddingTop(6).PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                        {
+                                            r.RelativeItem().Text($"Staff Tick Detail: {curDeptName} ({session.SessionDate:dd/MM/yyyy})").FontSize(11).Bold().FontColor("#0f172a");
+                                            r.ConstantItem(260).AlignRight().Text($"Department: {curDeptName}  |  Staff: {curDeptStaff.Count}").FontSize(8f).FontColor("#475569");
+                                        });
+                                        col.Item().PaddingTop(2).PaddingBottom(6).Element(t => RenderSessionStaffTickTable(t, curDeptStaff));
+                                    }
+
+                                    // 5. Staff Engagement Matrix (Monitoring Table by unit)
+                                    // EnsureSpace(160) guarantees enough remaining vertical room on the current page to comfortably fit
+                                    // the matrix title banner, table headers, and at least several staff rows.
+                                    // If available space < 160pt, QuestPDF automatically triggers a clean page break before rendering.
+                                    col.Item().EnsureSpace(160).PaddingTop(hasUnitPreamble ? 6 : 10).PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
                                     {
                                         r.RelativeItem().Text($"Staff Engagement Matrix: {curDeptName} ({session.SessionDate:dddd, dd MMMM yyyy})").FontSize(11).Bold().FontColor("#0f172a");
                                         r.ConstantItem(280).AlignRight().Text($"Scope: {curDeptName}  |  Staff: {deptRd.StaffRows.Count}  |  Likes: {deptRd.TotalLikes}  Comments: {deptRd.TotalComments}  Shares: {deptRd.TotalShares}").FontSize(7.5f).FontColor("#475569");
                                     });
-                                    col.Item().PaddingTop(2).PaddingBottom(4).Element(t => RenderMonitoringTable(t, deptRd));
+                                    col.Item().PaddingTop(2).PaddingBottom(8).Element(t => RenderMonitoringTable(t, deptRd));
                                 }
                             }
                         }
@@ -1384,13 +1420,15 @@ public class ReportsController : ControllerBase
                     // Show PART 2 only when:
                     //   (a) session detail NOT rendered in PART 1 (showMonitoringSessions=false), OR
                     //   (b) MULTIPLE sessions → consolidated aggregate across sessions is useful
-                    // SKIP when single session already fully rendered in PART 1 (would be duplicate)
+                    // SKIP when single session already fully rendered in PART 1 (would be duplicate),
+                    // OR when user explicitly requested monitoring sessions only in custom report.
                     int sessionCount = monitoringSessions?.Count ?? 0;
-                    bool shouldShowConsolidated = !showMonitoringSessions || sessionCount != 1;
+                    bool isMonitoringOnly = showMonitoringSessions && !showCards && !showRanking && !showPlatformCompany && !showDaily && !showStaffTable;
+                    bool shouldShowConsolidated = !isMonitoringOnly && (!showMonitoringSessions || sessionCount != 1);
 
                     if (shouldShowConsolidated)
                     {
-                        if (!isFirstSection) col.Item().PageBreak();
+                        if (!isFirstSection) col.Item().PaddingTop(14);
                         isFirstSection = false;
 
                         if (deptName != null)
@@ -1461,20 +1499,20 @@ public class ReportsController : ControllerBase
                                 }
 
                                 // Platform & Company Breakdowns
-                                if (showPlatformCompany && platformStats.Count > 0)
-                                {
-                                    col.Item().PaddingBottom(6).Column(c =>
-                                    {
-                                        c.Item().PaddingBottom(2).Text($"Platform Engagement Breakdown ({singleDept.Department})").FontSize(9f).Bold().FontColor("#0f172a");
-                                        c.Item().Element(t => PlatformTable(t, platformStats));
-                                    });
-                                }
                                 if (showPlatformCompany && companyStats.Count > 0)
                                 {
                                     col.Item().PaddingBottom(6).Column(c =>
                                     {
                                         c.Item().PaddingBottom(2).Text($"Company Engagement Breakdown ({singleDept.Department})").FontSize(9f).Bold().FontColor("#0f172a");
                                         c.Item().Element(t => CompanyTable(t, companyStats));
+                                    });
+                                }
+                                if (showPlatformCompany && platformStats.Count > 0)
+                                {
+                                    col.Item().PaddingBottom(6).Column(c =>
+                                    {
+                                        c.Item().PaddingBottom(2).Text($"Platform Engagement Breakdown ({singleDept.Department})").FontSize(9f).Bold().FontColor("#0f172a");
+                                        c.Item().Element(t => PlatformTable(t, platformStats));
                                     });
                                 }
 
@@ -1488,11 +1526,10 @@ public class ReportsController : ControllerBase
                                     });
                                 }
 
-                                // Dedicated Page for Complete Staff Ticks
+                                // Complete Staff Ticks (continuous flow with title header)
                                 if (showStaffTable && singleDept.AllStaff.Count > 0)
                                 {
-                                    col.Item().PageBreak();
-                                    col.Item().PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                    col.Item().PaddingTop(8).PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
                                     {
                                         r.RelativeItem().Text($"Staff Engagement Ticks: {singleDept.Department}").FontSize(11).Bold().FontColor("#0f172a");
                                         r.ConstantItem(260).AlignRight().Text($"Total Staff: {singleDept.StaffCount}  |  Avg Rate: {singleDept.Rate}%").FontSize(8f).FontColor("#475569");
@@ -1572,15 +1609,7 @@ public class ReportsController : ControllerBase
                                 c.Item().Element(t => RenderDepartmentSummaryComparisonTable(t, deptStatsList, staffPerf.Count, totalCompleted, totalMissed, totalExpected, overallRate, totalLikes, totalComments, totalShares));
                             });
 
-                            // Platform & Company Breakdowns
-                            if (showPlatformCompany && platformStats.Count > 0)
-                            {
-                                col.Item().PaddingBottom(6).Column(c =>
-                                {
-                                    c.Item().PaddingBottom(2).Text("Platform Engagement Breakdown").FontSize(9f).Bold().FontColor("#0f172a");
-                                    c.Item().Element(t => PlatformTable(t, platformStats));
-                                });
-                            }
+                            // Company & Platform Breakdowns
                             if (showPlatformCompany && companyStats.Count > 0)
                             {
                                 col.Item().PaddingBottom(6).Column(c =>
@@ -1589,12 +1618,19 @@ public class ReportsController : ControllerBase
                                     c.Item().Element(t => CompanyTable(t, companyStats));
                                 });
                             }
+                            if (showPlatformCompany && platformStats.Count > 0)
+                            {
+                                col.Item().PaddingBottom(6).Column(c =>
+                                {
+                                    c.Item().PaddingBottom(2).Text("Platform Engagement Breakdown").FontSize(9f).Bold().FontColor("#0f172a");
+                                    c.Item().Element(t => PlatformTable(t, platformStats));
+                                });
+                            }
 
-                            // Page 2: Company-Wide Talent Rankings (Overall Top 10 + Overall Bottom 10)
+                            // Company-Wide Talent Rankings (Continuous flow, split by title)
                             if (showRanking)
                             {
-                                col.Item().PageBreak();
-                                col.Item().PaddingBottom(6).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                col.Item().PaddingTop(10).PaddingBottom(6).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
                                 {
                                     r.RelativeItem().Text("Company-Wide Talent Rankings (All Departments)").FontSize(11).Bold().FontColor("#0f172a");
                                     r.ConstantItem(260).AlignRight().Text($"Total Evaluated: {staffPerf.Count} Staff").FontSize(8f).FontColor("#475569");
@@ -1619,15 +1655,13 @@ public class ReportsController : ControllerBase
                                 }
                             }
 
-                            // ── Page 3+: DEDICATED PAGE PER DEPARTMENT DOSSIER (Zero department page mixing!) ──
+                            // ── DEPARTMENT DOSSIERS (Continuous flow, split by department title!) ──
                             for (int di = 0; di < deptStatsList.Count; di++)
                             {
                                 var dept = deptStatsList[di];
-                                // MANDATORY DEDICATED PAGE BREAK FOR EVERY DEPARTMENT:
-                                col.Item().PageBreak();
 
                                 // Department Header Card
-                                col.Item().PaddingBottom(6).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                col.Item().PaddingTop(10).PaddingBottom(6).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
                                 {
                                     r.RelativeItem().Column(rc =>
                                     {
@@ -1681,8 +1715,7 @@ public class ReportsController : ControllerBase
                     // ───── PART 3: DAILY ENGAGEMENT TIMELINE ─────
                     if (showDaily && dailyStats.Count > 0)
                     {
-                        col.Item().PageBreak();
-                        col.Item().PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                        col.Item().PaddingTop(10).PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
                         {
                             r.RelativeItem().Text("Daily Engagement Activity Timeline").FontSize(11).Bold().FontColor("#0f172a");
                             r.ConstantItem(260).AlignRight().Text($"Total Days Recorded: {dailyStats.Count}").FontSize(8f).FontColor("#475569");
@@ -1793,7 +1826,7 @@ public class ReportsController : ControllerBase
             table.ColumnsDefinition(cd =>
             {
                 cd.ConstantColumn(24); // #
-                cd.RelativeColumn(3);  // Unit / Department
+                cd.RelativeColumn(3);  // Unit
                 cd.ConstantColumn(55); // Staff Count
                 cd.ConstantColumn(50); // Likes
                 cd.ConstantColumn(55); // Comments
@@ -2646,16 +2679,8 @@ public class ReportsController : ControllerBase
 
                 foreach (var ac in rd.ActionColumns)
                 {
-                    var shortAction = ac.Action.ToLower() switch
-                    {
-                        "like" => "L",
-                        "comment" => "C",
-                        "share" => "S",
-                        _ => ac.ActionLabel.Length > 3 ? ac.ActionLabel[..3] : ac.ActionLabel
-                    };
-
                     header.Cell().Element(c => HeaderBox(c, "#f0fdf4"))
-                        .Text(t => t.Span(shortAction).FontSize(6f).Bold().FontColor("#15803d"));
+                        .Text(t => t.Span(ac.ActionLabel).FontSize(6.5f).Bold().FontColor("#15803d"));
                 }
             });
 
