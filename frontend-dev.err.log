@@ -1,0 +1,646 @@
+npm notice run socihr-frontend@0.0.0 dev
+npm notice run vite
+[2m12:28:47 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:396:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m394 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m396 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:28:47 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:396:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m394 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m396 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:29:10 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:396:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m394 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m396 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:29:10 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:396:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m394 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m396 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:29:33 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:396:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m394 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m396 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:29:33 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:396:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m394 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m396 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:29:50 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:396:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m394 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m396 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:29:50 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:396:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m394 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m396 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:30:01 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:402:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m400 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m402 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:30:01 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `Identifier`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:402:16 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m400 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m402 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0mclassName[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mB[0m[38;5;249mo[0m[38;5;249mt[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249mm[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m6[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m                ────┬────  
+ [38;5;240m    │[0m                    ╰────── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:30:56 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `{`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:429:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m400 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m429 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mL[0m[38;5;249me[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m—[0m[38;5;249m [0m[38;5;249mk[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249mu[0m[38;5;249mk[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mk[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m    │[0m           ┬  
+ [38;5;240m    │[0m           ╰── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:30:56 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `{`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:429:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m400 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m429 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mL[0m[38;5;249me[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m—[0m[38;5;249m [0m[38;5;249mk[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249mu[0m[38;5;249mk[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mk[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m    │[0m           ┬  
+ [38;5;240m    │[0m           ╰── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:31:30 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `{`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:429:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m400 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m429 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mL[0m[38;5;249me[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m—[0m[38;5;249m [0m[38;5;249mk[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249mu[0m[38;5;249mk[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mk[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m    │[0m           ┬  
+ [38;5;240m    │[0m           ╰── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:31:30 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `{`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:429:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m400 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m429 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mL[0m[38;5;249me[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m—[0m[38;5;249m [0m[38;5;249mk[0m[38;5;249me[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249mu[0m[38;5;249mk[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249m [0m[38;5;249mk[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249m [0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m    │[0m           ┬  
+ [38;5;240m    │[0m           ╰── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:31:57 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `{`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:429:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m400 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m429 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mL[0m[38;5;249me[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m    │[0m           ┬  
+ [38;5;240m    │[0m           ╰── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:31:57 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mExpected `,` or `)` but found `{`
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:429:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m400 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m [0m[38;5;249m:[0m[38;5;249m [0m(
+ [38;5;240m    │[0m             ┬  
+ [38;5;240m    │[0m             ╰── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m429 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m{[38;5;249m/[0m[38;5;249m*[0m[38;5;249m [0m[38;5;249mL[0m[38;5;249me[0m[38;5;249md[0m[38;5;249mg[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249m [0m[38;5;249m*[0m[38;5;249m/[0m[38;5;249m}[0m
+ [38;5;240m    │[0m           ┬  
+ [38;5;240m    │[0m           ╰── `,` or `)` expected
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:32:14 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mAdjacent JSX elements must be wrapped in an enclosing tag.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:429:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m429 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m<[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249ms[0m[38;5;249ms[0m[38;5;249mN[0m[38;5;249ma[0m[38;5;249mm[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m>[0m
+ [38;5;240m    │[0m           ┬  
+ [38;5;240m    │[0m           ╰── 
+ [38;5;240m    │[0m 
+ [38;5;240m    │[0m [38;5;115mHelp[0m: Did you want a JSX fragment `<>...</>`?
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:32:14 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mAdjacent JSX elements must be wrapped in an enclosing tag.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:429:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m429 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m<[38;5;249md[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249ms[0m[38;5;249ms[0m[38;5;249mN[0m[38;5;249ma[0m[38;5;249mm[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249mh[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mt[0m[38;5;249m-[0m[38;5;249mw[0m[38;5;249mr[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m"[0m[38;5;249m>[0m
+ [38;5;240m    │[0m           ┬  
+ [38;5;240m    │[0m           ╰── 
+ [38;5;240m    │[0m 
+ [38;5;240m    │[0m [38;5;115mHelp[0m: Did you want a JSX fragment `<>...</>`?
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:32:31 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:542:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m542 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m}[0m
+ [38;5;240m    │[0m          │ 
+ [38;5;240m    │[0m          ╰─ 
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m12:32:31 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 1 error:
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/CompanyPage.tsx:542:10 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m542 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m)[0m[38;5;249m}[0m
+ [38;5;240m    │[0m          │ 
+ [38;5;240m    │[0m          ╰─ 
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/CompanyPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m2:59:16 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 4 errors:
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:208:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m132 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mx[0m[38;5;249mW[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mt[0m[38;5;249mh[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m2[0m[38;5;249m0[0m[38;5;249m0[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m0[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mu[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m2[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m6[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mT[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mu[0m[38;5;249mm[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m5[0m[38;5;249m6[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mg[0m[38;5;249mn[0m[38;5;249mI[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m            ─┬─  
+ [38;5;240m    │[0m             ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m208 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0msection[38;5;249m>[0m
+ [38;5;240m    │[0m           ───┬───  
+ [38;5;240m    │[0m              ╰───── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'section'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:324:9 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m119 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0msection[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mo[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mf[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mh[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249md[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m          ───┬───  
+ [38;5;240m    │[0m             ╰───── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m324 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mdiv[38;5;249m>[0m
+ [38;5;240m    │[0m         ─┬─  
+ [38;5;240m    │[0m          ╰─── Expected `</section>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:325:7 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m100 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mF[0m[38;5;249ma[0m[38;5;249mm[0m[38;5;249mi[0m[38;5;249ml[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mG[0m[38;5;249me[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249m-[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mB[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mM[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mS[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mk[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249md[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249m0[0m[38;5;249mf[0m[38;5;249m1[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249ma[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m        ─┬─  
+ [38;5;240m    │[0m         ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m325 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mMotionConfig[38;5;249m>[0m
+ [38;5;240m    │[0m       ──────┬─────  
+ [38;5;240m    │[0m             ╰─────── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:327:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m327 │[0m [38;5;249m}[0m
+ [38;5;240m    │[0m │ 
+ [38;5;240m    │[0m ╰─ 
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/LandingPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m2:59:16 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 4 errors:
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:208:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m132 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mx[0m[38;5;249mW[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mt[0m[38;5;249mh[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m2[0m[38;5;249m0[0m[38;5;249m0[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m0[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mu[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m2[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m6[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mT[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mu[0m[38;5;249mm[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m5[0m[38;5;249m6[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mg[0m[38;5;249mn[0m[38;5;249mI[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m            ─┬─  
+ [38;5;240m    │[0m             ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m208 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0msection[38;5;249m>[0m
+ [38;5;240m    │[0m           ───┬───  
+ [38;5;240m    │[0m              ╰───── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'section'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:324:9 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m119 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0msection[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mo[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mf[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mh[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249md[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m          ───┬───  
+ [38;5;240m    │[0m             ╰───── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m324 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mdiv[38;5;249m>[0m
+ [38;5;240m    │[0m         ─┬─  
+ [38;5;240m    │[0m          ╰─── Expected `</section>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:325:7 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m100 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mF[0m[38;5;249ma[0m[38;5;249mm[0m[38;5;249mi[0m[38;5;249ml[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mG[0m[38;5;249me[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249m-[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mB[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mM[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mS[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mk[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249md[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249m0[0m[38;5;249mf[0m[38;5;249m1[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249ma[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m        ─┬─  
+ [38;5;240m    │[0m         ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m325 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mMotionConfig[38;5;249m>[0m
+ [38;5;240m    │[0m       ──────┬─────  
+ [38;5;240m    │[0m             ╰─────── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:327:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m327 │[0m [38;5;249m}[0m
+ [38;5;240m    │[0m │ 
+ [38;5;240m    │[0m ╰─ 
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/LandingPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m2:59:16 PM[22m [31m[1m[vite][22m[39m [31m[2m(client)[22m[39m Pre-transform error: Transform failed with 4 errors:
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:208:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m132 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mx[0m[38;5;249mW[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mt[0m[38;5;249mh[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m2[0m[38;5;249m0[0m[38;5;249m0[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m0[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mu[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m2[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m6[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mT[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mu[0m[38;5;249mm[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m5[0m[38;5;249m6[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mg[0m[38;5;249mn[0m[38;5;249mI[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m            ─┬─  
+ [38;5;240m    │[0m             ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m208 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0msection[38;5;249m>[0m
+ [38;5;240m    │[0m           ───┬───  
+ [38;5;240m    │[0m              ╰───── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'section'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:324:9 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m119 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0msection[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mo[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mf[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mh[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249md[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m          ───┬───  
+ [38;5;240m    │[0m             ╰───── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m324 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mdiv[38;5;249m>[0m
+ [38;5;240m    │[0m         ─┬─  
+ [38;5;240m    │[0m          ╰─── Expected `</section>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:325:7 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m100 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mF[0m[38;5;249ma[0m[38;5;249mm[0m[38;5;249mi[0m[38;5;249ml[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mG[0m[38;5;249me[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249m-[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mB[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mM[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mS[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mk[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249md[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249m0[0m[38;5;249mf[0m[38;5;249m1[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249ma[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m        ─┬─  
+ [38;5;240m    │[0m         ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m325 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mMotionConfig[38;5;249m>[0m
+ [38;5;240m    │[0m       ──────┬─────  
+ [38;5;240m    │[0m             ╰─────── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:327:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m327 │[0m [38;5;249m}[0m
+ [38;5;240m    │[0m │ 
+ [38;5;240m    │[0m ╰─ 
+[38;5;246m─────╯[0m
+
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/LandingPage.tsx[39m
+[2m2:59:16 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 4 errors:
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:208:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m132 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mx[0m[38;5;249mW[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mt[0m[38;5;249mh[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m2[0m[38;5;249m0[0m[38;5;249m0[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m0[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mu[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m2[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m6[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mT[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mu[0m[38;5;249mm[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m5[0m[38;5;249m6[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mg[0m[38;5;249mn[0m[38;5;249mI[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m            ─┬─  
+ [38;5;240m    │[0m             ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m208 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0msection[38;5;249m>[0m
+ [38;5;240m    │[0m           ───┬───  
+ [38;5;240m    │[0m              ╰───── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'section'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:324:9 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m119 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0msection[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mo[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mf[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mh[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249md[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m          ───┬───  
+ [38;5;240m    │[0m             ╰───── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m324 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mdiv[38;5;249m>[0m
+ [38;5;240m    │[0m         ─┬─  
+ [38;5;240m    │[0m          ╰─── Expected `</section>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:325:7 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m100 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mF[0m[38;5;249ma[0m[38;5;249mm[0m[38;5;249mi[0m[38;5;249ml[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mG[0m[38;5;249me[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249m-[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mB[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mM[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mS[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mk[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249md[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249m0[0m[38;5;249mf[0m[38;5;249m1[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249ma[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m        ─┬─  
+ [38;5;240m    │[0m         ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m325 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mMotionConfig[38;5;249m>[0m
+ [38;5;240m    │[0m       ──────┬─────  
+ [38;5;240m    │[0m             ╰─────── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:327:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m327 │[0m [38;5;249m}[0m
+ [38;5;240m    │[0m │ 
+ [38;5;240m    │[0m ╰─ 
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/LandingPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)
+[2m2:59:16 PM[22m [31m[1m[vite][22m[39m [31mInternal server error: Transform failed with 4 errors:
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:208:11 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m132 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mx[0m[38;5;249mW[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mt[0m[38;5;249mh[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249m2[0m[38;5;249m0[0m[38;5;249m0[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mm[0m[38;5;249ma[0m[38;5;249mr[0m[38;5;249mg[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m0[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249mu[0m[38;5;249mt[0m[38;5;249mo[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249ma[0m[38;5;249md[0m[38;5;249md[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mg[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m2[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m [0m[38;5;249m6[0m[38;5;249m4[0m[38;5;249mp[0m[38;5;249mx[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249md[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249mT[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mC[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mu[0m[38;5;249mm[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m [0m[38;5;249m1[0m[38;5;249mf[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mg[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m5[0m[38;5;249m6[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ma[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mg[0m[38;5;249mn[0m[38;5;249mI[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249ms[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mc[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m            ─┬─  
+ [38;5;240m    │[0m             ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m208 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0msection[38;5;249m>[0m
+ [38;5;240m    │[0m           ───┬───  
+ [38;5;240m    │[0m              ╰───── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'section'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:324:9 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m119 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0msection[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mp[0m[38;5;249mo[0m[38;5;249ms[0m[38;5;249mi[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mr[0m[38;5;249me[0m[38;5;249ml[0m[38;5;249ma[0m[38;5;249mt[0m[38;5;249mi[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mo[0m[38;5;249mv[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mf[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mw[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mh[0m[38;5;249mi[0m[38;5;249md[0m[38;5;249md[0m[38;5;249me[0m[38;5;249mn[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m          ───┬───  
+ [38;5;240m    │[0m             ╰───── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m324 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mdiv[38;5;249m>[0m
+ [38;5;240m    │[0m         ─┬─  
+ [38;5;240m    │[0m          ╰─── Expected `</section>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mExpected corresponding JSX closing tag for 'div'.
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:325:7 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m100 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0mdiv[38;5;249m [0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249my[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m=[0m[38;5;249m{[0m[38;5;249m{[0m[38;5;249m [0m[38;5;249mf[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249mF[0m[38;5;249ma[0m[38;5;249mm[0m[38;5;249mi[0m[38;5;249ml[0m[38;5;249my[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249mG[0m[38;5;249me[0m[38;5;249mi[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249m-[0m[38;5;249ma[0m[38;5;249mp[0m[38;5;249mp[0m[38;5;249ml[0m[38;5;249me[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mB[0m[38;5;249ml[0m[38;5;249mi[0m[38;5;249mn[0m[38;5;249mk[0m[38;5;249mM[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mS[0m[38;5;249my[0m[38;5;249ms[0m[38;5;249mt[0m[38;5;249me[0m[38;5;249mm[0m[38;5;249mF[0m[38;5;249mo[0m[38;5;249mn[0m[38;5;249mt[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249ms[0m[38;5;249ma[0m[38;5;249mn[0m[38;5;249ms[0m[38;5;249m-[0m[38;5;249ms[0m[38;5;249me[0m[38;5;249mr[0m[38;5;249mi[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mb[0m[38;5;249ma[0m[38;5;249mc[0m[38;5;249mk[0m[38;5;249mg[0m[38;5;249mr[0m[38;5;249mo[0m[38;5;249mu[0m[38;5;249mn[0m[38;5;249md[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249mf[0m[38;5;249m"[0m[38;5;249m,[0m[38;5;249m [0m[38;5;249mc[0m[38;5;249mo[0m[38;5;249ml[0m[38;5;249mo[0m[38;5;249mr[0m[38;5;249m:[0m[38;5;249m [0m[38;5;249m"[0m[38;5;249m#[0m[38;5;249m0[0m[38;5;249mf[0m[38;5;249m1[0m[38;5;249m7[0m[38;5;249m2[0m[38;5;249ma[0m[38;5;249m"[0m[38;5;249m [0m[38;5;249m}[0m[38;5;249m}[0m[38;5;249m>[0m
+ [38;5;240m    │[0m        ─┬─  
+ [38;5;240m    │[0m         ╰─── Opened here
+ [38;5;240m    │[0m 
+ [38;5;246m325 │[0m [38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m [0m[38;5;249m<[0m[38;5;249m/[0mMotionConfig[38;5;249m>[0m
+ [38;5;240m    │[0m       ──────┬─────  
+ [38;5;240m    │[0m             ╰─────── Expected `</div>`
+[38;5;246m─────╯[0m
+
+[31m[PARSE_ERROR] [0mUnexpected token. Did you mean `{'}'}` or `&rbrace;`?
+     [38;5;246m╭[0m[38;5;246m─[0m[38;5;246m[[0m src/pages/LandingPage.tsx:327:1 [38;5;246m][0m
+     [38;5;246m│[0m
+ [38;5;246m327 │[0m [38;5;249m}[0m
+ [38;5;240m    │[0m │ 
+ [38;5;240m    │[0m ╰─ 
+[38;5;246m─────╯[0m
+[39m
+  Plugin: [35mvite:oxc[39m
+  File: [36mC:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/src/pages/LandingPage.tsx[39m
+      at transformWithOxc (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4103:19)
+      at TransformPluginContext.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:4174:26)
+      at EnvironmentPluginContainer.transform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:30932:51)
+      at async loadAndTransform (file:///C:/Users/syakir/Downloads/syaakiirr/hr/hr/socihr-frontend/node_modules/vite/dist/node/chunks/node.js:20671:26)

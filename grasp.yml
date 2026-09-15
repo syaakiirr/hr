@@ -1,0 +1,15 @@
+# GRASP architecture gate for SociHR (https://github.com/ashfordeOU/grasp)
+# Enforced via: grasp . --check   (exit 1 on violation)
+rules:
+  - min_health_score: 60
+  # NOTE: services/api.ts is currently a hub with blast radius 72 (checked 2026-09-09).
+  # Threshold set just above it so CI catches further growth; long-term goal: split
+  # api.ts per domain (auth/staff/engagement) and lower this to 15.
+  - max_blast_radius: 75
+
+ignore:
+  - "**/node_modules/**"
+  - "**/dist/**"
+  - "**/bin/**"
+  - "**/obj/**"
+  - "**/*.Tests/**"

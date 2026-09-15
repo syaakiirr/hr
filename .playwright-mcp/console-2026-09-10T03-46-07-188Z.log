@@ -1,0 +1,20 @@
+[     498ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:14335
+[   42127ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:14335
+[   42780ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=5f0e6cdf:758
+[   86928ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://localhost:5000/api/companies:0
+[  112415ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:14335
+[  113382ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=5f0e6cdf:758
+[  258229ms] [ERROR] Each child in a list should have a unique "key" prop.%s%s See https://react.dev/link/warning-keys for more information. 
+
+Check the render method of `CompanyProfilePage`.  @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:12934
+[  269900ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyProfilePage.tsx?t=1789012236989:0
+[  269901ms] [ERROR] [vite] Failed to reload /src/pages/CompanyProfilePage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  303508ms] [ERROR] [vite] SyntaxError: Identifier 'RatePill' has already been declared @ http://localhost:5173/@vite/client:935
+[  303512ms] [ERROR] [vite] Failed to reload /src/pages/CompanyProfilePage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  303547ms] [ERROR] [vite] SyntaxError: Identifier 'RatePill' has already been declared @ http://localhost:5173/@vite/client:935
+[  303547ms] [ERROR] [vite] Failed to reload /src/pages/CompanyProfilePage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  303632ms] [ERROR] [vite] SyntaxError: Identifier 'RatePill' has already been declared @ http://localhost:5173/@vite/client:935
+[  303632ms] [ERROR] [vite] Failed to reload /src/pages/CompanyProfilePage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  818066ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:1002
+[  837845ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:14335
+[  844891ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=e0673701:758

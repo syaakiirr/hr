@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { Clock, CalendarDays, BarChart3 } from "lucide-react";
 import { getSessions, getEngagements, type KpiData } from "../services/api";
 
 const MAX_SESSIONS = 30; // Limit concurrent API calls
@@ -171,6 +172,8 @@ export default function EngagementMetrics({ filter = "month", kpiData: kpiProp }
         setMetrics(sessionMetrics);
       }
     } catch (err) {
+      // Abaikan abort (unmount semasa fetch) — bukan ralat sebenar
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("Failed to load metrics:", err);
     } finally {
       setLoading(false);
@@ -202,10 +205,7 @@ export default function EngagementMetrics({ filter = "month", kpiData: kpiProp }
             className={`btn btn-sm ${mode === "overall" ? "btn-primary" : "btn-ghost"}`}
             style={{ height: 32 }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 6v6l4 2" />
-            </svg>
+            <Clock size={14} aria-hidden="true" />
             Overall
           </button>
           <button
@@ -213,12 +213,7 @@ export default function EngagementMetrics({ filter = "month", kpiData: kpiProp }
             className={`btn btn-sm ${mode === "session" ? "btn-primary" : "btn-ghost"}`}
             style={{ height: 32 }}
           >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
+            <CalendarDays size={14} aria-hidden="true" />
             By Session
           </button>
         </div>
@@ -232,7 +227,7 @@ export default function EngagementMetrics({ filter = "month", kpiData: kpiProp }
         </div>
       ) : metrics.length === 0 ? (
         <div className="empty" style={{ padding: "40px 20px" }}>
-          <div className="empty-ico">📊</div>
+          <div className="empty-ico"><BarChart3 size={28} aria-hidden="true" /></div>
           <p className="empty-title">No Data Available</p>
           <p className="empty-desc">No engagement data found for the selected view.</p>
         </div>

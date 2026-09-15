@@ -1,0 +1,9 @@
+[     452ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=79f72744:14088
+[     766ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=79f72744:758
+[    2137ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/three.module-CEkL5pjR.js?v=79f72744:1748
+[  317982ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/three.module-CEkL5pjR.js?v=79f72744:1748
+[  318417ms] [LOG] THREE.WebGLRenderer: Context Lost. @ http://localhost:5173/node_modules/.vite/deps/three.module-CEkL5pjR.js?v=79f72744:1714
+[  350454ms] [WARNING] THREE.Clock: This module has been deprecated. Please use THREE.Timer instead. @ http://localhost:5173/node_modules/.vite/deps/three.module-CEkL5pjR.js?v=79f72744:1748
+[  350665ms] [LOG] THREE.WebGLRenderer: Context Lost. @ http://localhost:5173/node_modules/.vite/deps/three.module-CEkL5pjR.js?v=79f72744:1714
+[  866883ms] [ERROR] [vite] SyntaxError: The requested module '/src/components/landing3d/World.tsx' does not provide an export named 'WORLD_BARS' @ http://localhost:5173/@vite/client:935
+[  866892ms] [ERROR] [vite] Failed to reload /src/pages/LandingPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935

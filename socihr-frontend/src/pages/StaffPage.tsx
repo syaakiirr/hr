@@ -727,7 +727,16 @@ export default function StaffPage() {
                             <Avatar name={staff.fullName} />
                             <div>
                               <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                                <p style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "0.9rem", lineHeight: 1.3 }}>
+                                <p
+                                  role="link"
+                                  tabIndex={0}
+                                  title="View staff profile"
+                                  onClick={() => navigate(`/staff/${staff.staffID}`)}
+                                  onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/staff/${staff.staffID}`); } }}
+                                  style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "0.9rem", lineHeight: 1.3, cursor: "pointer", margin: 0 }}
+                                  onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
+                                  onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
+                                >
                                   {toTitleCase(staff.fullName)}
                                 </p>
                                 {staff.staffType === "Intern" && (

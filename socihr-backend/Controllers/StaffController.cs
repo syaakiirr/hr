@@ -148,6 +148,90 @@ public class StaffController : ControllerBase
         return Ok(staff);
     }
 
+    // GET /api/staff/{id}/performance?from&to — agregat engagement per session
+    // untuk satu staff (diguna halaman profil staff: carta + jadual per-session)
+    [HttpGet("{id:guid}/performance")]
+    public async Task<IActionResult> GetPerformance(Guid id, [FromQuery] DateTime? from, [FromQuery] DateTime? to)
+    {
+        var staff = await _db.Staff.FindAsync(id);
+        if (staff == null)
+            return NotFound(new { message = "Staff not found." });
+
+        // DeptAdmin: can only see own department staff
+        if (User.IsInRole("DeptAdmin"))
+        {
+            var deptId = GetDeptIdRestriction();
+            if (deptId.HasValue)
+            {
+                var deptName = await _db.Departments
+                    .Where(d => d.DepartmentID == deptId)
+                    .Select(d => d.DepartmentName)
+                    .FirstOrDefaultAsync();
+                if (staff.Department != deptName)
+                    return Forbid();
+            }
+        }
+
+        var sessionsQ = _db.MonitoringSessions.AsNoTracking().Where(s => !s.IsArchived);
+        if (from.HasValue)
+        {
+            var fd = DateOnly.FromDateTime(from.Value);
+            sessionsQ = sessionsQ.Where(s => s.SessionDate >= fd);
+        }
+        if (to.HasValue)
+        {
+            var td = DateOnly.FromDateTime(to.Value);
+            sessionsQ = sessionsQ.Where(s => s.SessionDate <= td);
+        }
+        var sessions = await sessionsQ.OrderBy(s => s.SessionDate).ToListAsync();
+        var sessionIds = sessions.Select(s => s.SessionID).ToList();
+
+        var agg = await _db.Engagements
+            .AsNoTracking()
+            .Where(e => sessionIds.Contains(e.SessionID) && e.StaffID == id)
+            .GroupBy(e => e.SessionID)
+            .Select(g => new
+            {
+                SessionID = g.Key,
+                Likes = g.Count(e => e.IsLiked),
+                Comments = g.Count(e => e.IsCommented),
+                Shares = g.Count(e => e.IsShared),
+                Completed = g.Sum(e => (e.IsLiked ? 1 : 0) + (e.IsCommented ? 1 : 0) + (e.IsShared ? 1 : 0)),
+                Total = g.Count() * 3
+            })
+            .ToListAsync();
+        var map = agg.ToDictionary(a => a.SessionID);
+
+        // Hanya session yang ada engagement staff ini (elak noise kosong)
+        var result = sessions
+            .Where(s => map.ContainsKey(s.SessionID))
+            .Select(s =>
+            {
+                var a = map[s.SessionID];
+                var rate = a.Total > 0 ? Math.Round((double)a.Completed / a.Total * 100, 1) : 0;
+                return new
+                {
+                    sessionId = s.SessionID,
+                    date = s.SessionDate.ToString("yyyy-MM-dd"),
+                    label = s.SessionDate.ToString("dd MMM"),
+                    likes = a.Likes,
+                    comments = a.Comments,
+                    shares = a.Shares,
+                    completed = a.Completed,
+                    missed = a.Total - a.Completed,
+                    total = a.Total,
+                    rate
+                };
+            })
+            .ToList();
+
+        return Ok(new
+        {
+            staff = new { staff.StaffID, staff.FullName, staff.Department, staff.Position, staff.StaffType, staff.Status },
+            sessions = result
+        });
+    }
+
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] StaffRequest req)
     {
@@ -250,6 +334,12 @@ public class StaffController : ControllerBase
             _db.Engagements.RemoveRange(engagements);
 
             _db.Staff.Remove(staff);
+
+            var actorId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var actorName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+            Helpers.SecurityAuditLog.Write(_db, HttpContext,
+                actorId != null ? Guid.Parse(actorId) : Guid.Empty, actorName,
+                "staff.deleted", $"{staff.FullName} (+{engagements.Count} engagements)");
             await _db.SaveChangesAsync();
 
             return NoContent();
@@ -407,6 +497,9 @@ public class StaffController : ControllerBase
             staff.ArchivedAt = DateTime.UtcNow;
             staff.Status = "Archived";
 
+            var archiverName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+            Helpers.SecurityAuditLog.Write(_db, HttpContext, userId, archiverName,
+                "staff.archived", staff.FullName);
             await _db.SaveChangesAsync();
 
             return Ok(new { message = "Staff archived successfully." });
@@ -432,6 +525,11 @@ public class StaffController : ControllerBase
             staff.ArchivedAt = null;
             staff.Status = "Active";
 
+            var restorerIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            var restorerId = restorerIdClaim != null && Guid.TryParse(restorerIdClaim, out var _rid) ? _rid : Guid.Empty;
+            var restorerName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+            Helpers.SecurityAuditLog.Write(_db, HttpContext, restorerId, restorerName,
+                "staff.restored", staff.FullName);
             await _db.SaveChangesAsync();
 
             return Ok(new { message = "Staff restored successfully." });

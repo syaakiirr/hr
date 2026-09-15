@@ -97,7 +97,9 @@ builder.Services.AddControllers()
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddFluentValidationAutoValidation();
 
-// JWT Authentication
+// JWT Authentication — kunci MESTI dari env/config. Gagal-start jika tiada (fail-closed).
+// Kunci hardcoded lama yang pernah ter-commit dalam git dianggap BOCOR — jana kunci baharu
+// dan set sebagai env `JWT__Key` (Render: Environment). Jangan simpan kunci dalam fail.
 var jwtKey = Environment.GetEnvironmentVariable("JWT__Key") 
     ?? Environment.GetEnvironmentVariable("JWT_KEY") 
     ?? Environment.GetEnvironmentVariable("Jwt__Key") 
@@ -105,7 +107,9 @@ var jwtKey = Environment.GetEnvironmentVariable("JWT__Key")
 
 if (string.IsNullOrWhiteSpace(jwtKey))
 {
-    jwtKey = "SociHR_SuperSecretKEy_Muhammadsyakirbinmuhammadridzuan";
+    throw new InvalidOperationException(
+        "❌ JWT signing key is not configured. Set the 'JWT__Key' environment variable. " +
+        "Refusing to start with no key (previous hardcoded fallback removed — see PENTEST-SCOPE.md §6.2).");
 }
 builder.Configuration["Jwt:Key"] = jwtKey;
 
@@ -205,14 +209,50 @@ static async Task EnsureUserInfrastructureAsync(AppDbContext db)
         REFERENCES "Department"("DepartmentID") ON DELETE SET NULL;
         """);
 
-    // Ensure admin user and existing Admin roles are SuperAdmin
+    // Migrasi warisan satu-arah: "Admin" (nama peranan lama) → "SuperAdmin".
+    // Peranan kosong/NULL diisi dengan "DeptAdmin" (default model AppUser — keistimewaan
+    // terendah yang wujud). Sengaja TIDAK menaikkan sesiapa ke SuperAdmin di sini.
     await db.Database.ExecuteSqlRawAsync("""
         UPDATE "Users" 
         SET "Role" = 'SuperAdmin' 
-        WHERE "Username" = 'admin' 
-           OR "Role" = 'Admin' 
-           OR "Role" IS NULL 
+        WHERE "Role" = 'Admin';
+        """);
+
+    await db.Database.ExecuteSqlRawAsync("""
+        UPDATE "Users" 
+        SET "Role" = 'DeptAdmin' 
+        WHERE "Role" IS NULL 
            OR BTRIM("Role") = '';
+        """);
+
+    // Lajur 2FA + lockout (ciri keselamatan 2026-09)
+    await db.Database.ExecuteSqlRawAsync("""
+        ALTER TABLE "Users"
+        ADD COLUMN IF NOT EXISTS "TotpSecret" TEXT,
+        ADD COLUMN IF NOT EXISTS "TwoFactorEnabled" BOOLEAN NOT NULL DEFAULT FALSE,
+        ADD COLUMN IF NOT EXISTS "FailedLoginAttempts" INTEGER NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS "LockoutEnd" TIMESTAMPTZ;
+        """);
+
+    // Jadual audit keselamatan umum (login, pengurusan pengguna, eksport, archive)
+    await db.Database.ExecuteSqlRawAsync("""
+        CREATE TABLE IF NOT EXISTS "SecurityAudit" (
+            "AuditID" UUID PRIMARY KEY,
+            "UserID" UUID NOT NULL,
+            "Username" TEXT NOT NULL DEFAULT '',
+            "Action" TEXT NOT NULL,
+            "Details" TEXT NOT NULL DEFAULT '',
+            "IpAddress" TEXT NOT NULL DEFAULT '',
+            "CreatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
+        );
+        """);
+
+    await db.Database.ExecuteSqlRawAsync("""
+        CREATE INDEX IF NOT EXISTS "IX_SecurityAudit_CreatedAt" ON "SecurityAudit" ("CreatedAt" DESC);
+        """);
+
+    await db.Database.ExecuteSqlRawAsync("""
+        CREATE INDEX IF NOT EXISTS "IX_SecurityAudit_Action" ON "SecurityAudit" ("Action");
         """);
 
     // Add StaffType column if not exists (Permanent / Intern)
@@ -285,24 +325,30 @@ async Task SeedAdminUserAsync(WebApplication app, string[] args)
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         
-        // Seed admin user
+        // Seed admin user — HANYA jika password dibekalkan. Tiada lagi default "admin".
         var adminCreds = app.Configuration.GetSection("AdminCredentials");
         var adminPassword = Environment.GetEnvironmentVariable("ADMIN_PASSWORD")
-            ?? adminCreds["Password"]
-            ?? "admin";
+            ?? adminCreds["Password"];
         var admin = await db.Users.FirstOrDefaultAsync(u => u.Username == "admin");
         if (admin == null)
         {
-            var adminUser = new socihr_backend.Models.AppUser
+            if (string.IsNullOrWhiteSpace(adminPassword))
             {
-                UserID = Guid.NewGuid(),
-                Username = "admin",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
-                Role = "SuperAdmin"
-            };
-            await db.Users.AddAsync(adminUser);
-            await db.SaveChangesAsync();
-            Console.WriteLine("✅ Admin user created.");
+                Console.WriteLine("⚠️ ADMIN_PASSWORD not set — skipping admin seed. Set it to create the initial admin user.");
+            }
+            else
+            {
+                var adminUser = new socihr_backend.Models.AppUser
+                {
+                    UserID = Guid.NewGuid(),
+                    Username = "admin",
+                    PasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword),
+                    Role = "SuperAdmin"
+                };
+                await db.Users.AddAsync(adminUser);
+                await db.SaveChangesAsync();
+                Console.WriteLine("✅ Admin user created.");
+            }
         }
         else
         {
@@ -380,6 +426,21 @@ app.UseStaticFiles(new StaticFileOptions
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+// Token 2FA-sementara (purpose=2fa-pending) hanya laku untuk menukar kod TOTP
+// kepada token penuh — tolak di semua endpoint lain walaupun ia ditandatangani sah.
+app.Use(async (context, next) =>
+{
+    var purpose = context.User.FindFirst("purpose")?.Value;
+    if (purpose == "2fa-pending" &&
+        !context.Request.Path.StartsWithSegments("/api/auth/2fa/verify", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = 401;
+        await context.Response.WriteAsJsonAsync(new { message = "Two-factor verification required." });
+        return;
+    }
+    await next();
+});
 
 app.MapControllers();
 

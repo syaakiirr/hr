@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { login } from "../services/api";
+import { login, verifyTotp } from "../services/api";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -7,6 +7,10 @@ export default function LoginPage() {
   const [error,    setError]    = useState("");
   const [loading,  setLoading]  = useState(false);
   const [showPass, setShowPass] = useState(false);
+  // Langkah 2FA: "password" → (server minta) → "code"
+  const [step, setStep]             = useState<"password" | "code">("password");
+  const [pendingToken, setPending]  = useState("");
+  const [code, setCode]             = useState("");
 
   const [statusIndex, setStatusIndex] = useState(0);
   const statuses = [
@@ -24,26 +28,51 @@ export default function LoginPage() {
     return () => clearInterval(timer);
   }, [statuses.length]);
 
+  function storeSession(d: { token?: string; username: string; role?: string; departmentId?: string; departmentName?: string }) {
+    localStorage.setItem("token",          d.token ?? "");
+    localStorage.setItem("username",       d.username);
+    localStorage.setItem("role",           d.role ?? "");
+    localStorage.setItem("departmentId",   d.departmentId   ?? "");
+    localStorage.setItem("departmentName", d.departmentName ?? "");
+
+    // Dispatch global event for the sliding black overlay
+    window.dispatchEvent(new CustomEvent("trigger-login-transition"));
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setError(""); 
+    setError("");
     setLoading(true);
-    
+
     try {
       const d = await login(username, password);
-      localStorage.setItem("token",          d.token);
-      localStorage.setItem("username",       d.username);
-      localStorage.setItem("role",           d.role);
-      localStorage.setItem("departmentId",   d.departmentId   ?? "");
-      localStorage.setItem("departmentName", d.departmentName ?? "");
-      
-      // Dispatch global event for the sliding black overlay
-      window.dispatchEvent(new CustomEvent("trigger-login-transition"));
-      
+      if (d.requires2FA && d.pendingToken) {
+        // Kata laluan betul — terus ke langkah kod TOTP
+        setPending(d.pendingToken);
+        setCode("");
+        setStep("code");
+      } else {
+        storeSession(d);
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Authentication failed.");
-    } finally { 
-      setLoading(false); 
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleCodeSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+
+    try {
+      const d = await verifyTotp(pendingToken, code);
+      storeSession(d);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Verification failed.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -503,6 +532,48 @@ export default function LoginPage() {
             <p style={{ fontSize: 13, color: "var(--text-2)" }}>Enter your credentials to access your account.</p>
           </div>
 
+          {step === "code" ? (
+          <form onSubmit={handleCodeSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+            <div>
+              <p style={{ fontSize: 13, color: "var(--text-2)", marginBottom: 10 }}>
+                Account <strong>{username}</strong> requires two-factor verification.
+                Enter the 6-digit code from your authenticator app.
+              </p>
+              <label className="input-label" htmlFor="totp">Authenticator code</label>
+              <input id="totp" className="input" type="text" inputMode="numeric" autoComplete="one-time-code"
+                value={code} onChange={e => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                required placeholder="123456" autoFocus
+                style={{ letterSpacing: 6, textAlign: "center", fontSize: 18 }}
+              />
+            </div>
+
+            {error && (
+              <div className="lp-error"
+                style={{
+                  background: "var(--red-soft)", border: "1px solid var(--red-line)",
+                  borderRadius: 7, padding: "8px 12px",
+                  fontSize: 12.5, color: "var(--red)",
+                  display: "flex", alignItems: "center", gap: 7,
+                }}
+              >
+                {error}
+              </div>
+            )}
+
+            <button id="verify-btn" type="submit" disabled={loading}
+              className="btn btn-primary"
+              style={{ width: "100%", marginTop: 4, height: 40 }}
+            >
+              {loading ? "Verifying..." : "Verify & Sign In"}
+            </button>
+            <button type="button" className="btn"
+              onClick={() => { setStep("password"); setCode(""); setError(""); }}
+              style={{ width: "100%", height: 36 }}
+            >
+              Back to login
+            </button>
+          </form>
+          ) : (
           <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
             <div>
               <label className="input-label" htmlFor="username">Username</label>
@@ -569,6 +640,7 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+          )}
 
           {/* Trust Indicators */}
           <div style={{

@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import ReactEChartsCore from "echarts-for-react/esm/core";
 import { use, graphic, init, getInstanceByDom, dispose } from "echarts/core";
@@ -7,6 +8,7 @@ import { GridComponent, TooltipComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
+import CompanyLogo from "../components/CompanyLogo";
 import { useDateFilter, getDateRange, DATE_FILTERS } from "../contexts/DateFilterContext";
 import {
   getCompanies,
@@ -19,82 +21,18 @@ import {
 const treeShakenECharts = { use, graphic, init, getInstanceByDom, dispose };
 use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
 
-// ==========================================
-// Crisp Lucide SVG Icon Components
-// ==========================================
-
-function BriefcaseIcon({ size = 18, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="7" width="20" height="14" rx="2" ry="2" />
-      <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-    </svg>
-  );
-}
-
-function PlusIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-    </svg>
-  );
-}
-
-function DownloadIcon({ size = 14, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" />
-      <line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  );
-}
-
-function TrashIcon({ size = 13, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M3 6h18" />
-      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
-      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
-    </svg>
-  );
-}
-
-function CrownIcon({ size = 14, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.2a2 2 0 0 1-1.926 1.467H6.779a2 2 0 0 1-1.926-1.467L2.019 6.019a.5.5 0 0 1 .798-.519l4.277 3.664a1 1 0 0 0 1.516-.294z" />
-      <path d="M5 21h14" />
-    </svg>
-  );
-}
-
-function TargetIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="6" />
-      <circle cx="12" cy="12" r="2" />
-    </svg>
-  );
-}
-
-function TrendingUpIcon({ size = 16, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="22 7 13.5 15.5 8.5 10.5 2 17" />
-      <polyline points="16 7 22 7 22 13" />
-    </svg>
-  );
-}
-
-function XIcon({ size = 14, color = "currentColor" }: { size?: number; color?: string }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
+// Ikon Lucide (pustaka) — satu famili untuk seluruh aliran Company
+import {
+  Briefcase as BriefcaseIcon,
+  Plus as PlusIcon,
+  Download as DownloadIcon,
+  Trash2 as TrashIcon,
+  Crown as CrownIcon,
+  Target as TargetIcon,
+  TrendingUp as TrendingUpIcon,
+  X as XIcon,
+  ChevronRight as ChevronRightIcon,
+} from "lucide-react";
 
 function toTitleCase(str: string): string {
   if (!str) return "";
@@ -115,18 +53,19 @@ const COMPANY_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "
 
 const lightChartTheme = {
   backgroundColor: "transparent",
-  textStyle: { color: "#64748b", fontFamily: "Inter, sans-serif", fontSize: 11 },
+  textStyle: { color: "#64748b", fontFamily: "Geist, sans-serif", fontSize: 11 },
 };
 
 const customTooltip = {
   backgroundColor: "rgba(255, 255, 255, 0.98)",
   borderColor: "#e2e8f0",
   borderWidth: 1,
-  textStyle: { color: "#0f172a", fontFamily: "Inter, sans-serif", fontSize: 12 },
+  textStyle: { color: "#0f172a", fontFamily: "Geist, sans-serif", fontSize: 12 },
   extraCssText: "box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border-radius: 10px; padding: 10px 14px;",
 };
 
 export default function CompanyPage() {
+  const navigate = useNavigate();
   const { filter, setFilter } = useDateFilter();
   const { from, to } = getDateRange(filter);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -314,7 +253,7 @@ export default function CompanyPage() {
           </div>
 
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
-            <div style={{ display: "flex", gap: 2, background: "var(--surface)", padding: 2, borderRadius: "var(--r-md)", border: "1px solid var(--line)" }}>
+            <div style={{ display: "flex", gap: 2, background: "var(--surface)", padding: 2, borderRadius: "var(--r-md)", border: "1px solid var(--line)", overflowX: "auto", maxWidth: "100%" }}>
               {DATE_FILTERS.map((f) => (
                 <button
                   key={f.value}
@@ -346,6 +285,14 @@ export default function CompanyPage() {
             >
               <DownloadIcon size={14} />
               <span>Export PDF</span>
+            </button>
+
+            <button
+              onClick={() => navigate("/company/compare")}
+              className="btn btn-secondary btn-sm"
+              style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 12px", fontSize: "0.82rem", fontWeight: 500 }}
+            >
+              <span>Compare</span>
             </button>
 
             <button
@@ -481,6 +428,9 @@ export default function CompanyPage() {
                       initial={{ opacity: 0, y: 8 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.04 }}
+                      role="link"
+                      tabIndex={0}
+                      aria-label={`View ${c.companyName} profile`}
                       style={{
                         display: "flex",
                         alignItems: "center",
@@ -491,7 +441,11 @@ export default function CompanyPage() {
                         border: "1px solid var(--line)",
                         boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
                         transition: "all 0.15s ease",
+                        cursor: "pointer",
                       }}
+                      onClick={() => navigate(`/company/${c.companyID}`)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/company/${c.companyID}`); } }}
+                      title="View company profile"
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = c.color + "60";
                         e.currentTarget.style.boxShadow = "0 6px 20px -4px rgba(0,0,0,0.06)";
@@ -502,25 +456,7 @@ export default function CompanyPage() {
                       }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                        {/* Rank Circle */}
-                        <div
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: "50%",
-                            background: "var(--bg-tag, #f1f5f9)",
-                            color: "var(--text-2)",
-                            border: "1px solid var(--line, #e2e8f0)",
-                            fontSize: "0.75rem",
-                            fontWeight: 600,
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            flexShrink: 0,
-                          }}
-                        >
-                          {idx + 1}
-                        </div>
+                        <CompanyLogo name={c.companyName} rank={idx + 1} />
 
                         <div>
                           <h4 style={{ fontSize: "0.96rem", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25 }}>
@@ -565,9 +501,13 @@ export default function CompanyPage() {
                           </div>
                         </div>
 
+                        <ChevronRightIcon size={18} color="var(--text-2)" aria-hidden="true" />
+
                         <button
-                          onClick={() => handleDeleteCompany(c.companyID, c.companyName)}
+                          onClick={(e) => { e.stopPropagation(); handleDeleteCompany(c.companyID, c.companyName); }}
+                          onKeyDown={(e) => e.stopPropagation()}
                           title="Delete Company"
+                          aria-label={`Delete ${c.companyName}`}
                           className="btn btn-ghost btn-icon btn-sm"
                           style={{ color: "var(--red)", opacity: 0.7, padding: 6 }}
                         >
@@ -661,7 +601,7 @@ export default function CompanyPage() {
                     Add New Company
                   </h2>
                 </div>
-                <button onClick={() => setShowAddModal(false)} className="btn btn-ghost btn-icon btn-sm">
+                <button onClick={() => setShowAddModal(false)} className="btn btn-ghost btn-icon btn-sm" aria-label="Close dialog">
                   <XIcon size={14} />
                 </button>
               </div>

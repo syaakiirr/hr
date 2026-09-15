@@ -20,6 +20,15 @@ public class MonitoringSessionController : ControllerBase
     private readonly AppDbContext _db;
     public MonitoringSessionController(AppDbContext db) => _db = db;
 
+    // Helper: tulis audit keselamatan (disimpan oleh SaveChangesAsync pemanggil)
+    private void Audit(string action, string details)
+    {
+        var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var name = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+        Helpers.SecurityAuditLog.Write(_db, HttpContext,
+            idClaim != null ? Guid.Parse(idClaim) : Guid.Empty, name, action, details);
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAll([FromQuery] bool includeArchived = false)
     {
@@ -361,6 +370,7 @@ public class MonitoringSessionController : ControllerBase
             // 5. Finally, delete the MonitoringSession itself
             _db.MonitoringSessions.Remove(session);
 
+            Audit("session.deleted", $"{session.SessionDate:yyyy-MM-dd} (+{engagements.Count} engagements)");
             await _db.SaveChangesAsync();
             return NoContent();
         }
@@ -391,6 +401,7 @@ public class MonitoringSessionController : ControllerBase
             session.ArchivedBy = userId;
             session.ArchivedAt = DateTime.UtcNow;
 
+            Audit("session.archived", session.SessionDate.ToString("yyyy-MM-dd"));
             await _db.SaveChangesAsync();
 
             return Ok(new { message = "Session archived successfully." });
@@ -415,6 +426,7 @@ public class MonitoringSessionController : ControllerBase
             session.ArchivedBy = null;
             session.ArchivedAt = null;
 
+            Audit("session.restored", session.SessionDate.ToString("yyyy-MM-dd"));
             await _db.SaveChangesAsync();
 
             return Ok(new { message = "Session restored successfully." });
@@ -583,6 +595,8 @@ public class MonitoringSessionController : ControllerBase
             var pdf = GenerateMultiPdfDocument(sessions, engagements);
 
             var fileName = $"combined-monitoring-report-{sessions.Count}-sessions.pdf";
+            Audit("report.exported", $"multi-report pdf ({sessions.Count} sessions)");
+            await _db.SaveChangesAsync();
             return File(pdf, "application/pdf", fileName);
         }
         catch (Exception ex)
@@ -634,6 +648,8 @@ public class MonitoringSessionController : ControllerBase
             var pdf = await GenerateCustomReportPdf(sessions, engagements, req);
 
             var fileName = $"custom-report-{sessions.Count}-sessions.pdf";
+            Audit("report.exported", $"custom-report pdf ({sessions.Count} sessions)");
+            await _db.SaveChangesAsync();
             return File(pdf, "application/pdf", fileName);
         }
         catch (Exception ex)
@@ -672,6 +688,8 @@ public class MonitoringSessionController : ControllerBase
             // Generate PDF
             var pdf = GeneratePdfDocument(reportData);
 
+            Audit("report.exported", $"session report pdf ({session.SessionDate:yyyy-MM-dd})");
+            await _db.SaveChangesAsync();
             return File(pdf, "application/pdf", $"monitoring-report-{session.SessionDate:yyyy-MM-dd}.pdf");
         }
         catch (Exception ex)
@@ -712,6 +730,8 @@ public class MonitoringSessionController : ControllerBase
             workbook.SaveAs(ms);
             ms.Seek(0, SeekOrigin.Begin);
 
+            Audit("report.exported", $"session report excel ({session.SessionDate:yyyy-MM-dd})");
+            await _db.SaveChangesAsync();
             return File(ms.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 $"monitoring-report-{session.SessionDate:yyyy-MM-dd}.xlsx");
@@ -772,6 +792,8 @@ public class MonitoringSessionController : ControllerBase
             ms.Seek(0, SeekOrigin.Begin);
 
             var fileName = $"combined-monitoring-report-{sessions.Count}-sessions.xlsx";
+            Audit("report.exported", $"multi-report excel ({sessions.Count} sessions)");
+            await _db.SaveChangesAsync();
             return File(ms.ToArray(),
                 "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 fileName);

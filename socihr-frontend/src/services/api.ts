@@ -14,6 +14,12 @@ async function handleResponse<T>(res: Response): Promise<T> {
     try {
       const err = JSON.parse(text);
       if (err?.message) message = err.message;
+      // ASP.NET validation problem details ({ errors: { Field: [msgs] } }) — tiada `message`
+      else if (err?.errors && typeof err.errors === "object") {
+        const first = Object.values(err.errors).flat().find((v) => typeof v === "string");
+        if (first) message = first as string;
+        else if (typeof err?.title === "string") message = err.title;
+      } else if (typeof err?.title === "string") message = err.title;
     } catch {
       // response body wasn't JSON; fall back to the default message
     }
@@ -23,13 +29,34 @@ async function handleResponse<T>(res: Response): Promise<T> {
 }
 
 // ─── Auth ───────────────────────────────────────────
-export async function login(username: string, password: string) {
+export interface LoginResult {
+  token?: string;
+  username: string;
+  role?: string;
+  departmentId?: string;
+  departmentName?: string;
+  requires2FA?: boolean;
+  pendingToken?: string;
+}
+
+export async function login(username: string, password: string): Promise<LoginResult> {
   const res = await fetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ Username: username, Password: password }),
   });
-  return handleResponse<{ token: string; username: string; role: string; departmentId?: string; departmentName?: string }>(res);
+  return handleResponse<LoginResult>(res);
+}
+
+// ─── TOTP 2FA ─────────────────────────────────────────
+// Langkah 2 selepas login() pulangkan { requires2FA: true, pendingToken }
+export async function verifyTotp(pendingToken: string, code: string): Promise<LoginResult> {
+  const res = await fetch(`${BASE_URL}/auth/2fa/verify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ PendingToken: pendingToken, Code: code }),
+  });
+  return handleResponse<LoginResult>(res);
 }
 
 // ─── User Management (SuperAdmin only) ──────────────
@@ -380,6 +407,66 @@ export async function getCompanyPerformance(from?: string, to?: string, signal?:
   const url = queryString ? `${BASE_URL}/dashboard/company-performance?${queryString}` : `${BASE_URL}/dashboard/company-performance`;
   const res = await fetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>(res);
+}
+
+// ─── Profil company: prestasi per-session untuk satu company ──
+export interface CompanySessionPerf {
+  sessionId: string;
+  date: string;
+  label: string;
+  likes: number;
+  comments: number;
+  shares: number;
+  completed: number;
+  missed: number;
+  total: number;
+  rate: number;
+}
+
+export interface CompanyPerformanceDetail {
+  company: { companyID: string; companyName: string };
+  sessions: CompanySessionPerf[];
+}
+
+export async function getCompanySessionPerformance(
+  companyId: string, from?: string, to?: string, signal?: AbortSignal
+): Promise<CompanyPerformanceDetail> {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const queryString = q.toString();
+  const url = queryString
+    ? `${BASE_URL}/company/${companyId}/performance?${queryString}`
+    : `${BASE_URL}/company/${companyId}/performance`;
+  const res = await fetch(url, { headers: authHeaders(), signal });
+  return handleResponse<CompanyPerformanceDetail>(res);
+}
+
+// ─── Profil staff: prestasi per-session untuk seorang staff ──
+export interface StaffPerformanceDetail {
+  staff: {
+    staffID: string;
+    fullName: string;
+    department: string | null;
+    position: string | null;
+    staffType: string;
+    status: string;
+  };
+  sessions: CompanySessionPerf[];
+}
+
+export async function getStaffSessionPerformance(
+  staffId: string, from?: string, to?: string, signal?: AbortSignal
+): Promise<StaffPerformanceDetail> {
+  const q = new URLSearchParams();
+  if (from) q.set("from", from);
+  if (to) q.set("to", to);
+  const queryString = q.toString();
+  const url = queryString
+    ? `${BASE_URL}/staff/${staffId}/performance?${queryString}`
+    : `${BASE_URL}/staff/${staffId}/performance`;
+  const res = await fetch(url, { headers: authHeaders(), signal });
+  return handleResponse<StaffPerformanceDetail>(res);
 }
 
 export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 10, from?: string, to?: string, signal?: AbortSignal) {
@@ -940,14 +1027,4 @@ export async function compareSessions(sessionA: string, sessionB: string): Promi
     headers: authHeaders(),
   });
   return handleResponse<SessionComparisonResult>(res);
-}
-
-// ─── 2FA Verification ───────────────────────────────
-export async function verify2FA(pin: string): Promise<{ success: boolean; message: string }> {
-  const res = await fetch(`${BASE_URL}/auth/2fa/verify`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ Pin: pin }),
-  });
-  return handleResponse<{ success: boolean; message: string }>(res);
 }

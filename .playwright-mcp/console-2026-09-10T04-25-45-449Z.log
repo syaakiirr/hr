@@ -1,0 +1,32 @@
+[     344ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=a7862ff4:14335
+[    1001ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=a7862ff4:758
+[  181761ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014527133:0
+[  181762ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  205495ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014550918:0
+[  205495ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  228214ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014573632:0
+[  228215ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  245494ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014590904:0
+[  245495ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  255701ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014600981:0
+[  255701ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  310785ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014656196:0
+[  310786ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  345273ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014690689:0
+[  345277ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  371830ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014717242:0
+[  371831ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  388814ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014734222:0
+[  388816ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[  405725ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/CompanyPage.tsx?t=1789014751144:0
+[  405726ms] [ERROR] [vite] Failed to reload /src/pages/CompanyPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[ 2041068ms] [LOG] [vite] server connection lost. Polling for restart... @ http://localhost:5173/@vite/client:1002
+[ 6880306ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=a7862ff4:14335
+[ 6897365ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=a7862ff4:758
+[ 9210965ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/LandingPage.tsx?t=1789023556284:0
+[ 9210969ms] [ERROR] [vite] Failed to reload /src/pages/LandingPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[ 9211036ms] [ERROR] Failed to load resource: the server responded with a status of 500 (Internal Server Error) @ http://localhost:5173/src/pages/LandingPage.tsx?t=1789023556044:0
+[ 9211036ms] [ERROR] [vite] Failed to reload /src/pages/LandingPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[ 9211037ms] [ERROR] [vite] Failed to reload /src/pages/LandingPage.tsx. This could be due to syntax errors or importing non-existent modules. (see errors above) @ http://localhost:5173/@vite/client:935
+[ 9246836ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=79f72744:14088
+[ 9250881ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=79f72744:758

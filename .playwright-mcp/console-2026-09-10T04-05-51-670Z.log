@@ -1,0 +1,38 @@
+[     447ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:14335
+[   19817ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:14335
+[   34472ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:14335
+[   35258ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=e0673701:758
+[   35293ms] [WARNING] [ECharts] Instance ec_1789013186278 has been disposed @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=e0673701:758
+[   67370ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:14335
+[   68194ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=e0673701:758
+[   68216ms] [WARNING] [ECharts] Instance ec_1789013219100 has been disposed @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=e0673701:758
+[  228136ms] [ERROR] Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem. @ http://localhost:5173/node_modules/.vite/deps/react.js?v=a7862ff4:296
+[  228400ms] [ERROR] Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons:
+1. You might have mismatching versions of React and the renderer (such as React DOM)
+2. You might be breaking the Rules of Hooks
+3. You might have more than one copy of React in the same app
+See https://react.dev/link/invalid-hook-call for tips about how to debug and fix this problem. @ http://localhost:5173/node_modules/.vite/deps/react.js?v=a7862ff4:296
+[  228426ms] TypeError: Cannot read properties of null (reading 'useContext')
+    at exports.useContext (http://localhost:5173/node_modules/.vite/deps/react.js?v=a7862ff4:706:22)
+    at useLucideContext (http://localhost:5173/node_modules/.vite/deps/lucide-react.js?v=6455da56:208:58)
+    at http://localhost:5173/node_modules/.vite/deps/lucide-react.js?v=6455da56:222:250
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:12866:12)
+    at renderWithHooks (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:4213:19)
+    at updateForwardRef (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:5396:16)
+    at beginWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:6204:21)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:851:66)
+    at performUnitOfWork (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:8429:92)
+    at workLoopSync (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:8325:37)
+[  228419ms] [WARNING] %s
+
+%s
+ An error occurred in the <ForwardRef> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=6547106d:5257
+[  229013ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=a7862ff4:14335
+[  231981ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=a7862ff4:758
+[  232247ms] [WARNING] [ECharts] Instance ec_1789013382512 has been disposed @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=a7862ff4:758
+[  260522ms] [WARNING] [ECharts] Instance ec_1789013382515 has been disposed @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=a7862ff4:758

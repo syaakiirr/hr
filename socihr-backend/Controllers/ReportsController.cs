@@ -24,6 +24,15 @@ public class ReportsController : ControllerBase
     private readonly AppDbContext _db;
     public ReportsController(AppDbContext db) => _db = db;
 
+    // Helper: tulis audit keselamatan (disimpan oleh SaveChangesAsync pemanggil)
+    private void Audit(string action, string details)
+    {
+        var idClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var name = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+        Helpers.SecurityAuditLog.Write(_db, HttpContext,
+            idClaim != null ? Guid.Parse(idClaim) : Guid.Empty, name, action, details);
+    }
+
     // Helper: get DepartmentID for DeptAdmin, null for SuperAdmin
     private Guid? GetDeptIdRestriction()
     {
@@ -582,6 +591,8 @@ public class ReportsController : ControllerBase
         workbook.SaveAs(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
+        Audit("report.exported", "excel performance report");
+        await _db.SaveChangesAsync();
         return File(ms.ToArray(),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"SociHR_Performance_Report_{DateTime.Now:yyyyMMdd}.xlsx");
@@ -1056,6 +1067,8 @@ public class ReportsController : ControllerBase
         workbook.SaveAs(ms);
         ms.Seek(0, SeekOrigin.Begin);
 
+        Audit("report.exported", "custom excel report");
+        await _db.SaveChangesAsync();
         return File(ms.ToArray(),
             "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             $"SociHR_Custom_Report_{DateTime.Now:yyyyMMdd}.xlsx");
@@ -1211,21 +1224,39 @@ public class ReportsController : ControllerBase
                             if (deptFilter?.Count == 1)
                             {
                                 // ── SINGLE DEPARTMENT SESSION FLOW ──
-                                if (!isFirstSection) col.Item().PaddingTop(12);
+                                if (sIdx > 0)
+                                {
+                                    col.Item().PageBreak();
+                                }
+                                else if (!isFirstSection)
+                                {
+                                    col.Item().PaddingTop(12);
+                                }
                                 isFirstSection = false;
 
-                                // Session Header Card
-                                col.Item().PaddingBottom(8).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(8).Row(r =>
+                                // Session Header Card: Clean Bright Blue Accent Card
+                                col.Item().PaddingBottom(8).Background("#f8fafc").Border(1.5f).BorderColor("#2563eb").Padding(9).Row(r =>
                                 {
                                     r.RelativeItem().Column(rc =>
                                     {
-                                        rc.Item().Text($"Session {sIdx + 1} of {monitoringSessions.Count}").FontSize(8.5f).Bold().FontColor("#64748b");
-                                        rc.Item().PaddingTop(1).Text($"Date: {session.SessionDate:dddd, dd MMMM yyyy}").FontSize(13).Bold().FontColor("#0f172a");
+                                        rc.Item().Row(br =>
+                                        {
+                                            br.AutoItem().Background("#2563eb").PaddingHorizontal(8).PaddingVertical(3).Text(t =>
+                                            {
+                                                t.Span($"★ SESSION {sIdx + 1} OF {monitoringSessions.Count}").FontSize(8f).Bold().FontColor("#ffffff");
+                                            });
+                                            br.AutoItem().PaddingLeft(6).Background("#eff6ff").Border(1).BorderColor("#bfdbfe").PaddingHorizontal(8).PaddingVertical(3).Text(t =>
+                                            {
+                                                t.Span("Scope: ").FontSize(7.5f).FontColor("#1e40af");
+                                                t.Span(deptName).FontSize(8f).Bold().FontColor("#1d4ed8");
+                                            });
+                                        });
+                                        rc.Item().PaddingTop(4).Text($"Date: {session.SessionDate:dddd, dd MMMM yyyy}").FontSize(12.5f).Bold().FontColor("#0f172a");
                                     });
                                     r.ConstantItem(260).AlignRight().Column(rc =>
                                     {
-                                        rc.Item().Text($"Scope: {deptName}").FontSize(8.5f).Bold().FontColor("#334155");
-                                        rc.Item().PaddingTop(1).Text($"Staff Evaluated: {rd.StaffRows.Count}  |  Likes: {rd.TotalLikes}  Comments: {rd.TotalComments}  Shares: {rd.TotalShares}").FontSize(8f).FontColor("#64748b");
+                                        rc.Item().Text($"Staff Evaluated: {rd.StaffRows.Count}").FontSize(9f).Bold().FontColor("#0f172a");
+                                        rc.Item().PaddingTop(2).Text($"Likes: {rd.TotalLikes}  |  Comments: {rd.TotalComments}  |  Shares: {rd.TotalShares}").FontSize(8f).FontColor("#475569");
                                     });
                                 });
 
@@ -1283,32 +1314,71 @@ public class ReportsController : ControllerBase
                                     col.Item().PaddingTop(2).PaddingBottom(6).Element(t => RenderSessionStaffTickTable(t, rd.StaffRows));
                                 }
 
-                                // 5. Staff Engagement Matrix (Monitoring Table)
-                                col.Item().EnsureSpace(160).PaddingTop(6).PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                // 5. Staff Engagement Matrix: Clean Warm Amber/Slate Border Card
+                                col.Item().EnsureSpace(160).PaddingTop(6).PaddingBottom(4).Background("#fffbeb").Border(1.5f).BorderColor("#d97706").Padding(7).Row(r =>
                                 {
-                                    r.RelativeItem().Text($"Staff Engagement Matrix: {deptName} ({session.SessionDate:dddd, dd MMMM yyyy})").FontSize(11).Bold().FontColor("#0f172a");
-                                    r.ConstantItem(260).AlignRight().Text($"Scope: {deptName}  |  Staff: {rd.StaffRows.Count}  |  Likes: {rd.TotalLikes}  Comments: {rd.TotalComments}  Shares: {rd.TotalShares}").FontSize(8f).FontColor("#475569");
+                                    r.RelativeItem().Row(tr =>
+                                    {
+                                        tr.AutoItem().Background("#d97706").PaddingHorizontal(7).PaddingVertical(2).Text(t =>
+                                        {
+                                            t.Span((deptName ?? "DEPARTMENT").ToUpper()).FontSize(8f).Bold().FontColor("#ffffff");
+                                        });
+                                        tr.AutoItem().PaddingLeft(8).Text(t =>
+                                        {
+                                            t.Span("Staff Engagement Matrix").FontSize(10.5f).Bold().FontColor("#78350f");
+                                            t.Span($"  •  {session.SessionDate:dddd, dd MMMM yyyy}").FontSize(8.5f).FontColor("#92400e");
+                                        });
+                                    });
+                                    r.ConstantItem(280).AlignRight().Text(t =>
+                                    {
+                                        t.Span($"Staff: ").FontSize(7.5f).FontColor("#78350f");
+                                        t.Span($"{rd.StaffRows.Count}").FontSize(8f).Bold().FontColor("#78350f");
+                                        t.Span($"  |  Likes: ").FontSize(7.5f).FontColor("#78350f");
+                                        t.Span($"{rd.TotalLikes}").FontSize(8f).Bold().FontColor("#1e40af");
+                                        t.Span($"  Comments: ").FontSize(7.5f).FontColor("#78350f");
+                                        t.Span($"{rd.TotalComments}").FontSize(8f).Bold().FontColor("#0284c7");
+                                        t.Span($"  Shares: ").FontSize(7.5f).FontColor("#78350f");
+                                        t.Span($"{rd.TotalShares}").FontSize(8f).Bold().FontColor("#059669");
+                                    });
                                 });
                                 col.Item().PaddingTop(2).PaddingBottom(6).Element(t => RenderMonitoringTable(t, rd));
                             }
                             else
                             {
-                                // ── OVERALL / SUPERADMIN SESSION FLOW (Continuous flow, split by title) ──
-                                if (!isFirstSection) col.Item().PaddingTop(12);
+                                // ── OVERALL / SUPERADMIN SESSION FLOW (New session on new page) ──
+                                if (sIdx > 0)
+                                {
+                                    col.Item().PageBreak();
+                                }
+                                else if (!isFirstSection)
+                                {
+                                    col.Item().PaddingTop(12);
+                                }
                                 isFirstSection = false;
 
-                                // Session Executive Overview Header
-                                col.Item().PaddingBottom(8).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(8).Row(r =>
+                                // Session Executive Overview Header: Clean Bright Blue Accent Card
+                                col.Item().PaddingBottom(8).Background("#f8fafc").Border(1.5f).BorderColor("#2563eb").Padding(9).Row(r =>
                                 {
                                     r.RelativeItem().Column(rc =>
                                     {
-                                        rc.Item().Text($"Session {sIdx + 1} of {monitoringSessions.Count}").FontSize(8.5f).Bold().FontColor("#64748b");
-                                        rc.Item().PaddingTop(1).Text($"Date: {session.SessionDate:dddd, dd MMMM yyyy}").FontSize(13).Bold().FontColor("#0f172a");
+                                        rc.Item().Row(br =>
+                                        {
+                                            br.AutoItem().Background("#2563eb").PaddingHorizontal(8).PaddingVertical(3).Text(t =>
+                                            {
+                                                t.Span($"★ SESSION {sIdx + 1} OF {monitoringSessions.Count}").FontSize(8f).Bold().FontColor("#ffffff");
+                                            });
+                                            br.AutoItem().PaddingLeft(6).Background("#eff6ff").Border(1).BorderColor("#bfdbfe").PaddingHorizontal(8).PaddingVertical(3).Text(t =>
+                                            {
+                                                t.Span("Scope: ").FontSize(7.5f).FontColor("#1e40af");
+                                                t.Span("All Departments").FontSize(8f).Bold().FontColor("#1d4ed8");
+                                            });
+                                        });
+                                        rc.Item().PaddingTop(4).Text($"Date: {session.SessionDate:dddd, dd MMMM yyyy}").FontSize(12.5f).Bold().FontColor("#0f172a");
                                     });
                                     r.ConstantItem(280).AlignRight().Column(rc =>
                                     {
-                                        rc.Item().Text("Scope: All Departments").FontSize(8.5f).Bold().FontColor("#0f172a");
-                                        rc.Item().PaddingTop(1).Text($"Staff Evaluated: {rd.StaffRows.Count}  |  Likes: {rd.TotalLikes}  Comments: {rd.TotalComments}  Shares: {rd.TotalShares}").FontSize(8f).FontColor("#64748b");
+                                        rc.Item().Text($"Staff Evaluated: {rd.StaffRows.Count}").FontSize(9f).Bold().FontColor("#0f172a");
+                                        rc.Item().PaddingTop(2).Text($"Likes: {rd.TotalLikes}  |  Comments: {rd.TotalComments}  |  Shares: {rd.TotalShares}").FontSize(8f).FontColor("#475569");
                                     });
                                 });
 
@@ -1401,14 +1471,35 @@ public class ReportsController : ControllerBase
                                         col.Item().PaddingTop(2).PaddingBottom(6).Element(t => RenderSessionStaffTickTable(t, curDeptStaff));
                                     }
 
-                                    // 5. Staff Engagement Matrix (Monitoring Table by unit)
+                                    // 5. Staff Engagement Matrix: Clean Warm Amber/Slate Border Card
                                     // EnsureSpace(160) guarantees enough remaining vertical room on the current page to comfortably fit
                                     // the matrix title banner, table headers, and at least several staff rows.
                                     // If available space < 160pt, QuestPDF automatically triggers a clean page break before rendering.
-                                    col.Item().EnsureSpace(160).PaddingTop(hasUnitPreamble ? 6 : 10).PaddingBottom(4).Background("#f8fafc").Border(1).BorderColor("#cbd5e1").Padding(6).Row(r =>
+                                    col.Item().EnsureSpace(160).PaddingTop(hasUnitPreamble ? 6 : 10).PaddingBottom(4).Background("#fffbeb").Border(1.5f).BorderColor("#d97706").Padding(7).Row(r =>
                                     {
-                                        r.RelativeItem().Text($"Staff Engagement Matrix: {curDeptName} ({session.SessionDate:dddd, dd MMMM yyyy})").FontSize(11).Bold().FontColor("#0f172a");
-                                        r.ConstantItem(280).AlignRight().Text($"Scope: {curDeptName}  |  Staff: {deptRd.StaffRows.Count}  |  Likes: {deptRd.TotalLikes}  Comments: {deptRd.TotalComments}  Shares: {deptRd.TotalShares}").FontSize(7.5f).FontColor("#475569");
+                                        r.RelativeItem().Row(tr =>
+                                        {
+                                            tr.AutoItem().Background("#d97706").PaddingHorizontal(7).PaddingVertical(2).Text(t =>
+                                            {
+                                                t.Span((curDeptName ?? "DEPARTMENT").ToUpper()).FontSize(8f).Bold().FontColor("#ffffff");
+                                            });
+                                            tr.AutoItem().PaddingLeft(8).Text(t =>
+                                            {
+                                                t.Span("Staff Engagement Matrix").FontSize(10.5f).Bold().FontColor("#78350f");
+                                                t.Span($"  •  {session.SessionDate:dddd, dd MMMM yyyy}").FontSize(8.5f).FontColor("#92400e");
+                                            });
+                                        });
+                                        r.ConstantItem(280).AlignRight().Text(t =>
+                                        {
+                                            t.Span($"Staff: ").FontSize(7.5f).FontColor("#78350f");
+                                            t.Span($"{deptRd.StaffRows.Count}").FontSize(8f).Bold().FontColor("#78350f");
+                                            t.Span($"  |  Likes: ").FontSize(7.5f).FontColor("#78350f");
+                                            t.Span($"{deptRd.TotalLikes}").FontSize(8f).Bold().FontColor("#1e40af");
+                                            t.Span($"  Comments: ").FontSize(7.5f).FontColor("#78350f");
+                                            t.Span($"{deptRd.TotalComments}").FontSize(8f).Bold().FontColor("#0284c7");
+                                            t.Span($"  Shares: ").FontSize(7.5f).FontColor("#78350f");
+                                            t.Span($"{deptRd.TotalShares}").FontSize(8f).Bold().FontColor("#059669");
+                                        });
                                     });
                                     col.Item().PaddingTop(2).PaddingBottom(8).Element(t => RenderMonitoringTable(t, deptRd));
                                 }
@@ -1428,7 +1519,14 @@ public class ReportsController : ControllerBase
 
                     if (shouldShowConsolidated)
                     {
-                        if (!isFirstSection) col.Item().PaddingTop(14);
+                        if (showMonitoringSessions && monitoringSessions != null && monitoringSessions.Count > 0)
+                        {
+                            col.Item().PageBreak();
+                        }
+                        else if (!isFirstSection)
+                        {
+                            col.Item().PaddingTop(14);
+                        }
                         isFirstSection = false;
 
                         if (deptName != null)
@@ -1742,6 +1840,8 @@ public class ReportsController : ControllerBase
         });
 
         var bytes = pdf.GeneratePdf();
+        Audit("report.exported", "pdf report");
+        await _db.SaveChangesAsync();
         return File(bytes, "application/pdf", $"SociHR_Report_{DateTime.Now:yyyyMMdd}.pdf");
         }
         catch (Exception ex)

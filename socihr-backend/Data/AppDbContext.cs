@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<SessionPost> SessionPosts { get; set; }
     public DbSet<Engagement> Engagements { get; set; }
     public DbSet<AuditTrail> AuditTrails { get; set; }
+    public DbSet<SecurityAudit> SecurityAudits { get; set; }
     public DbSet<DashboardSnapshot> DashboardSnapshots { get; set; }
     public DbSet<Company> Companies { get; set; }
     public DbSet<Department> Departments { get; set; }
@@ -52,6 +53,10 @@ public class AppDbContext : DbContext
             e.Property(x => x.PasswordHash).HasColumnName("PasswordHash");
             e.Property(x => x.Role).HasColumnName("Role");
             e.Property(x => x.DepartmentID).HasColumnName("DepartmentID");
+            e.Property(x => x.TotpSecret).HasColumnName("TotpSecret");
+            e.Property(x => x.TwoFactorEnabled).HasColumnName("TwoFactorEnabled").HasDefaultValue(false);
+            e.Property(x => x.FailedLoginAttempts).HasColumnName("FailedLoginAttempts").HasDefaultValue(0);
+            e.Property(x => x.LockoutEnd).HasColumnName("LockoutEnd");
             e.HasOne(x => x.Department)
              .WithMany()
              .HasForeignKey(x => x.DepartmentID)
@@ -132,14 +137,29 @@ public class AppDbContext : DbContext
         // ── AuditTrail ──
         modelBuilder.Entity<AuditTrail>(e =>
         {
-            e.ToTable("AuditTrail");
-            e.HasKey(x => x.AuditID);
+            e.ToTable("AuditTrail");            e.HasKey(x => x.AuditID);
             e.Property(x => x.AuditID).HasColumnName("AuditID");
             e.Property(x => x.EngagementID).HasColumnName("EngagementID");
             e.Property(x => x.PreviousStatus).HasColumnName("PreviousStatus");
             e.Property(x => x.NewStatus).HasColumnName("NewStatus");
             e.Property(x => x.UpdatedBy).HasColumnName("UpdatedBy");
             e.Property(x => x.UpdatedAt).HasColumnName("UpdatedAt");
+        });
+
+        // ── SecurityAudit ──
+        modelBuilder.Entity<SecurityAudit>(e =>
+        {
+            e.ToTable("SecurityAudit");
+            e.HasKey(x => x.AuditID);
+            e.Property(x => x.AuditID).HasColumnName("AuditID");
+            e.Property(x => x.UserID).HasColumnName("UserID");
+            e.Property(x => x.Username).HasColumnName("Username");
+            e.Property(x => x.Action).HasColumnName("Action");
+            e.Property(x => x.Details).HasColumnName("Details");
+            e.Property(x => x.IpAddress).HasColumnName("IpAddress");
+            e.Property(x => x.CreatedAt).HasColumnName("CreatedAt");
+            e.HasIndex(x => x.CreatedAt);
+            e.HasIndex(x => x.Action);
         });
 
         // ── DashboardSnapshot ──

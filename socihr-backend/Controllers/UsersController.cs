@@ -42,6 +42,14 @@ public class UsersController : ControllerBase
         if (string.IsNullOrWhiteSpace(req.Username) || string.IsNullOrWhiteSpace(req.Password))
             return BadRequest(new { message = "Username and password are required." });
 
+        // Selaras dengan LoginRequestValidator (login tolak username < 3 / password < 4
+        // dengan 400) — sekat awal di sini supaya user yang dicipta semestinya boleh login.
+        if (req.Username.Trim().Length < 3)
+            return BadRequest(new { message = "Username must be at least 3 characters." });
+
+        if (req.Password.Length < 4)
+            return BadRequest(new { message = "Password must be at least 4 characters." });
+
         var exists = await _db.Users.AnyAsync(u => u.Username == req.Username);
         if (exists)
             return Conflict(new { message = "Username already taken." });
@@ -67,6 +75,13 @@ public class UsersController : ControllerBase
         };
 
         await _db.Users.AddAsync(user);
+        await _db.SaveChangesAsync();
+
+        var actorId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var actorName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+        Helpers.SecurityAuditLog.Write(_db, HttpContext,
+            actorId != null ? Guid.Parse(actorId) : Guid.Empty, actorName,
+            "user.created", $"{user.Username} ({user.Role})");
         await _db.SaveChangesAsync();
 
         // Return with department name
@@ -104,9 +119,15 @@ public class UsersController : ControllerBase
             user.Username = req.Username.Trim();
         }
 
-        // Reset password if provided
+        // Reset password if provided (selaras dengan LoginRequestValidator: min 4 aksara)
+        var passwordReset = false;
         if (!string.IsNullOrWhiteSpace(req.Password))
+        {
+            if (req.Password.Length < 4)
+                return BadRequest(new { message = "Password must be at least 4 characters." });
             user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+            passwordReset = true;
+        }
 
         // Update department (only relevant for DeptAdmin)
         if (user.Role == "DeptAdmin" && req.DepartmentID.HasValue)
@@ -116,6 +137,17 @@ public class UsersController : ControllerBase
             user.DepartmentID = req.DepartmentID;
         }
 
+        await _db.SaveChangesAsync();
+
+        var updaterId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var updaterName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+        var changes = new System.Collections.Generic.List<string>();
+        if (!string.IsNullOrWhiteSpace(req.Username)) changes.Add($"username->{user.Username}");
+        if (passwordReset) changes.Add("password reset");
+        if (user.Role == "DeptAdmin" && req.DepartmentID.HasValue) changes.Add("department changed");
+        Helpers.SecurityAuditLog.Write(_db, HttpContext,
+            updaterId != null ? Guid.Parse(updaterId) : Guid.Empty, updaterName,
+            "user.updated", $"{user.Username}: {string.Join(", ", changes)}");
         await _db.SaveChangesAsync();
 
         var dept = user.DepartmentID.HasValue
@@ -145,6 +177,12 @@ public class UsersController : ControllerBase
             return BadRequest(new { message = "Cannot delete your own account." });
 
         _db.Users.Remove(user);
+
+        var deleterId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var deleterName = User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value ?? "";
+        Helpers.SecurityAuditLog.Write(_db, HttpContext,
+            deleterId != null ? Guid.Parse(deleterId) : Guid.Empty, deleterName,
+            "user.deleted", $"{user.Username} ({user.Role})");
         await _db.SaveChangesAsync();
         return NoContent();
     }

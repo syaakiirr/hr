@@ -1,0 +1,56 @@
+[     381ms] [INFO] %cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:14335
+[    1411ms] [LOG] [ECharts] Specified `grid.containLabel` but no `use(LegacyGridContainLabel)`;use `grid.outerBounds` instead. @ http://localhost:5173/node_modules/.vite/deps/axisNiceTicks-CG83Yjtj.js?v=5f0e6cdf:758
+[  183715ms] TypeError: _this.echarts.init is not a function
+    at http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:527:20
+    at new Promise (<anonymous>)
+    at EChartsReactCore.<anonymous> (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:526:16)
+    at step (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:145:14)
+    at Object.next (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:94:11)
+    at http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:76:65
+    at new Promise (<anonymous>)
+    at __awaiter (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:58:9)
+    at EChartsReactCore.initEchartsInstance (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:523:10)
+    at EChartsReactCore.<anonymous> (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:572:23)
+[  183741ms] TypeError: this.echarts.dispose is not a function
+    at EChartsReactCore.dispose (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:558:17)
+    at EChartsReactCore.componentWillUnmount (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:520:8)
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:12895:14)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:851:66)
+    at safelyCallComponentWillUnmount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:6691:50)
+    at disappearLayoutEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:7494:61)
+    at recursivelyTraverseDisappearLayoutEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:7518:65)
+    at disappearLayoutEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:7501:6)
+    at doubleInvokeEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:8924:5)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:851:66)
+[  183730ms] [WARNING] %s
+
+%s
+ An error occurred in the <EChartsReactCore> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:5257
+[  183746ms] TypeError: this.echarts.dispose is not a function
+    at EChartsReactCore.dispose (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:558:17)
+    at EChartsReactCore.componentWillUnmount (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:520:8)
+    at Object.react_stack_bottom_frame (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:12895:14)
+    at runWithFiberInDEV (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:851:66)
+    at safelyCallComponentWillUnmount (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:6691:50)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:7137:193)
+    at recursivelyTraverseDeletionEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:7073:50)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:7102:6)
+    at recursivelyTraverseDeletionEffects (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:7073:50)
+    at commitDeletionEffectsOnFiber (http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:7102:6)
+[  183735ms] [WARNING] %s
+
+%s
+ An error occurred in the <EChartsReactCore> component. Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://react.dev/link/error-boundaries to learn more about error boundaries. @ http://localhost:5173/node_modules/.vite/deps/react-dom_client.js?v=5f0e6cdf:5257
+[  183752ms] TypeError: _this.echarts.init is not a function
+    at http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:527:20
+    at new Promise (<anonymous>)
+    at EChartsReactCore.<anonymous> (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:526:16)
+    at step (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:145:14)
+    at Object.next (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:94:11)
+    at http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:76:65
+    at new Promise (<anonymous>)
+    at __awaiter (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:58:9)
+    at EChartsReactCore.initEchartsInstance (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:523:10)
+    at EChartsReactCore.<anonymous> (http://localhost:5173/node_modules/.vite/deps/echarts-for-react_esm_core.js?v=5f0e6cdf:572:23)

@@ -64,6 +64,24 @@ public class DashboardController : ControllerBase
         return q;
     }
 
+    // Session ikut julat tarikh yang sama seperti engagement (KPI "In selected period").
+    // Nota: tidak disekat ikut department — selaras dengan endpoint trend.
+    private IQueryable<MonitoringSession> FilteredSessions(DateTime? from, DateTime? to)
+    {
+        var q = _db.MonitoringSessions.AsNoTracking();
+        if (from.HasValue)
+        {
+            var fd = DateOnly.FromDateTime(from.Value);
+            q = q.Where(s => s.SessionDate >= fd);
+        }
+        if (to.HasValue)
+        {
+            var td = DateOnly.FromDateTime(to.Value);
+            q = q.Where(s => s.SessionDate <= td);
+        }
+        return q;
+    }
+
     // ── Aggregation helpers that run entirely on the server ──
 
     private sealed record KpiTotals(int Staff, int Sessions, int Platforms, int Expected, int Completed, int Missed, double Rate);
@@ -75,7 +93,7 @@ public class DashboardController : ControllerBase
         if (deptName != null) staffQ = staffQ.Where(s => s.Department == deptName);
         var totalStaff = await staffQ.CountAsync();
 
-        var totalSessions = await _db.MonitoringSessions.CountAsync(s => !s.IsArchived);
+        var totalSessions = await FilteredSessions(from, to).CountAsync(s => !s.IsArchived);
         var totalPlatforms = await _db.Platforms.CountAsync();
 
         var engQ = FilteredEngagements(from, to);

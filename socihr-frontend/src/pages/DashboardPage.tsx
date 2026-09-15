@@ -348,6 +348,9 @@ export default function DashboardPage() {
   // Multi-metric Trend Area/Line option
   const trendOption = useMemo(() => {
     if (trends.length === 0) return null;
+    // Data sedikit (1–2 session) — tunjukkan simbol titik supaya carta tidak nampak kosong;
+    // data banyak — kekalkan garisan bersih tanpa simbol.
+    const sparse = trends.length <= 2;
     const labels = trends.map((t) => t.label);
     const likes = trends.map((t) => t.likes);
     const comments = trends.map((t) => t.comments);
@@ -398,7 +401,8 @@ export default function DashboardPage() {
           name: "Likes",
           type: "line" as const,
           smooth: true,
-          showSymbol: false,
+          showSymbol: sparse,
+          symbolSize: sparse ? 8 : 4,
           areaStyle: {
             color: new graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: "rgba(37, 99, 235, 0.35)" },
@@ -412,7 +416,8 @@ export default function DashboardPage() {
           name: "Comments",
           type: "line" as const,
           smooth: true,
-          showSymbol: false,
+          showSymbol: sparse,
+          symbolSize: sparse ? 8 : 4,
           areaStyle: {
             color: new graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: "rgba(99, 102, 241, 0.35)" },
@@ -426,7 +431,8 @@ export default function DashboardPage() {
           name: "Shares",
           type: "line" as const,
           smooth: true,
-          showSymbol: false,
+          showSymbol: sparse,
+          symbolSize: sparse ? 8 : 4,
           areaStyle: {
             color: new graphic.LinearGradient(0, 0, 0, 1, [
               { offset: 0, color: "rgba(22, 163, 74, 0.35)" },
@@ -441,6 +447,8 @@ export default function DashboardPage() {
           type: "line" as const,
           yAxisIndex: 1,
           smooth: true,
+          showSymbol: true,
+          symbolSize: sparse ? 8 : 4,
           lineStyle: { width: 3, type: "dashed" as const },
           itemStyle: { color: "#f59e0b" },
           data: rates,
@@ -733,7 +741,7 @@ export default function DashboardPage() {
             {/* ══════════════════════════════════════════════════════════════
                 TIER 1.5: MULTI-METRIC ENGAGEMENT TIMELINE TREND
                 ══════════════════════════════════════════════════════════════ */}
-            {trendOption && (
+            {(
               <div className="chart-wrap" style={{ marginBottom: 16 }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12, flexWrap: "wrap", gap: 8 }}>
                   <div>
@@ -750,6 +758,7 @@ export default function DashboardPage() {
                     </button>
                   </div>
                 </div>
+                {trendOption ? (
                 <ReactEChartsCore 
                   echarts={treeShakenECharts}
                   option={trendOption} 
@@ -758,6 +767,11 @@ export default function DashboardPage() {
                   notMerge={true}
                   lazyUpdate={true}
                 />
+                ) : (
+                  <p style={{ fontSize: 12, color: "var(--text-3)", padding: "24px 0", textAlign: "center" }}>
+                    No trend data for the selected period — try widening the date range or check for archived sessions.
+                  </p>
+                )}
               </div>
             )}
 

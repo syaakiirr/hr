@@ -837,3 +837,4 @@ C:\Users\syakir\Downloads\syaakiirr\hr\hr\socihr-backend\obj\Debug\net8.0\refint
 C:\Users\syakir\Downloads\syaakiirr\hr\hr\socihr-backend\obj\Debug\net8.0\socihr-backend.pdb
 C:\Users\syakir\Downloads\syaakiirr\hr\hr\socihr-backend\obj\Debug\net8.0\socihr-backend.genruntimeconfig.cache
 C:\Users\syakir\Downloads\syaakiirr\hr\hr\socihr-backend\obj\Debug\net8.0\ref\socihr-backend.dll
+C:\Users\syakir\Downloads\syaakiirr\hr\hr\socihr-backend\bin\Debug\net8.0\Otp.NET.dll

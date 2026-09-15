@@ -18,3 +18,13 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+# Grasp (https://github.com/ashfordeOU/grasp) — generated analysis artifacts
+grasp-report.json
+grasp-backend-report.json
+grasp-results.sarif
+grasp-frontend-mcp.sarif
+grasp-pr-comment.md
+grasp-*.log
+backend-dev.log
+backend-dev.err.log

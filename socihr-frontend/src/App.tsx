@@ -7,16 +7,20 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ThemeProvider } from "./contexts/ThemeContext";
 
 import LoginPage           from "./pages/LoginPage";
+import LandingPage         from "./pages/LandingPage";
 const DashboardPage       = lazy(() => import("./pages/DashboardPage"));
 const LeaderboardPage     = lazy(() => import("./pages/LeaderboardPage"));
 const SnapshotsPage       = lazy(() => import("./pages/SnapshotsPage"));
 const ArchivedPage        = lazy(() => import("./pages/ArchivedPage"));
 const StaffPage           = lazy(() => import("./pages/StaffPage"));
+const StaffProfilePage    = lazy(() => import("./pages/StaffProfilePage"));
 const StaffEngagementPage = lazy(() => import("./pages/StaffEngagementPage"));
 const MonitoringPage      = lazy(() => import("./pages/MonitoringPage"));
 const ReportsPage         = lazy(() => import("./pages/ReportsPage"));
 const AuditPage           = lazy(() => import("./pages/AuditPage"));
 const CompanyPage         = lazy(() => import("./pages/CompanyPage"));
+const CompanyProfilePage  = lazy(() => import("./pages/CompanyProfilePage"));
+const CompanyComparePage  = lazy(() => import("./pages/CompanyComparePage"));
 const DepartmentPage      = lazy(() => import("./pages/DepartmentPage"));
 const UsersPage           = lazy(() => import("./pages/UsersPage"));
 
@@ -51,8 +55,9 @@ function AnimatedRoutes() {
 
   return (
       <Routes location={location} key={location.pathname}>
-        {/* Login — no PageTransition wrapper */}
-        <Route path="/" element={<LoginPage />} />
+        {/* Landing awam — pengguna ber-token terus ke dashboard */}
+        <Route path="/" element={localStorage.getItem("token") ? <Navigate replace to="/dashboard" /> : <LandingPage />} />
+        <Route path="/login" element={<LoginPage />} />
 
         {/* ── Both roles can access these ── */}
         <Route path="/dashboard" element={
@@ -68,6 +73,11 @@ function AnimatedRoutes() {
         <Route path="/staff" element={
           <ProtectedRoute>
             <PageTransition><StaffPage /></PageTransition>
+          </ProtectedRoute>
+        } />
+        <Route path="/staff/:staffId" element={
+          <ProtectedRoute>
+            <StaffProfilePage />
           </ProtectedRoute>
         } />
         <Route path="/staff-engagement" element={
@@ -89,7 +99,17 @@ function AnimatedRoutes() {
         {/* ── SuperAdmin only ── */}
         <Route path="/company" element={
           <SuperAdminRoute>
-            <PageTransition><CompanyPage /></PageTransition>
+            <CompanyPage />
+          </SuperAdminRoute>
+        } />
+        <Route path="/company/:companyId" element={
+          <SuperAdminRoute>
+            <CompanyProfilePage />
+          </SuperAdminRoute>
+        } />
+        <Route path="/company/compare" element={
+          <SuperAdminRoute>
+            <CompanyComparePage />
           </SuperAdminRoute>
         } />
         <Route path="/departments" element={

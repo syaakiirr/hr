@@ -1,0 +1,92 @@
+- generic [ref=f5e3]:
+  - banner [ref=f5e4]:
+    - generic [ref=f5e5]:
+      - generic [ref=f5e6]:
+        - img "SociHR logo" [ref=f5e7]
+        - generic [ref=f5e8]: SociHR
+      - button "Sign in" [ref=f5e9] [cursor=pointer]
+  - generic [ref=f5e13]:
+    - generic [ref=f5e14]:
+      - heading "Every employee engagement. One HR view." [level=1] [ref=f5e15]
+      - paragraph [ref=f5e16]: SociHR consolidates staff social-media engagement across platforms into a single monitorable, reportable workspace.
+      - button "Sign in to workspace" [ref=f5e17] [cursor=pointer]
+      - paragraph [ref=f5e20]: Self-hosted · JWT-secured · Fully audited
+    - generic [ref=f5e21]:
+      - generic [ref=f5e22]: SociHR · Company compliance
+      - generic [ref=f5e27]:
+        - generic [ref=f5e28]:
+          - generic [ref=f5e29]:
+            - paragraph [ref=f5e30]: AVG COMPLIANCE
+            - paragraph [ref=f5e31]: 73%
+          - generic [ref=f5e32]:
+            - paragraph [ref=f5e33]: COMPLETED
+            - paragraph [ref=f5e34]: 1,683
+        - paragraph [ref=f5e38]: Sample workspace preview
+  - generic [ref=f5e39]:
+    - generic [ref=f5e40]:
+      - heading "Built for engagement accountability" [level=2] [ref=f5e41]
+      - paragraph [ref=f5e42]: Everything a People Operations team needs to see who engages, how consistently, and to prove it.
+    - generic [ref=f5e43]:
+      - generic [ref=f5e44]:
+        - heading "Monitoring sessions" [level=3] [ref=f5e48]
+        - paragraph [ref=f5e49]: Dated, named sessions of tracked posts with platform links and company assignments — the unit of accountability.
+      - generic [ref=f5e50]:
+        - heading "Engagement tracking" [level=3] [ref=f5e53]
+        - paragraph [ref=f5e54]: Likes, comments and shares consolidated per staff, per session and per company — no hopping between social apps.
+      - generic [ref=f5e55]:
+        - heading "Excel & PDF reports" [level=3] [ref=f5e59]
+        - paragraph [ref=f5e60]: "One-click performance exports plus a composable custom Excel: rankings, trends, sessions and staff tables."
+      - generic [ref=f5e61]:
+        - heading "Snapshots" [level=3] [ref=f5e65]
+        - paragraph [ref=f5e66]: Freeze the dashboard state with notes, then reload or compare it later. The record survives the moment.
+      - generic [ref=f5e67]:
+        - heading "Audit trail" [level=3] [ref=f5e71]
+        - paragraph [ref=f5e72]: Every status change recorded with who, when, previous and new values. Defensible by default.
+      - generic [ref=f5e73]:
+        - heading "Companies & departments" [level=3] [ref=f5e78]
+        - paragraph [ref=f5e79]: Scope every number by organization unit, with role-based views for SuperAdmin and department admins.
+  - generic [ref=f5e81]:
+    - heading "From roster to report in three steps" [level=2] [ref=f5e82]
+    - generic [ref=f5e83]:
+      - generic [ref=f5e84]:
+        - generic [ref=f5e85]: "1"
+        - generic [ref=f5e86]:
+          - heading "Enroll the directory" [level=3] [ref=f5e87]
+          - paragraph [ref=f5e88]: Add staff, group them into departments and companies, assign roles.
+      - generic [ref=f5e89]:
+        - generic [ref=f5e90]: "2"
+        - generic [ref=f5e91]:
+          - heading "Run sessions" [level=3] [ref=f5e92]
+          - paragraph [ref=f5e93]: Create dated monitoring sessions, attach posts and companies, track ticks.
+      - generic [ref=f5e94]:
+        - generic [ref=f5e95]: "3"
+        - generic [ref=f5e96]:
+          - heading "Report & audit" [level=3] [ref=f5e97]
+          - paragraph [ref=f5e98]: Read the dashboard, export Excel or PDF, and rely on the audit trail.
+  - generic [ref=f5e99]:
+    - generic [ref=f5e100]:
+      - heading "Governed by design" [level=2] [ref=f5e101]
+      - paragraph [ref=f5e102]: HR data stays defensible with authentication, scoped access and a complete audit record.
+    - generic [ref=f5e103]:
+      - generic [ref=f5e108]:
+        - paragraph [ref=f5e109]: JWT authentication
+        - paragraph [ref=f5e110]: Short-lived signed tokens on every request.
+      - generic [ref=f5e117]:
+        - paragraph [ref=f5e118]: Role-based access
+        - paragraph [ref=f5e119]: SuperAdmin and department-scoped admins.
+      - generic [ref=f5e124]:
+        - paragraph [ref=f5e125]: Login safeguards
+        - paragraph [ref=f5e126]: TOTP two-factor, account lockout and rate limits.
+      - generic [ref=f5e130]:
+        - paragraph [ref=f5e131]: Full audit log
+        - paragraph [ref=f5e132]: Logins, admin actions, archives and exports recorded.
+  - generic [ref=f5e134]:
+    - heading "See your team's engagement clearly" [level=2] [ref=f5e135]
+    - paragraph [ref=f5e136]: Sign in to open your workspace dashboard.
+    - button "Sign in to workspace" [ref=f5e137] [cursor=pointer]
+  - contentinfo [ref=f5e140]:
+    - generic [ref=f5e141]:
+      - generic [ref=f5e142]:
+        - img "SociHR logo" [ref=f5e143]
+        - generic [ref=f5e144]: SociHR · Social Media Engagement Monitor
+      - generic [ref=f5e145]: © 2026 SociHR · Crafted by @syaakiirr

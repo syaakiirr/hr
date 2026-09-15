@@ -1,0 +1,7 @@
+{
+  "rules": [
+    { "from": "ui", "to": "services", "type": "FORBIDDEN", "reason": "Services (socihr-frontend/src/services) must never consume symbols from pages — data flow is pages -> services" },
+    { "from": "components", "to": "services", "type": "FORBIDDEN", "reason": "Services must never consume symbols from components — data flow is components -> services" },
+    { "from": "ui", "to": "components", "type": "FORBIDDEN", "reason": "Components must never consume symbols from pages — pages compose components, not the reverse" }
+  ]
+}
