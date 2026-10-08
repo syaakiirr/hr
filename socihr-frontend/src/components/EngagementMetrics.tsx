@@ -1,5 +1,5 @@
 import { useState, useEffect, memo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { Clock, CalendarDays, BarChart3 } from "lucide-react";
 import { getSessions, getEngagements, type KpiData } from "../services/api";
 

@@ -1,8 +1,13 @@
 import { useState, useEffect, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import Layout from "../components/Layout";
+import GlareHover from "../components/GlareHover";
+import Confetti from "../components/Confetti";
+import CountUp from "../components/CountUp";
 import { getLeaderboard, getDepartments, type LeaderboardEntry, type Department } from "../services/api";
 import { useDateFilter, getDateRange } from "../contexts/DateFilterContext";
+import { queryClient } from "../lib/queryClient";
+import { queryKeys } from "../lib/queryKeys";
 
 // ==========================================
 // Crisp Lucide SVG Icon Components
@@ -258,19 +263,45 @@ export default function LeaderboardPage() {
   const [showRulesModal, setShowRulesModal] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [fireConfetti, setFireConfetti] = useState(false);
+
+  useEffect(() => {
+    if (!loading && leaderboard.length > 0) {
+      const timer = setTimeout(() => setFireConfetti(true), 350);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, leaderboard.length]);
 
   useEffect(() => {
     async function loadData() {
-      setLoading(true);
+      const { from, to } = getDateRange(filter);
+      const queryParams = {
+        from: from || undefined,
+        to: to || undefined,
+        department: selectedDept === "All" ? undefined : selectedDept,
+      };
+
+      const cachedLb = queryClient.getQueryData<LeaderboardEntry[]>(queryKeys.leaderboard.list(queryParams));
+      const cachedDepts = queryClient.getQueryData<Department[]>(queryKeys.department.list);
+
+      if (cachedLb) {
+        setLeaderboard(cachedLb);
+        if (cachedDepts) setDepartments(cachedDepts);
+        setLoading(false);
+      } else {
+        setLoading(true);
+      }
+
       try {
-        const { from, to } = getDateRange(filter);
         const [lbData, deptData] = await Promise.all([
-          getLeaderboard({
-            from: from || undefined,
-            to: to || undefined,
-            department: selectedDept === "All" ? undefined : selectedDept,
+          queryClient.fetchQuery({
+            queryKey: queryKeys.leaderboard.list(queryParams),
+            queryFn: () => getLeaderboard(queryParams),
           }),
-          getDepartments(),
+          queryClient.fetchQuery({
+            queryKey: queryKeys.department.list,
+            queryFn: getDepartments,
+          }),
         ]);
         setLeaderboard(lbData);
         setDepartments(deptData);
@@ -402,8 +433,14 @@ export default function LeaderboardPage() {
   const top2 = leaderboard.length > 1 ? leaderboard[1] : null;
   const top3 = leaderboard.length > 2 ? leaderboard[2] : null;
 
+  // Tie detection — markah sama = SERI (tiada tiebreaker senyap).
+  // Contoh: tiga staf 432 pts / 100% dipapar "SERI", bukan 1-2-3 palsu.
+  const tie12 = !!top1 && !!top2 && top1.score === top2.score && top1.completionRate === top2.completionRate;
+  const tie23 = !!top2 && !!top3 && top2.score === top3.score && top2.completionRate === top3.completionRate;
+
   return (
     <Layout>
+      <Confetti trigger={fireConfetti} onComplete={() => setFireConfetti(false)} />
       <div style={{ padding: "32px 36px 64px", maxWidth: 1240, margin: "0 auto", width: "100%" }}>
         {/* Page Header with Ambient Lighting */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16, marginBottom: 28 }}>
@@ -556,105 +593,117 @@ export default function LeaderboardPage() {
               marginBottom: 32,
             }}
           >
-            <div
-              style={{
-                padding: "14px 18px",
-                borderRadius: "var(--r-lg)",
-                background: "var(--white)",
-                border: "1px solid var(--line)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(99,102,241,0.1)", color: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <UsersIcon size={18} />
+            <GlareHover borderRadius="var(--r-lg)" maxTilt={5} scale={1.015}>
+              <div
+                style={{
+                  padding: "14px 18px",
+                  borderRadius: "var(--r-lg)",
+                  background: "var(--white)",
+                  border: "1px solid var(--line)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  height: "100%",
+                }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(99,102,241,0.1)", color: "#6366f1", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <UsersIcon size={18} />
+                </div>
+                <div>
+                  <p style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-3)", letterSpacing: "0.04em" }}>
+                    Active Staff
+                  </p>
+                  <p style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-1)", marginTop: 1 }}>
+                    <CountUp to={summaryMetrics.totalStaff} duration={1200} /> <span style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--text-3)" }}>members</span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <p style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-3)", letterSpacing: "0.04em" }}>
-                  Active Staff
-                </p>
-                <p style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-1)", marginTop: 1 }}>
-                  {summaryMetrics.totalStaff} <span style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--text-3)" }}>members</span>
-                </p>
-              </div>
-            </div>
+            </GlareHover>
 
-            <div
-              style={{
-                padding: "14px 18px",
-                borderRadius: "var(--r-lg)",
-                background: "var(--white)",
-                border: "1px solid var(--line)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(245,158,11,0.1)", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <ActivityIcon size={18} />
+            <GlareHover borderRadius="var(--r-lg)" maxTilt={5} scale={1.015}>
+              <div
+                style={{
+                  padding: "14px 18px",
+                  borderRadius: "var(--r-lg)",
+                  background: "var(--white)",
+                  border: "1px solid var(--line)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  height: "100%",
+                }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(245,158,11,0.1)", color: "#d97706", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <ActivityIcon size={18} />
+                </div>
+                <div>
+                  <p style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-3)", letterSpacing: "0.04em" }}>
+                    Average Score
+                  </p>
+                  <p style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-1)", marginTop: 1 }}>
+                    <CountUp to={summaryMetrics.avgScore} duration={1400} separator="," /> <span style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--text-3)" }}>pts</span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <p style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-3)", letterSpacing: "0.04em" }}>
-                  Average Score
-                </p>
-                <p style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-1)", marginTop: 1 }}>
-                  {summaryMetrics.avgScore.toLocaleString()} <span style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--text-3)" }}>pts</span>
-                </p>
-              </div>
-            </div>
+            </GlareHover>
 
-            <div
-              style={{
-                padding: "14px 18px",
-                borderRadius: "var(--r-lg)",
-                background: "var(--white)",
-                border: "1px solid var(--line)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(16,185,129,0.1)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <TargetIcon size={18} />
+            <GlareHover borderRadius="var(--r-lg)" maxTilt={5} scale={1.015}>
+              <div
+                style={{
+                  padding: "14px 18px",
+                  borderRadius: "var(--r-lg)",
+                  background: "var(--white)",
+                  border: "1px solid var(--line)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  height: "100%",
+                }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(16,185,129,0.1)", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <TargetIcon size={18} />
+                </div>
+                <div>
+                  <p style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-3)", letterSpacing: "0.04em" }}>
+                    Avg Completion
+                  </p>
+                  <p style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-1)", marginTop: 1 }}>
+                    <CountUp to={summaryMetrics.avgRate} suffix="%" duration={1200} /> <span style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--text-3)" }}>rate</span>
+                  </p>
+                </div>
               </div>
-              <div>
-                <p style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-3)", letterSpacing: "0.04em" }}>
-                  Avg Completion
-                </p>
-                <p style={{ fontSize: "1.15rem", fontWeight: 800, color: "var(--text-1)", marginTop: 1 }}>
-                  {summaryMetrics.avgRate}% <span style={{ fontSize: "0.78rem", fontWeight: 500, color: "var(--text-3)" }}>rate</span>
-                </p>
-              </div>
-            </div>
+            </GlareHover>
 
-            <div
-              style={{
-                padding: "14px 18px",
-                borderRadius: "var(--r-lg)",
-                background: "var(--white)",
-                border: "1px solid var(--line)",
-                boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-              }}
-            >
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(14,165,233,0.1)", color: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <BuildingIcon size={18} />
+            <GlareHover borderRadius="var(--r-lg)" maxTilt={5} scale={1.015}>
+              <div
+                style={{
+                  padding: "14px 18px",
+                  borderRadius: "var(--r-lg)",
+                  background: "var(--white)",
+                  border: "1px solid var(--line)",
+                  boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 14,
+                  height: "100%",
+                }}
+              >
+                <div style={{ width: 38, height: 38, borderRadius: 10, background: "rgba(14,165,233,0.1)", color: "#0ea5e9", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <BuildingIcon size={18} />
+                </div>
+                <div style={{ overflow: "hidden" }}>
+                  <p style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-3)", letterSpacing: "0.04em" }}>
+                    Leading Dept
+                  </p>
+                  <p style={{ fontSize: "0.92rem", fontWeight: 700, color: "var(--text-1)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {toTitleCase(summaryMetrics.topDept)}
+                  </p>
+                </div>
               </div>
-              <div style={{ overflow: "hidden" }}>
-                <p style={{ fontSize: "0.72rem", fontWeight: 700, textTransform: "uppercase", color: "var(--text-3)", letterSpacing: "0.04em" }}>
-                  Leading Dept
-                </p>
-                <p style={{ fontSize: "0.92rem", fontWeight: 700, color: "var(--text-1)", marginTop: 1, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                  {toTitleCase(summaryMetrics.topDept)}
-                </p>
-              </div>
-            </div>
+            </GlareHover>
           </div>
         )}
 
@@ -694,351 +743,368 @@ export default function LeaderboardPage() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(min(280px, 100%), 1fr))",
                   gap: 22,
-                  marginBottom: 38,
                   alignItems: "flex-end",
                   maxWidth: 1040,
                   margin: "0 auto 38px",
+                  paddingTop: 16,
+                  overflowX: "clip",
+                  minWidth: 0,
                 }}
               >
                 {/* 2nd Place (Silver) */}
                 {top2 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1, duration: 0.4 }}
-                    style={{
-                      background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.95) 100%)",
-                      borderRadius: 20,
-                      border: "1px solid rgba(148, 163, 184, 0.45)",
-                      padding: "24px 18px 16px",
-                      textAlign: "center",
-                      position: "relative",
-                      boxShadow: "0 8px 24px -4px rgba(100, 116, 139, 0.12)",
-                      height: 310,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div
+                  <GlareHover borderRadius={20} maxTilt={6} scale={1.018} glareColor="rgba(226, 232, 240, 0.45)" style={{ minWidth: 0 }}>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.1, duration: 0.4 }}
                       style={{
-                        position: "absolute",
-                        top: -13,
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        background: "linear-gradient(135deg, #64748b, #475569)",
-                        color: "#fff",
-                        fontWeight: 800,
-                        fontSize: 10.5,
-                        letterSpacing: "0.06em",
-                        padding: "3px 14px",
-                        borderRadius: 99,
-                        boxShadow: "0 2px 10px rgba(100,116,139,0.35)",
+                        background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.95) 100%)",
+                        borderRadius: 20,
+                        border: "1px solid rgba(148, 163, 184, 0.45)",
+                        padding: "24px 18px 16px",
+                        textAlign: "center",
+                        position: "relative",
+                        boxShadow: "0 8px 24px -4px rgba(100, 116, 139, 0.12)",
+                        height: 310,
                         display: "flex",
-                        alignItems: "center",
-                        gap: 5,
+                        flexDirection: "column",
+                        justifyContent: "space-between",
                       }}
                     >
-                      <MedalIcon size={12} color="#fff" />
-                      <span>2ND PLACE</span>
-                    </div>
-                    <div>
                       <div
                         style={{
-                          width: 52,
-                          height: 52,
-                          borderRadius: "50%",
-                          background: "linear-gradient(135deg, #e2e8f0, #cbd5e1)",
-                          color: "#1e293b",
-                          fontSize: 20,
+                          position: "absolute",
+                          top: -13,
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          background: "linear-gradient(135deg, #64748b, #475569)",
+                          color: "#fff",
                           fontWeight: 800,
+                          fontSize: 10.5,
+                          letterSpacing: "0.06em",
+                          padding: "3px 14px",
+                          borderRadius: 99,
+                          boxShadow: "0 2px 10px rgba(100,116,139,0.35)",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          margin: "6px auto 8px",
-                          border: "2px solid #94a3b8",
-                          boxShadow: "0 3px 10px rgba(148, 163, 184, 0.2)",
+                          gap: 5,
                         }}
                       >
-                        {top2.fullName.charAt(0)}
+                        <MedalIcon size={12} color="#fff" />
+                        <span style={{ whiteSpace: "nowrap" }}>{tie12 || tie23 ? "2ND PLACE • SERI" : "2ND PLACE"}</span>
                       </div>
-                      <div style={{ height: 46, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <h3 style={{ fontSize: "0.96rem", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {toTitleCase(top2.fullName)}
-                        </h3>
-                      </div>
-                      <div style={{ height: 34, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
-                        <p style={{ fontSize: "0.76rem", color: "var(--text-3)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {toTitleCase(top2.department)} • {toTitleCase(top2.position)}
-                        </p>
-                      </div>
-                      <div style={{ marginTop: 10, display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-                        <span
+                      <div>
+                        <div
                           style={{
-                            fontSize: 11.5,
+                            width: 52,
+                            height: 52,
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #e2e8f0, #cbd5e1)",
+                            color: "#1e293b",
+                            fontSize: 20,
                             fontWeight: 800,
-                            padding: "3px 10px",
-                            borderRadius: 12,
-                            background: "var(--accent-soft)",
-                            color: "var(--accent)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            margin: "6px auto 8px",
+                            border: "2px solid #94a3b8",
+                            boxShadow: "0 3px 10px rgba(148, 163, 184, 0.2)",
                           }}
                         >
-                          {top2.score.toLocaleString()} pts
+                          {top2.fullName.charAt(0)}
+                        </div>
+                        <div style={{ height: 46, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <h3 style={{ fontSize: "0.96rem", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {toTitleCase(top2.fullName)}
+                          </h3>
+                        </div>
+                        <div style={{ height: 34, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
+                          <p style={{ fontSize: "0.76rem", color: "var(--text-3)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {toTitleCase(top2.department)} • {toTitleCase(top2.position)}
+                          </p>
+                        </div>
+                        <div style={{ marginTop: 10, display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              fontWeight: 800,
+                              padding: "3px 10px",
+                              borderRadius: 12,
+                              background: "var(--accent-soft)",
+                              color: "var(--accent)",
+                            }}
+                          >
+                            <CountUp to={top2.score} duration={1400} separator="," suffix=" pts" />
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              padding: "3px 10px",
+                              borderRadius: 12,
+                              background: "var(--green-soft)",
+                              color: "var(--green)",
+                            }}
+                          >
+                            <CountUp to={top2.completionRate} duration={1200} suffix="% Rate" />
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ paddingTop: 10, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", gap: 14, fontSize: 11, color: "var(--text-3)" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <ThumbsUpIcon size={12} color="var(--blue)" /> {top2.likes}
                         </span>
-                        <span
-                          style={{
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            padding: "3px 10px",
-                            borderRadius: 12,
-                            background: "var(--green-soft)",
-                            color: "var(--green)",
-                          }}
-                        >
-                          {top2.completionRate}% Rate
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <MessageSquareIcon size={12} color="var(--accent)" /> {top2.comments}
+                        </span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <ShareIcon size={12} color="var(--green)" /> {top2.shares}
                         </span>
                       </div>
-                    </div>
-                    <div style={{ paddingTop: 10, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", gap: 14, fontSize: 11, color: "var(--text-3)" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <ThumbsUpIcon size={12} color="var(--blue)" /> {top2.likes}
-                      </span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <MessageSquareIcon size={12} color="var(--accent)" /> {top2.comments}
-                      </span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <ShareIcon size={12} color="var(--green)" /> {top2.shares}
-                      </span>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </GlareHover>
                 )}
 
                 {/* 1st Place (Gold Crown) */}
                 {top1 && (
-                  <motion.div
-                    initial={{ opacity: 0, scale: 0.95, y: 10 }}
-                    animate={{ opacity: 1, scale: 1, y: 0 }}
-                    transition={{ delay: 0.2, duration: 0.4 }}
-                    style={{
-                      background: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(254,243,199,0.2) 100%)",
-                      borderRadius: 22,
-                      border: "2px solid #f59e0b",
-                      padding: "26px 20px 20px",
-                      textAlign: "center",
-                      position: "relative",
-                      boxShadow: "0 14px 38px rgba(245, 158, 11, 0.22)",
-                      height: 355,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                    }}
+                  <GlareHover
+                    borderRadius={22}
+                    maxTilt={7}
+                    scale={1.025}
+                    style={{ cursor: "pointer", minWidth: 0 }}
+                    onClick={() => setFireConfetti(true)}
+                    title="Click to celebrate top performer!"
                   >
-                    <div
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                      animate={{ opacity: 1, scale: 1, y: 0 }}
+                      transition={{ delay: 0.2, duration: 0.4 }}
                       style={{
-                        position: "absolute",
-                        top: -15,
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        background: "linear-gradient(135deg, #f59e0b, #d97706)",
-                        color: "#fff",
-                        fontWeight: 800,
-                        fontSize: 11,
-                        letterSpacing: "0.06em",
-                        padding: "4px 18px",
-                        borderRadius: 99,
-                        boxShadow: "0 4px 14px rgba(245, 158, 11, 0.45)",
+                        background: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(254,243,199,0.2) 100%)",
+                        borderRadius: 22,
+                        border: "2px solid #f59e0b",
+                        padding: "26px 20px 20px",
+                        textAlign: "center",
+                        position: "relative",
+                        boxShadow: "0 14px 38px rgba(245, 158, 11, 0.22)",
+                        height: 355,
                         display: "flex",
-                        alignItems: "center",
-                        gap: 6,
+                        flexDirection: "column",
+                        justifyContent: "space-between",
                       }}
                     >
-                      <CrownIcon size={13} color="#fff" />
-                      <span>TOP PERFORMER</span>
-                    </div>
-                    <div>
+
                       <div
                         style={{
-                          width: 68,
-                          height: 68,
-                          borderRadius: "50%",
-                          background: "linear-gradient(135deg, #fde68a, #f59e0b)",
-                          color: "#78350f",
-                          fontSize: 26,
+                          position: "absolute",
+                          top: -15,
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          background: "linear-gradient(135deg, #f59e0b, #d97706)",
+                          color: "#fff",
                           fontWeight: 800,
+                          fontSize: 11,
+                          letterSpacing: "0.06em",
+                          padding: "4px 18px",
+                          borderRadius: 99,
+                          boxShadow: "0 4px 14px rgba(245, 158, 11, 0.45)",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          margin: "8px auto 8px",
-                          border: "3px solid #fff",
-                          boxShadow: "0 6px 18px rgba(245, 158, 11, 0.35)",
+                          gap: 6,
+                          zIndex: 2,
                         }}
                       >
-                        {top1.fullName.charAt(0)}
+                        <CrownIcon size={13} color="#fff" />
+                        <span style={{ whiteSpace: "nowrap" }}>{tie12 ? "TOP PERFORMER • SERI" : "TOP PERFORMER"}</span>
                       </div>
-                      <div style={{ height: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <h3 style={{ fontSize: "1.08rem", fontWeight: 800, color: "var(--text-1)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {toTitleCase(top1.fullName)}
-                        </h3>
-                      </div>
-                      <div style={{ height: 34, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
-                        <p style={{ fontSize: "0.78rem", color: "var(--text-3)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {toTitleCase(top1.department)} • {toTitleCase(top1.position)}
-                        </p>
-                      </div>
-                      <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
-                        <span
+                      <div>
+                        <div
                           style={{
-                            fontSize: 12.5,
+                            width: 68,
+                            height: 68,
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #fde68a, #f59e0b)",
+                            color: "#78350f",
+                            fontSize: 26,
                             fontWeight: 800,
-                            padding: "4px 12px",
-                            borderRadius: 14,
-                            background: "var(--amber-soft)",
-                            color: "var(--amber)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            margin: "8px auto 8px",
+                            border: "3px solid #fff",
+                            boxShadow: "0 6px 18px rgba(245, 158, 11, 0.35)",
                           }}
                         >
-                          {top1.score.toLocaleString()} pts
+                          {top1.fullName.charAt(0)}
+                        </div>
+                        <div style={{ height: 50, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <h3 style={{ fontSize: "1.08rem", fontWeight: 800, color: "var(--text-1)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {toTitleCase(top1.fullName)}
+                          </h3>
+                        </div>
+                        <div style={{ height: 34, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
+                          <p style={{ fontSize: "0.78rem", color: "var(--text-3)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {toTitleCase(top1.department)} • {toTitleCase(top1.position)}
+                          </p>
+                        </div>
+                        <div style={{ marginTop: 12, display: "flex", justifyContent: "center", gap: 8, flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              fontSize: 12.5,
+                              fontWeight: 800,
+                              padding: "4px 12px",
+                              borderRadius: 14,
+                              background: "var(--amber-soft)",
+                              color: "var(--amber)",
+                            }}
+                          >
+                            <CountUp to={top1.score} duration={1600} separator="," suffix=" pts" />
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 12.5,
+                              fontWeight: 800,
+                              padding: "4px 12px",
+                              borderRadius: 14,
+                              background: "var(--green-soft)",
+                              color: "var(--green)",
+                            }}
+                          >
+                            <CountUp to={top1.completionRate} duration={1300} suffix="% Rate" />
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", gap: 16, fontSize: 11.5, color: "var(--text-2)", fontWeight: 600 }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--blue)" }}>
+                          <ThumbsUpIcon size={13} color="var(--blue)" /> {top1.likes}
                         </span>
-                        <span
-                          style={{
-                            fontSize: 12.5,
-                            fontWeight: 800,
-                            padding: "4px 12px",
-                            borderRadius: 14,
-                            background: "var(--green-soft)",
-                            color: "var(--green)",
-                          }}
-                        >
-                          {top1.completionRate}% Rate
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent)" }}>
+                          <MessageSquareIcon size={13} color="var(--accent)" /> {top1.comments}
+                        </span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--green)" }}>
+                          <ShareIcon size={13} color="var(--green)" /> {top1.shares}
                         </span>
                       </div>
-                    </div>
-                    <div style={{ paddingTop: 12, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", gap: 16, fontSize: 11.5, color: "var(--text-2)", fontWeight: 600 }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--blue)" }}>
-                        <ThumbsUpIcon size={13} color="var(--blue)" /> {top1.likes}
-                      </span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--accent)" }}>
-                        <MessageSquareIcon size={13} color="var(--accent)" /> {top1.comments}
-                      </span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4, color: "var(--green)" }}>
-                        <ShareIcon size={13} color="var(--green)" /> {top1.shares}
-                      </span>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </GlareHover>
                 )}
 
                 {/* 3rd Place (Bronze) */}
                 {top3 && (
-                  <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3, duration: 0.4 }}
-                    style={{
-                      background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,247,237,0.95) 100%)",
-                      borderRadius: 20,
-                      border: "1px solid rgba(217, 119, 6, 0.4)",
-                      padding: "24px 18px 16px",
-                      textAlign: "center",
-                      position: "relative",
-                      boxShadow: "0 8px 24px -4px rgba(217, 119, 6, 0.14)",
-                      height: 310,
-                      display: "flex",
-                      flexDirection: "column",
-                      justifyContent: "space-between",
-                    }}
-                  >
-                    <div
+                  <GlareHover borderRadius={20} maxTilt={6} scale={1.018} glareColor="rgba(217, 119, 6, 0.35)" style={{ minWidth: 0 }}>
+                    <motion.div
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3, duration: 0.4 }}
                       style={{
-                        position: "absolute",
-                        top: -13,
-                        left: "50%",
-                        transform: "translateX(-50%)",
-                        background: "linear-gradient(135deg, #d97706, #b45309)",
-                        color: "#fff",
-                        fontWeight: 800,
-                        fontSize: 10.5,
-                        letterSpacing: "0.06em",
-                        padding: "3px 14px",
-                        borderRadius: 99,
-                        boxShadow: "0 2px 10px rgba(217, 119, 6, 0.35)",
+                        background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,247,237,0.95) 100%)",
+                        borderRadius: 20,
+                        border: "1px solid rgba(217, 119, 6, 0.4)",
+                        padding: "24px 18px 16px",
+                        textAlign: "center",
+                        position: "relative",
+                        boxShadow: "0 8px 24px -4px rgba(217, 119, 6, 0.14)",
+                        height: 310,
                         display: "flex",
-                        alignItems: "center",
-                        gap: 5,
+                        flexDirection: "column",
+                        justifyContent: "space-between",
                       }}
                     >
-                      <MedalIcon size={12} color="#fff" />
-                      <span>3RD PLACE</span>
-                    </div>
-                    <div>
                       <div
                         style={{
-                          width: 52,
-                          height: 52,
-                          borderRadius: "50%",
-                          background: "linear-gradient(135deg, #fed7aa, #d97706)",
-                          color: "#7c2d12",
-                          fontSize: 20,
+                          position: "absolute",
+                          top: -13,
+                          left: "50%",
+                          transform: "translateX(-50%)",
+                          background: "linear-gradient(135deg, #d97706, #b45309)",
+                          color: "#fff",
                           fontWeight: 800,
+                          fontSize: 10.5,
+                          letterSpacing: "0.06em",
+                          padding: "3px 14px",
+                          borderRadius: 99,
+                          boxShadow: "0 2px 10px rgba(217, 119, 6, 0.35)",
                           display: "flex",
                           alignItems: "center",
-                          justifyContent: "center",
-                          margin: "6px auto 8px",
-                          border: "2px solid #ea580c",
-                          boxShadow: "0 3px 10px rgba(234, 88, 12, 0.2)",
+                          gap: 5,
                         }}
                       >
-                        {top3.fullName.charAt(0)}
+                        <MedalIcon size={12} color="#fff" />
+                        <span style={{ whiteSpace: "nowrap" }}>{tie23 ? "3RD PLACE • SERI" : "3RD PLACE"}</span>
                       </div>
-                      <div style={{ height: 46, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                        <h3 style={{ fontSize: "0.96rem", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {toTitleCase(top3.fullName)}
-                        </h3>
-                      </div>
-                      <div style={{ height: 34, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
-                        <p style={{ fontSize: "0.76rem", color: "var(--text-3)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                          {toTitleCase(top3.department)} • {toTitleCase(top3.position)}
-                        </p>
-                      </div>
-                      <div style={{ marginTop: 10, display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
-                        <span
+                      <div>
+                        <div
                           style={{
-                            fontSize: 11.5,
+                            width: 52,
+                            height: 52,
+                            borderRadius: "50%",
+                            background: "linear-gradient(135deg, #fed7aa, #d97706)",
+                            color: "#7c2d12",
+                            fontSize: 20,
                             fontWeight: 800,
-                            padding: "3px 10px",
-                            borderRadius: 12,
-                            background: "var(--accent-soft)",
-                            color: "var(--accent)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            margin: "6px auto 8px",
+                            border: "2px solid #ea580c",
+                            boxShadow: "0 3px 10px rgba(234, 88, 12, 0.2)",
                           }}
                         >
-                          {top3.score.toLocaleString()} pts
+                          {top3.fullName.charAt(0)}
+                        </div>
+                        <div style={{ height: 46, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                          <h3 style={{ fontSize: "0.96rem", fontWeight: 700, color: "var(--text-1)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {toTitleCase(top3.fullName)}
+                          </h3>
+                        </div>
+                        <div style={{ height: 34, display: "flex", alignItems: "center", justifyContent: "center", marginTop: 2 }}>
+                          <p style={{ fontSize: "0.76rem", color: "var(--text-3)", lineHeight: 1.25, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                            {toTitleCase(top3.department)} • {toTitleCase(top3.position)}
+                          </p>
+                        </div>
+                        <div style={{ marginTop: 10, display: "flex", justifyContent: "center", gap: 6, flexWrap: "wrap" }}>
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              fontWeight: 800,
+                              padding: "3px 10px",
+                              borderRadius: 12,
+                              background: "var(--accent-soft)",
+                              color: "var(--accent)",
+                            }}
+                          >
+                            <CountUp to={top3.score} duration={1400} separator="," suffix=" pts" />
+                          </span>
+                          <span
+                            style={{
+                              fontSize: 11.5,
+                              fontWeight: 700,
+                              padding: "3px 10px",
+                              borderRadius: 12,
+                              background: "var(--green-soft)",
+                              color: "var(--green)",
+                            }}
+                          >
+                            <CountUp to={top3.completionRate} duration={1200} suffix="% Rate" />
+                          </span>
+                        </div>
+                      </div>
+                      <div style={{ paddingTop: 10, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", gap: 14, fontSize: 11, color: "var(--text-3)" }}>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <ThumbsUpIcon size={12} color="var(--blue)" /> {top3.likes}
                         </span>
-                        <span
-                          style={{
-                            fontSize: 11.5,
-                            fontWeight: 700,
-                            padding: "3px 10px",
-                            borderRadius: 12,
-                            background: "var(--green-soft)",
-                            color: "var(--green)",
-                          }}
-                        >
-                          {top3.completionRate}% Rate
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <MessageSquareIcon size={12} color="var(--accent)" /> {top3.comments}
+                        </span>
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                          <ShareIcon size={12} color="var(--green)" /> {top3.shares}
                         </span>
                       </div>
-                    </div>
-                    <div style={{ paddingTop: 10, borderTop: "1px solid var(--line)", display: "flex", justifyContent: "center", gap: 14, fontSize: 11, color: "var(--text-3)" }}>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <ThumbsUpIcon size={12} color="var(--blue)" /> {top3.likes}
-                      </span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <MessageSquareIcon size={12} color="var(--accent)" /> {top3.comments}
-                      </span>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                        <ShareIcon size={12} color="var(--green)" /> {top3.shares}
-                      </span>
-                    </div>
-                  </motion.div>
+                    </motion.div>
+                  </GlareHover>
                 )}
               </div>
             )}

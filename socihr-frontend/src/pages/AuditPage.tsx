@@ -234,7 +234,9 @@ export default function AuditPage() {
               background: "var(--white)",
               borderRadius: "var(--r-md)",
               border: "1px solid var(--line)",
-              overflow: "hidden",
+              maxHeight: "calc(100vh - 330px)",
+              minHeight: 320,
+              overflow: "auto",
             }}
           >
             <table className="tbl" style={{ width: "100%", borderCollapse: "collapse" }}>
@@ -254,20 +256,20 @@ export default function AuditPage() {
               <tbody>
                 {filteredItems.map((item) => (
                   <tr key={item.auditID}>
-                    <td style={{ fontSize: "0.78rem", color: "var(--text-3)", whiteSpace: "nowrap" }}>
+                    <td style={{ fontSize: 13, color: "var(--text-3)", whiteSpace: "nowrap" }}>
                       <div>{new Date(item.updatedAt).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}</div>
-                      <div style={{ color: "var(--text-4)", fontSize: "0.74rem", marginTop: 1 }}>
+                      <div style={{ color: "var(--text-4)", fontSize: 12, marginTop: 1 }}>
                         {new Date(item.updatedAt).toLocaleTimeString("en-MY", { hour: "2-digit", minute: "2-digit" })}
                       </div>
                     </td>
-                    <td style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "0.86rem" }}>{toTitleCase(item.staffName)}</td>
+                    <td className="cell-ellipsis" title={toTitleCase(item.staffName)} style={{ fontWeight: 600, color: "var(--text-1)", fontSize: 13 }}>{toTitleCase(item.staffName)}</td>
                     <td>
-                      <span style={{ fontSize: "0.8rem", color: "var(--text-2)" }}>
+                      <span style={{ fontSize: 13, color: "var(--text-2)" }}>
                         {item.department ? toTitleCase(item.department) : "—"}
                       </span>
                     </td>
-                    <td><strong style={{ fontSize: "0.82rem", color: "var(--text-2)" }}>{item.platformName}</strong></td>
-                    <td style={{ fontSize: "0.8rem", color: "var(--text-3)" }}>
+                    <td><strong style={{ fontSize: 13, color: "var(--text-2)" }}>{item.platformName}</strong></td>
+                    <td style={{ fontSize: 13, color: "var(--text-3)" }}>
                       {item.sessionDate
                         ? parseDateOnly(item.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })
                         : "—"}
@@ -286,7 +288,7 @@ export default function AuditPage() {
                         }}>
                           {item.updatedBy.charAt(0).toUpperCase()}
                         </div>
-                        <span style={{ fontSize: "0.8rem", fontWeight: 500, color: "var(--text-2)" }}>{item.updatedBy}</span>
+                        <span style={{ fontSize: 13, fontWeight: 500, color: "var(--text-2)" }}>{item.updatedBy}</span>
                       </div>
                     </td>
                   </tr>

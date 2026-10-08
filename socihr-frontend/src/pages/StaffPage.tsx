@@ -4,9 +4,13 @@ import Layout from "../components/Layout";
 import StaffForm from "../components/StaffForm";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import Toast, { type ToastState } from "../components/Toast";
+import GlareHover from "../components/GlareHover";
+import CountUp from "../components/CountUp";
 import type { Staff } from "../services/api";
 import { getStaffList, createStaff, updateStaff, toggleStaffStatus, archiveStaff, deleteStaff } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
+import { queryClient } from "../lib/queryClient";
+import { queryKeys } from "../lib/queryKeys";
 
 // ==========================================
 // Lucide SVG Icons
@@ -215,12 +219,24 @@ export default function StaffPage() {
   const [pageSize, setPageSize] = useState(15);
 
   const fetchStaff = useCallback(async () => {
-    setLoading(true);
+    const params = {
+      search: search || undefined,
+      department: filterDept || undefined,
+      status: filterStatus || undefined,
+    };
+
+    const cached = queryClient.getQueryData<Staff[]>(queryKeys.staff.list(params));
+    if (cached) {
+      setStaffList(cached);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
-      const data = await getStaffList({
-        search: search || undefined,
-        department: filterDept || undefined,
-        status: filterStatus || undefined,
+      const data = await queryClient.fetchQuery({
+        queryKey: queryKeys.staff.list(params),
+        queryFn: () => getStaffList(params),
       });
       setStaffList(data);
       setPage(1);
@@ -251,6 +267,8 @@ export default function StaffPage() {
       else await createStaff(data);
       setShowForm(false);
       setEditingStaff(null);
+      queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       showToast(editingStaff ? "Staff updated successfully" : "New staff added successfully");
       fetchStaff();
     } catch (err: unknown) {
@@ -277,6 +295,8 @@ export default function StaffPage() {
         setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
         try {
           await toggleStaffStatus(staff.staffID);
+          queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
           showToast(`Staff ${action}d successfully`);
           fetchStaff();
         } catch (err: unknown) {
@@ -298,6 +318,7 @@ export default function StaffPage() {
         setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
         try {
           await archiveStaff(staff.staffID);
+          queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
           showToast("Staff archived successfully");
           fetchStaff();
         } catch (err: unknown) {
@@ -319,6 +340,8 @@ export default function StaffPage() {
         setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
         try {
           await deleteStaff(staff.staffID);
+          queryClient.invalidateQueries({ queryKey: queryKeys.staff.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
           showToast("Staff deleted permanently");
           fetchStaff();
         } catch (err: unknown) {
@@ -399,85 +422,97 @@ export default function StaffPage() {
             marginBottom: 20,
           }}
         >
-          <div
-            style={{
-              padding: "12px 16px",
-              borderRadius: "var(--r-md)",
-              background: "var(--white)",
-              border: "1px solid var(--line)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div>
-              <span style={{ fontSize: "0.74rem", color: "var(--text-3)", fontWeight: 500 }}>Total Staff</span>
-              <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--text-1)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-                {staffList.length}
-              </p>
+          <GlareHover borderRadius="var(--r-md)" maxTilt={5} scale={1.015}>
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: "var(--r-md)",
+                background: "var(--white)",
+                border: "1px solid var(--line)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                height: "100%",
+              }}
+            >
+              <div>
+                <span style={{ fontSize: "0.74rem", color: "var(--text-3)", fontWeight: 500 }}>Total Staff</span>
+                <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--text-1)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                  <CountUp to={staffList.length} duration={1000} />
+                </p>
+              </div>
+              <span style={{ color: "var(--text-4)" }}><UsersIcon size={16} /></span>
             </div>
-            <span style={{ color: "var(--text-4)" }}><UsersIcon size={16} /></span>
-          </div>
+          </GlareHover>
 
-          <div
-            style={{
-              padding: "12px 16px",
-              borderRadius: "var(--r-md)",
-              background: "var(--white)",
-              border: "1px solid var(--line)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div>
-              <span style={{ fontSize: "0.74rem", color: "var(--text-3)", fontWeight: 500 }}>Active</span>
-              <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "#16a34a", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-                {activeCount}
-              </p>
+          <GlareHover borderRadius="var(--r-md)" maxTilt={5} scale={1.015}>
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: "var(--r-md)",
+                background: "var(--white)",
+                border: "1px solid var(--line)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                height: "100%",
+              }}
+            >
+              <div>
+                <span style={{ fontSize: "0.74rem", color: "var(--text-3)", fontWeight: 500 }}>Active</span>
+                <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "#16a34a", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                  <CountUp to={activeCount} duration={1000} />
+                </p>
+              </div>
+              <span style={{ color: "#16a34a" }}><CheckCircleIcon size={16} /></span>
             </div>
-            <span style={{ color: "#16a34a" }}><CheckCircleIcon size={16} /></span>
-          </div>
+          </GlareHover>
 
-          <div
-            style={{
-              padding: "12px 16px",
-              borderRadius: "var(--r-md)",
-              background: "var(--white)",
-              border: "1px solid var(--line)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div>
-              <span style={{ fontSize: "0.74rem", color: "var(--text-3)", fontWeight: 500 }}>Inactive</span>
-              <p style={{ fontSize: "1.2rem", fontWeight: 700, color: inactiveCount > 0 ? "var(--text-2)" : "var(--text-3)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-                {inactiveCount}
-              </p>
+          <GlareHover borderRadius="var(--r-md)" maxTilt={5} scale={1.015}>
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: "var(--r-md)",
+                background: "var(--white)",
+                border: "1px solid var(--line)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                height: "100%",
+              }}
+            >
+              <div>
+                <span style={{ fontSize: "0.74rem", color: "var(--text-3)", fontWeight: 500 }}>Inactive</span>
+                <p style={{ fontSize: "1.2rem", fontWeight: 700, color: inactiveCount > 0 ? "var(--text-2)" : "var(--text-3)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                  <CountUp to={inactiveCount} duration={1000} />
+                </p>
+              </div>
+              <span style={{ color: "var(--text-4)" }}><UserXIcon size={16} /></span>
             </div>
-            <span style={{ color: "var(--text-4)" }}><UserXIcon size={16} /></span>
-          </div>
+          </GlareHover>
 
-          <div
-            style={{
-              padding: "12px 16px",
-              borderRadius: "var(--r-md)",
-              background: "var(--white)",
-              border: "1px solid var(--line)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <div>
-              <span style={{ fontSize: "0.74rem", color: "var(--text-3)", fontWeight: 500 }}>Departments</span>
-              <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--text-1)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
-                {departments.length}
-              </p>
+          <GlareHover borderRadius="var(--r-md)" maxTilt={5} scale={1.015}>
+            <div
+              style={{
+                padding: "12px 16px",
+                borderRadius: "var(--r-md)",
+                background: "var(--white)",
+                border: "1px solid var(--line)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                height: "100%",
+              }}
+            >
+              <div>
+                <span style={{ fontSize: "0.74rem", color: "var(--text-3)", fontWeight: 500 }}>Departments</span>
+                <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--text-1)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+                  <CountUp to={departments.length} duration={1000} />
+                </p>
+              </div>
+              <span style={{ color: "var(--text-4)" }}><BuildingIcon size={16} /></span>
             </div>
-            <span style={{ color: "var(--text-4)" }}><BuildingIcon size={16} /></span>
-          </div>
+          </GlareHover>
 
           <div
             style={{
@@ -730,10 +765,10 @@ export default function StaffPage() {
                                 <p
                                   role="link"
                                   tabIndex={0}
-                                  title="View staff profile"
+                                  title={`${toTitleCase(staff.fullName)} — View staff profile`}
                                   onClick={() => navigate(`/staff/${staff.staffID}`)}
                                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/staff/${staff.staffID}`); } }}
-                                  style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "0.9rem", lineHeight: 1.3, cursor: "pointer", margin: 0 }}
+                                  style={{ fontWeight: 600, color: "var(--text-1)", fontSize: "0.9rem", lineHeight: 1.3, cursor: "pointer", margin: 0, maxWidth: 230, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
                                   onMouseEnter={(e) => { e.currentTarget.style.textDecoration = "underline"; }}
                                   onMouseLeave={(e) => { e.currentTarget.style.textDecoration = "none"; }}
                                 >

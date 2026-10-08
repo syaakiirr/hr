@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import Layout from "../components/Layout";
 import { getSnapshots, getSnapshot, deleteSnapshot, type DashboardSnapshot } from "../services/api";
 

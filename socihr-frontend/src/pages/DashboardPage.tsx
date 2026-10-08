@@ -10,8 +10,13 @@ import Layout from "../components/Layout";
 import EngagementMetrics from "../components/EngagementMetrics";
 import Toast, { type ToastState } from "../components/Toast";
 import SessionComparisonModal from "../components/SessionComparisonModal";
+import GlareHover from "../components/GlareHover";
+import AnimatedList from "../components/AnimatedList";
+import CountUp from "../components/CountUp";
 import { useDateFilter, getDateRange, DATE_FILTERS } from "../contexts/DateFilterContext";
 import { useAuth } from "../contexts/AuthContext";
+import { queryClient } from "../lib/queryClient";
+import { queryKeys } from "../lib/queryKeys";
 import {
   getDashboardKpi,
   getMonthlyTrend,
@@ -35,12 +40,24 @@ const treeShakenECharts = { use, graphic, init, getInstanceByDom, dispose };
 use([BarChart, LineChart, PieChart, HeatmapChart, GridComponent, TooltipComponent, LegendComponent, CalendarComponent, VisualMapComponent, CanvasRenderer, LegacyGridContainLabel]);
 
 const KpiCard = memo(({ label, value, sub, colorClass }: { label: string; value: string | number; sub?: string; colorClass: string }) => {
+  let displayValue: React.ReactNode = value;
+  if (typeof value === "number") {
+    displayValue = <CountUp to={value} duration={1200} />;
+  } else if (typeof value === "string" && value.endsWith("%")) {
+    const num = parseFloat(value.replace("%", ""));
+    if (!isNaN(num)) {
+      displayValue = <CountUp to={num} suffix="%" duration={1200} />;
+    }
+  }
+
   return (
-    <div className={`kpi ${colorClass}`}>
-      <p className="kpi-label">{label}</p>
-      <p className="kpi-value">{value}</p>
-      {sub && <p className="kpi-sub">{sub}</p>}
-    </div>
+    <GlareHover borderRadius="12px" maxTilt={6} scale={1.015} glareMaxOpacity={0.18}>
+      <div className={`kpi ${colorClass}`} style={{ height: "100%", margin: 0 }}>
+        <p className="kpi-label">{label}</p>
+        <p className="kpi-value">{displayValue}</p>
+        {sub && <p className="kpi-sub">{sub}</p>}
+      </div>
+    </GlareHover>
   );
 });
 
@@ -135,23 +152,31 @@ export default function DashboardPage() {
 
 
   useEffect(() => {
-    const controller = new AbortController();
-    const { signal } = controller;
-    setLoading(true);
+    let isCancelled = false;
+    const { from, to } = getDateRange(filter, customFrom, customTo);
+
+    // If already in query cache (e.g. from hover prefetch or previous visit), display immediately
+    const cachedKpi = queryClient.getQueryData<KpiData>(queryKeys.dashboard.kpi(from, to));
+    if (cachedKpi) {
+      setKpi(cachedKpi);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
     setError(null);
 
-    const { from, to } = getDateRange(filter, customFrom, customTo);
     Promise.all([
-      getDashboardKpi(from, to, signal),
-      getMonthlyTrend(new Date().getFullYear(), signal),
-      getWeeklyTrend(from, to, signal),
-      getPlatformComparison(from, to, signal),
-      getStaffRanking("top", 10, from, to, signal),
-      getStaffRanking("bottom", 10, from, to, signal),
-      getCompanyPerformance(from, to, signal),
-      getHeatmap(currentYear, signal),
+      getDashboardKpi(from, to),
+      getMonthlyTrend(new Date().getFullYear()),
+      getWeeklyTrend(from, to),
+      getPlatformComparison(from, to),
+      getStaffRanking("top", 10, from, to),
+      getStaffRanking("bottom", 10, from, to),
+      getCompanyPerformance(from, to),
+      getHeatmap(currentYear),
       getDashboardTrend(from, to),
     ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData]) => {
+      if (isCancelled) return;
       setKpi(kpiData);
       setMonthly(monthData);
       setWeekly(weekData);
@@ -165,14 +190,29 @@ export default function DashboardPage() {
         total: d.total,
       })));
       setTrends(trendData || []);
+      setLoading(false);
+
+      // Save to queryClient cache for instant retrieval & cross-component sharing
+      queryClient.setQueryData(queryKeys.dashboard.kpi(from, to), kpiData);
+      queryClient.setQueryData(queryKeys.dashboard.monthly(new Date().getFullYear()), monthData);
+      queryClient.setQueryData(queryKeys.dashboard.weekly(from, to), weekData);
+      queryClient.setQueryData(queryKeys.dashboard.platform(from, to), platData);
+      queryClient.setQueryData(queryKeys.dashboard.staffRanking("top", 10, from, to), topData);
+      queryClient.setQueryData(queryKeys.dashboard.staffRanking("bottom", 10, from, to), botData);
+      queryClient.setQueryData(queryKeys.dashboard.company(from, to), compData);
+      queryClient.setQueryData(queryKeys.dashboard.heatmap(currentYear), heatData);
+      queryClient.setQueryData(queryKeys.dashboard.trend(from, to), trendData);
     }).catch((err) => {
-      if (err instanceof DOMException && err.name === "AbortError") return;
+      if (isCancelled) return;
       console.error(err);
       setError(err instanceof Error ? err.message : "Gagal muatkan data, cuba lagi.");
-    }).finally(() => setLoading(false));
+      setLoading(false);
+    });
 
-    return () => controller.abort();
-  }, [filter]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [filter, customFrom, customTo]);
 
   const handleCreateSnapshot = async () => {
     if (!snapshotName.trim()) {
@@ -184,6 +224,7 @@ export default function DashboardPage() {
     try {
       const { from, to } = getDateRange(filter, customFrom, customTo);
       await createSnapshot(snapshotName, snapshotNotes, from, to);
+      queryClient.invalidateQueries({ queryKey: queryKeys.snapshots.all });
       showToast("Dashboard snapshot saved successfully!", "success");
       setShowSnapshotModal(false);
       setSnapshotName("");
@@ -598,7 +639,6 @@ export default function DashboardPage() {
           <div className="page-hd">
             <div>
               <h1 className="page-title">Dashboard</h1>
-              <p className="page-sub">Staff social media engagement performance &amp; compliance analytics</p>
               {/* DeptAdmin department banner */}
               {isDeptAdmin() && deptName && (
                 <div style={{
@@ -681,28 +721,30 @@ export default function DashboardPage() {
                 Download PDF
               </button>
 
-              <div style={{ width: 1, height: 24, background: "var(--line)", margin: "0 4px" }} />
+            </div>
+          </div>
 
-              {/* Date Filter Pills with keyboard accelerator indicators */}
-              <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
-                {DATE_FILTERS.map((f, idx) => (
-                  <button
-                    key={f.value}
-                    onClick={() => setFilter(f.value)}
-                    className={`btn btn-sm ${filter === f.value ? "btn-primary" : "btn-secondary"}`}
-                    title={`Shortcut: ${idx + 1}`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-                {filter === "custom" && (
-                  <>
-                    <input className="input" type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={{ width: 130, height: 28, fontSize: 12 }} />
-                    <span style={{ color: "var(--text-3)", fontSize: 12, alignSelf: "center" }}>to</span>
-                    <input className="input" type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={{ width: 130, height: 28, fontSize: 12 }} />
-                  </>
-                )}
-              </div>
+          {/* Date Filter Toolbar — baris sendiri, asing dari butang aksi */}
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center", marginBottom: 20 }}>
+            <span style={{ fontSize: 12, fontWeight: 700, color: "var(--text-3)", textTransform: "uppercase", letterSpacing: "0.06em" }}>Period:</span>
+            <div style={{ display: "flex", gap: 4, flexWrap: "wrap", alignItems: "center" }}>
+              {DATE_FILTERS.map((f, idx) => (
+                <button
+                  key={f.value}
+                  onClick={() => setFilter(f.value)}
+                  className={`btn btn-sm ${filter === f.value ? "btn-primary" : "btn-secondary"}`}
+                  title={`Shortcut: ${idx + 1}`}
+                >
+                  {f.label}
+                </button>
+              ))}
+              {filter === "custom" && (
+                <>
+                  <input className="input" type="date" value={customFrom} onChange={e => setCustomFrom(e.target.value)} style={{ width: 130, height: 28, fontSize: 12 }} />
+                  <span style={{ color: "var(--text-3)", fontSize: 12, alignSelf: "center" }}>to</span>
+                  <input className="input" type="date" value={customTo} onChange={e => setCustomTo(e.target.value)} style={{ width: 130, height: 28, fontSize: 12 }} />
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -714,7 +756,7 @@ export default function DashboardPage() {
             </svg>
             <span style={{ color: "var(--red)", fontSize: 14, fontWeight: 500 }}>{error}</span>
           </div>
-        ) : loading ? (
+        ) : loading || !kpi ? (
           <div
             style={{
               display: "flex", alignItems: "center", gap: 10,
@@ -853,7 +895,7 @@ export default function DashboardPage() {
                     lazyUpdate={true}
                   />
                   {/* Company breakdown table */}
-                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <AnimatedList stagger={0.03} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
                     {companyPerf.map((c, i) => (
                       <div key={c.companyID} style={{
                         display: "flex", alignItems: "center", gap: 10,
@@ -878,7 +920,7 @@ export default function DashboardPage() {
                         </div>
                       </div>
                     ))}
-                  </div>
+                  </AnimatedList>
                 </div>
               </div>
             )}

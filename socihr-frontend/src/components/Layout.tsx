@@ -1,8 +1,9 @@
 import { NavLink, useNavigate, useLocation } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { useState, useEffect, type ReactNode } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { useTheme } from "../contexts/ThemeContext";
+import { prefetchRoute } from "../lib/prefetch";
 
 // All nav items — each can declare which roles can see it
 // If `roles` is undefined, all roles can see it
@@ -143,12 +144,17 @@ export default function Layout({ children }: { children: ReactNode }) {
           )}
 
           {/* Navigation Links */}
-          <nav style={{ flex: 1, padding: "12px 8px", overflowY: "auto" }}>
+          <nav style={{ flex: 1, minHeight: 0, padding: "12px 8px", overflowY: "auto" }}>
             <div style={{ padding: "0 8px 6px", fontSize: "0.68rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.06em", color: "var(--text-4)" }}>
               Menu
             </div>
             {visibleNav.map((item) => (
-              <NavLink key={item.path} to={item.path} style={{ textDecoration: "none" }}>
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onMouseEnter={() => prefetchRoute(item.path)}
+                style={{ textDecoration: "none" }}
+              >
                 {({ isActive }) => (
                   <div style={{
                     display: "flex", alignItems: "center", gap: 9,
@@ -167,7 +173,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </nav>
 
           {/* Bottom Controls */}
-          <div style={{ padding: "10px 8px", borderTop: "1px solid var(--line)" }}>
+          <div style={{ padding: "10px 8px", borderTop: "1px solid var(--line)", flexShrink: 0 }}>
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -278,6 +284,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <AnimatePresence mode="wait">
             <motion.div
               key={location.pathname}
+              className="app-main-inner"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}

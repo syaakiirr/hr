@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import ReactEChartsCore from "echarts-for-react/esm/core";
 import { use, graphic, init, getInstanceByDom, dispose } from "echarts/core";
 import { BarChart } from "echarts/charts";
@@ -9,6 +9,8 @@ import { CanvasRenderer } from "echarts/renderers";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import CompanyLogo from "../components/CompanyLogo";
+import GlareHover from "../components/GlareHover";
+import AnimatedList from "../components/AnimatedList";
 import { useDateFilter, getDateRange, DATE_FILTERS } from "../contexts/DateFilterContext";
 import {
   getCompanies,
@@ -17,6 +19,8 @@ import {
   getCompanyPerformance,
   type Company,
 } from "../services/api";
+import { queryClient } from "../lib/queryClient";
+import { queryKeys } from "../lib/queryKeys";
 
 const treeShakenECharts = { use, graphic, init, getInstanceByDom, dispose };
 use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
@@ -84,11 +88,27 @@ export default function CompanyPage() {
   }>({ isOpen: false, title: "", message: "", onConfirm: () => {} });
 
   const fetchData = useCallback(async () => {
-    setLoading(true);
+    const cachedCompanies = queryClient.getQueryData<Company[]>(queryKeys.company.list);
+    const cachedPerf = queryClient.getQueryData<any>(queryKeys.dashboard.company(from, to));
+
+    if (cachedCompanies) {
+      setCompanies(cachedCompanies);
+      if (cachedPerf) setPerformance(cachedPerf);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const [compList, perfList] = await Promise.all([
-        getCompanies(),
-        getCompanyPerformance(from, to),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.company.list,
+          queryFn: getCompanies,
+        }),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.dashboard.company(from, to),
+          queryFn: () => getCompanyPerformance(from, to),
+        }),
       ]);
       setCompanies(compList);
       setPerformance(perfList);
@@ -109,6 +129,8 @@ export default function CompanyPage() {
     setSaving(true);
     try {
       await createCompany(newCompanyName.trim());
+      queryClient.invalidateQueries({ queryKey: queryKeys.company.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       setNewCompanyName("");
       setShowAddModal(false);
       await fetchData();
@@ -129,6 +151,8 @@ export default function CompanyPage() {
         setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
         try {
           await deleteCompany(id);
+          queryClient.invalidateQueries({ queryKey: queryKeys.company.all });
+          queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
           await fetchData();
         } catch (err: unknown) {
           alert(err instanceof Error ? err.message : "Failed to delete company.");
@@ -416,18 +440,19 @@ export default function CompanyPage() {
                 </span>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {displayCompanies.length === 0 ? (
-                  <div style={{ background: "var(--white)", border: "1px solid var(--line)", borderRadius: 16, padding: 32, textAlign: "center" }}>
-                    <p style={{ color: "var(--text-3)", fontSize: 13 }}>No companies registered yet</p>
-                  </div>
-                ) : (
-                  displayCompanies.map((c, idx) => (
-                    <motion.div
+              {displayCompanies.length === 0 ? (
+                <div style={{ background: "var(--white)", border: "1px solid var(--line)", borderRadius: 16, padding: 32, textAlign: "center" }}>
+                  <p style={{ color: "var(--text-3)", fontSize: 13 }}>No companies registered yet</p>
+                </div>
+              ) : (
+                <AnimatedList stagger={0.04} style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {displayCompanies.map((c, idx) => (
+                    <GlareHover
                       key={c.companyID}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.04 }}
+                      borderRadius="16px"
+                      maxTilt={5}
+                      scale={1.012}
+                      glareMaxOpacity={0.25}
                       role="link"
                       tabIndex={0}
                       aria-label={`View ${c.companyName} profile`}
@@ -437,23 +462,13 @@ export default function CompanyPage() {
                         justifyContent: "space-between",
                         padding: "16px 20px",
                         background: "var(--white)",
-                        borderRadius: 16,
                         border: "1px solid var(--line)",
                         boxShadow: "0 2px 8px rgba(0,0,0,0.02)",
-                        transition: "all 0.15s ease",
                         cursor: "pointer",
                       }}
                       onClick={() => navigate(`/company/${c.companyID}`)}
                       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/company/${c.companyID}`); } }}
                       title="View company profile"
-                      onMouseEnter={(e) => {
-                        e.currentTarget.style.borderColor = c.color + "60";
-                        e.currentTarget.style.boxShadow = "0 6px 20px -4px rgba(0,0,0,0.06)";
-                      }}
-                      onMouseLeave={(e) => {
-                        e.currentTarget.style.borderColor = "var(--line)";
-                        e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.02)";
-                      }}
                     >
                       <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
                         <CompanyLogo name={c.companyName} rank={idx + 1} />
@@ -514,10 +529,10 @@ export default function CompanyPage() {
                           <TrashIcon size={14} color="var(--red)" />
                         </button>
                       </div>
-                    </motion.div>
-                  ))
-                )}
-              </div>
+                    </GlareHover>
+                  ))}
+                </AnimatedList>
+              )}
             </div>
 
             {/* Right side: Chart Visualization */}

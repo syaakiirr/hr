@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
@@ -11,6 +11,8 @@ import {
   type Department,
   type Staff,
 } from "../services/api";
+import { queryClient } from "../lib/queryClient";
+import { queryKeys } from "../lib/queryKeys";
 
 // ==========================================
 // Crisp Lucide SVG Icon Components
@@ -142,11 +144,27 @@ export default function DepartmentPage() {
   }, []);
 
   async function fetchData() {
-    setLoading(true);
+    const cachedDepts = queryClient.getQueryData<Department[]>(queryKeys.department.list);
+    const cachedStaff = queryClient.getQueryData<Staff[]>(queryKeys.staff.list());
+
+    if (cachedDepts) {
+      setDepartments(cachedDepts);
+      if (cachedStaff) setStaff(cachedStaff);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
     try {
       const [departmentList, staffList] = await Promise.all([
-        getDepartments(),
-        getStaffList(),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.department.list,
+          queryFn: getDepartments,
+        }),
+        queryClient.fetchQuery({
+          queryKey: queryKeys.staff.list(),
+          queryFn: () => getStaffList(),
+        }),
       ]);
       setDepartments(departmentList);
       setStaff(staffList);
@@ -164,6 +182,7 @@ export default function DepartmentPage() {
     setSaving(true);
     try {
       await createDepartment(newDepartmentName.trim());
+      queryClient.invalidateQueries({ queryKey: queryKeys.department.all });
       setNewDepartmentName("");
       setShowAddModal(false);
       await fetchData();
@@ -184,6 +203,7 @@ export default function DepartmentPage() {
         setConfirmDialog((prev) => ({ ...prev, isLoading: true }));
         try {
           await deleteDepartment(id);
+          queryClient.invalidateQueries({ queryKey: queryKeys.department.all });
           await fetchData();
         } catch (err: unknown) {
           alert(err instanceof Error ? err.message : "Failed to delete department.");

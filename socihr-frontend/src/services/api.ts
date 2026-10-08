@@ -1,3 +1,4 @@
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:5094/api";
 
 function authHeaders(): Record<string, string> {
@@ -350,6 +351,14 @@ export async function addStaffToSession(sessionID: string, staffIDs: string[]): 
     body: JSON.stringify({ StaffIds: staffIDs }),
   });
   return handleResponse<{ message: string; addedStaffCount: number }>(res);
+}
+
+export async function removeStaffFromSession(sessionID: string, staffID: string): Promise<{ message: string; removedEngagements: number }> {
+  const res = await fetch(`${BASE_URL}/monitoringsession/${sessionID}/staff/${staffID}`, {
+    method: "DELETE",
+    headers: authHeaders(),
+  });
+  return handleResponse<{ message: string; removedEngagements: number }>(res);
 }
 
 // ─── Dashboard ──────────────────────────────────────

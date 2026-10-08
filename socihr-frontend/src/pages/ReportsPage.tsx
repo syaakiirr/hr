@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence } from "motion/react";
 import Layout from "../components/Layout";
 import { buildReportUrl, downloadCustomReportPdf, downloadCustomReportExcel, getSessions, getDepartments } from "../services/api";
 import type { MonitoringSession, Department } from "../services/api";

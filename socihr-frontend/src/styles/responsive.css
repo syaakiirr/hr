@@ -1,0 +1,188 @@
+/* ═══════════════════════════════════════════════════════════════
+   SociHR — Global Responsive System
+   Fon (<480px) · Fon besar / tablet kecil (<768px) · Tablet (<1024px) · Laptop (<1280px) · PC (>1280px)
+   Fail ini melengkapkan index.css tanpa mengubah desktop sedia ada.
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── Asas anti-overflow untuk SEMUA viewport ── */
+html, body { overflow-x: clip; }
+img, svg, canvas, video { max-width: 100%; }
+#root { min-width: 0; }
+
+/* Jadual panjang: scroll mengufuk yang kemas + petunjuk scroll di sentuh */
+.tbl-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.tbl { min-width: 560px; }
+.tbl th, .tbl td { vertical-align: middle; }
+
+/* Kandungan utama app (Layout): lebar selamat + padding dikawal ikut viewport */
+.app-main-inner { min-width: 0; }
+@media (max-width: 768px) {
+  .app-main-inner { padding: 60px 14px 28px !important; }
+}
+@media (max-width: 480px) {
+  .app-main-inner { padding: 58px 12px 24px !important; }
+}
+
+/* ECharts / canvas tidak boleh menolak layout melebar */
+.chart-wrap > div { min-width: 0; }
+
+/* Baris toolbar generik yang guna inline flex: benarkan wrap + elak tindih */
+.page-hd > div:last-child { min-width: 0; }
+
+/* ═══════ LAPTOP KECIL ≤1280px — ketatkan padding workspace ═══════ */
+@media (max-width: 1280px) {
+  .page-hd h1 { font-size: 24px; }
+}
+
+/* ═══════ TABLET ≤1024px — 2 lajur → 1 lajur ═══════ */
+@media (max-width: 1024px) {
+  /* Sebarang grid inline multi-lajur (Dashboard 2fr 1fr, Company 1.1fr 0.9fr, dll)
+     diruntuhkan ke satu lajur. Grid auto-fit (KPI) dibiarkan hidup sendiri. */
+  div[style*="gridTemplateColumns: 2fr"],
+  div[style*="gridTemplateColumns:2fr"],
+  div[style*="gridTemplateColumns: 1fr 1fr"],
+  div[style*="gridTemplateColumns:1fr 1fr"],
+  div[style*="gridTemplateColumns: 1.2fr"],
+  div[style*="gridTemplateColumns:1.2fr"],
+  div[style*="gridTemplateColumns: 1.1fr"],
+  div[style*="gridTemplateColumns:1.1fr"],
+  div[style*="gridTemplateColumns: 1fr 1.6fr"],
+  div[style*="gridTemplateColumns:1fr 1.6fr"],
+  div[style*="grid-template-columns: 2fr"],
+  div[style*="repeat(3, 1fr)"],
+  div[style*="repeat(2, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Header page bertindan kemas */
+  .page-hd { flex-direction: column; align-items: stretch !important; gap: 12px; }
+  .page-hd > div:last-child { display: flex; flex-wrap: wrap; gap: 8px; }
+
+  /* Kad & carta penuh lebar */
+  .card, .chart-wrap, .kpi { min-width: 0; }
+
+  /* Modal kekal selesa di tablet */
+  .modal-overlay { padding: 20px; align-items: flex-start; overflow-y: auto; }
+  .modal-box { max-width: 560px; }
+
+  /* Borang login: panel kanan penuh */
+  .login-container main { padding: 40px 32px !important; }
+
+  /* Landing: hero & seksyen bertindan */
+  .hero-grid { grid-template-columns: 1fr !important; gap: 32px !important; padding-top: 110px !important; }
+  .landing-nav-links { display: none !important; }
+  .capabilities-grid { grid-template-columns: 1fr !important; }
+  .capabilities-grid > div { grid-column: span 1 !important; }
+  .cap-wide { flex-direction: column !important; }
+  .workflow-grid { grid-template-columns: 1fr !important; gap: 40px !important; }
+  .security-grid { grid-template-columns: 1fr !important; }
+  .landing-sticky-col { position: static !important; }
+  .landing-cta-card { flex-direction: column !important; align-items: stretch !important; padding: 40px 28px !important; }
+  .landing-cta-card button { width: 100%; justify-content: center; }
+  .landing-footer-card { flex-direction: column !important; align-items: flex-start !important; }
+}
+
+/* ═══════ FON / TABLET KECIL ≤768px ═══════ */
+@media (max-width: 768px) {
+  /* Tipografi dikecilkan sedikit supaya tidak overflow */
+  .page-title, .page-hd h1 { font-size: 20px !important; letter-spacing: -0.02em; }
+  .page-sub { font-size: 13px; }
+  .kpi-value { font-size: 22px !important; }
+  .kpi { padding: 14px 16px !important; }
+
+  /* Grid KPI auto-fit: minimum 140px supaya 2 lajur muat di fon */
+  div[style*="minmax(160px"],
+  div[style*="minmax(180px"],
+  div[style*="minmax(210px"],
+  div[style*="minmax(220px"] {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)) !important;
+    gap: 10px !important;
+  }
+
+  /* Kad & pembungkus lebih padat */
+  .card { padding: 16px !important; border-radius: 12px; }
+  .chart-wrap { padding: 14px !important; }
+  .chart-label { font-size: 11px; }
+
+  /* Toolbar penapis tarikh: butang 44px sasaran sentuh, scroll jika perlu */
+  .page-hd > div:last-child .btn,
+  div .btn-sm { min-height: 36px; }
+
+  /* Jadual: teks kecil + scroll */
+  .tbl { min-width: 520px; font-size: 13px; }
+  .tbl td.cell-ellipsis { max-width: 140px; }
+
+  /* Modal jadi helaian bawah di fon */
+  .modal-overlay { padding: 12px; align-items: flex-end; }
+  .modal-box { max-width: 100% !important; margin: 0 !important; padding: 20px !important; border-radius: 16px 16px 12px 12px !important; max-height: 92dvh; overflow-y: auto; }
+
+  /* Borang: input 44px untuk iOS zoom-free (≥16px font elak auto-zoom) */
+  .input { height: 44px !important; font-size: 16px !important; }
+  textarea.input { height: auto !important; min-height: 96px; padding-top: 10px; padding-bottom: 10px; }
+  .btn { min-height: 42px; }
+  .btn-sm { min-height: 36px; }
+
+  /* Login: satu lajur, padding selesa */
+  .login-container { grid-template-columns: 1fr !important; }
+  .login-left-panel { display: none !important; }
+  .login-container main { padding: 40px 20px 32px !important; }
+
+  /* Landing fon */
+  .landing-hero-title { font-size: clamp(2.1rem, 10vw, 2.8rem) !important; }
+  .landing-hero-sub { font-size: 15px !important; }
+  .landing-hero-ctas { flex-direction: column !important; align-items: stretch !important; }
+  .landing-hero-ctas > * { width: 100%; justify-content: center; }
+  .landing-section { padding: 64px 20px !important; }
+  .landing-cap-card { padding: 24px 20px !important; }
+  .landing-step-card { flex-direction: column !important; gap: 14px !important; padding: 22px 20px !important; }
+  .landing-sec-card { flex-direction: column !important; gap: 14px !important; padding: 22px 20px !important; }
+  .landing-pipeline { flex-direction: column !important; align-items: stretch !important; }
+  .landing-pipeline-cards { flex-direction: column !important; align-items: stretch !important; }
+  .landing-pipeline-cards > div { width: 100%; }
+
+  /* Sidebar overlay kekal di atas kandungan */
+  aside { width: min(280px, 84vw) !important; }
+
+  /* Elak teks panjang menolak layout (email, URL sesi, nama) */
+  .tbl td, .tbl th { overflow-wrap: anywhere; }
+}
+
+/* ═══════ FON KECIL ≤480px ═══════ */
+@media (max-width: 480px) {
+  .page-hd { gap: 10px; margin-bottom: 16px; padding-bottom: 12px; }
+  .kpi-label { font-size: 10px; }
+
+  /* Grid KPI jadi 2 lajur kemas di fon kecil */
+  div[style*="minmax(140px"],
+  div[style*="minmax(150px"],
+  div[style*="minmax(160px"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  .tbl { min-width: 480px; }
+  .tbl td, .tbl th { font-size: 12px !important; padding: 8px !important; white-space: nowrap; }
+
+  /* Butang aksi utama penuh lebar bila bertindan */
+  .page-hd > div:last-child > .btn { flex: 1 1 auto; justify-content: center; }
+
+  .login-container main { padding: 32px 16px 28px !important; }
+
+  /* Landing: navbar pil padat, CTA penuh lebar */
+  .landing-nav { padding: 5px 6px 5px 12px !important; gap: 2px !important; max-width: calc(100vw - 24px); }
+  .landing-nav-cta { height: 34px !important; padding: 0 12px !important; font-size: 12px !important; }
+  .landing-cta-card { padding: 32px 20px !important; border-radius: 20px !important; }
+  .landing-footer-card { padding: 24px 20px !important; }
+  .empty { padding: 40px 20px !important; }
+}
+
+/* ═══════ Desktop besar — had maksimum dikekalkan (tiada perubahan rupa) ═══════ */
+@media (min-width: 1400px) {
+  /* Ruang bernafas tambahan tanpa mengubah identiti */
+  .chart-wrap, .card { scroll-margin-top: 16px; }
+}
+
+/* ═══════ Pilihan pengguna: kurang pergerakan ═══════ */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}

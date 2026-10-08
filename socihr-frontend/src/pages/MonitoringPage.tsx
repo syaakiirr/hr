@@ -8,9 +8,11 @@ import {
   getEngagements, updateEngagementAction, updateEngagementReason,
   downloadSessionReportPdf, downloadMultiSessionReportPdf,
   downloadSessionReportExcel, downloadMultiSessionReportExcel,
-  addStaffToSession, getStaffList,
+  addStaffToSession, removeStaffFromSession, getStaffList,
   type MonitoringSession, type Platform, type Engagement, type Company, type Staff
 } from "../services/api";
+import { queryClient } from "../lib/queryClient";
+import { queryKeys } from "../lib/queryKeys";
 
 // Simple debounce hook
 function useDebounce<T>(value: T, delay: number): T {
@@ -120,6 +122,11 @@ export default function MonitoringPage() {
   const [selectedStaffForAdd, setSelectedStaffForAdd] = useState<Set<string>>(new Set());
   const [addingStaff, setAddingStaff] = useState(false);
 
+  // Remove Staff Modal (staff yang sudah ada dalam sesi)
+  const [showRemoveStaffModal, setShowRemoveStaffModal] = useState(false);
+  const [selectedStaffForRemove, setSelectedStaffForRemove] = useState<Set<string>>(new Set());
+  const [removeSearch, setRemoveSearch] = useState("");
+
   // Edit session state (reuses wizard UI)
   const [showEdit, setShowEdit] = useState(false);
   const [editSession, setEditSession] = useState<MonitoringSession | null>(null);
@@ -133,7 +140,24 @@ export default function MonitoringPage() {
   const debouncedFilterName = useDebounce(filterName, 300);
 
   useEffect(() => {
-    Promise.all([getSessions(), getPlatforms(), getCompanies()])
+    const cachedSessions = queryClient.getQueryData<MonitoringSession[]>(queryKeys.sessions.list);
+    const cachedPlatforms = queryClient.getQueryData<Platform[]>(queryKeys.platform.list);
+    const cachedCompanies = queryClient.getQueryData<Company[]>(queryKeys.company.list);
+
+    if (cachedSessions) {
+      setSessions(cachedSessions);
+      if (cachedPlatforms) setPlatforms(cachedPlatforms);
+      if (cachedCompanies) setCompanies(cachedCompanies);
+      setLoading(false);
+    } else {
+      setLoading(true);
+    }
+
+    Promise.all([
+      queryClient.fetchQuery({ queryKey: queryKeys.sessions.list, queryFn: getSessions }),
+      queryClient.fetchQuery({ queryKey: queryKeys.platform.list, queryFn: getPlatforms }),
+      queryClient.fetchQuery({ queryKey: queryKeys.company.list, queryFn: getCompanies }),
+    ])
       .then(([s, p, c]) => { setSessions(s); setPlatforms(p); setCompanies(c); })
       .catch(console.error)
       .finally(() => setLoading(false));
@@ -142,7 +166,7 @@ export default function MonitoringPage() {
   // Load all staff when add staff modal opens
   useEffect(() => {
     if (showAddStaffModal) {
-      getStaffList()
+      queryClient.fetchQuery({ queryKey: queryKeys.staff.list(), queryFn: () => getStaffList() })
         .then(setAllStaff)
         .catch(console.error);
       setSelectedStaffForAdd(new Set());
@@ -174,10 +198,12 @@ export default function MonitoringPage() {
         posts,
         companyIDs: Array.from(selectedCompanies),
       });
+      queryClient.invalidateQueries({ queryKey: queryKeys.sessions.all });
+      queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.all });
       setShowCreate(false);
       setSelectedPlatforms(new Set());
       setSelectedCompanies(new Set());
-      const updated = await getSessions();
+      const updated = await queryClient.fetchQuery({ queryKey: queryKeys.sessions.list, queryFn: getSessions });
       setSessions(updated);
     } catch (err: unknown) {
       alert(err instanceof Error ? err.message : "An error occurred.");
@@ -193,15 +219,26 @@ export default function MonitoringPage() {
 
     setSelectedSession(session);
     setSelectedStaffID(null); // Reset selection
-    // Clear stale engagement data and reset filters so new session starts clean
-    setEngagements([]);
     setFilterName("");
     setFilterDept("");
     setFilterCompany("");
     setFilterStaffType("");
-    setLoadingEng(true);
+
+    // If engagements for this session are already cached, show immediately
+    const cachedEng = queryClient.getQueryData<Engagement[]>(queryKeys.sessions.engagements(thisSessionID));
+    if (cachedEng) {
+      setEngagements(cachedEng);
+      setLoadingEng(false);
+    } else {
+      setEngagements([]);
+      setLoadingEng(true);
+    }
+
     try {
-      const eng = await getEngagements(thisSessionID);
+      const eng = await queryClient.fetchQuery({
+        queryKey: queryKeys.sessions.engagements(thisSessionID),
+        queryFn: () => getEngagements(thisSessionID),
+      });
       // Only apply if the user hasn't switched to yet another session while we were loading
       if (currentSessionIDRef.current === thisSessionID) {
         setEngagements(eng);
@@ -367,6 +404,42 @@ export default function MonitoringPage() {
     });
   }
   
+  function handleRemoveStaffClick() {
+    if (!selectedSession || selectedStaffForRemove.size === 0) return;
+    const sessionID = selectedSession.sessionID;
+    const ids = Array.from(selectedStaffForRemove);
+    const names = allStaffRows
+      .filter((r) => ids.includes(r.staffID))
+      .map((r) => toTitleCase(r.staffName));
+    const shown = names.slice(0, 3).join(", ") + (names.length > 3 ? ` +${names.length - 3} lagi` : "");
+    setConfirmDialog({
+      isOpen: true,
+      title: "Remove Staff from Session",
+      message: `Keluarkan ${names.length} staf (${shown}) dari sesi ini? Rekod engagement mereka akan dipadam. Staf itu sendiri TIDAK dipadam dari sistem.`,
+      confirmLabel: "Remove",
+      danger: true,
+      onConfirm: async () => {
+        setConfirmDialog(prev => ({ ...prev, isLoading: true }));
+        try {
+          let total = 0;
+          for (const staffID of ids) {
+            const result = await removeStaffFromSession(sessionID, staffID);
+            total += result.removedEngagements;
+          }
+          setEngagements((prev) => prev.filter((e) => !ids.includes(e.staffID)));
+          setSelectedStaffID((prev) => (prev && ids.includes(prev) ? null : prev));
+          setSelectedStaffForRemove(new Set());
+          setShowRemoveStaffModal(false);
+          alert(`${names.length} staff removed (${total} records).`);
+        } catch (err: unknown) {
+          alert(err instanceof Error ? err.message : "An error occurred.");
+        } finally {
+          setConfirmDialog({ isOpen: false, title: "", message: "", onConfirm: () => {} });
+        }
+      }
+    });
+  }
+
   async function handleAddStaffToSession() {
     if (!selectedSession || selectedStaffForAdd.size === 0) return;
     // Capture session at call time to guard against session switch mid-request
@@ -617,12 +690,10 @@ export default function MonitoringPage() {
         .sesh-panel-hd { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: #f8fafc; flex-shrink: 0; }
         .sesh-panel-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); white-space: nowrap; }
         .sesh-panel-count { font-size: 11px; font-weight: 700; color: var(--text-2); background: var(--surface-2); border-radius: 6px; padding: 2px 7px; }
-        .sesh-panel-list { display: flex; flex-direction: row; overflow-x: auto; overflow-y: hidden; gap: 8px; padding: 10px 12px; scrollbar-width: thin; scrollbar-color: #e2e8f0 transparent; }
-        .sesh-panel-list::-webkit-scrollbar { height: 4px; }
-        .sesh-panel-list::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 4px; }
+        .sesh-panel-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; padding: 10px 12px; }
 
-        /* Session item — horizontal card chip */
-        .sesh-item { display: flex; flex-direction: column; justify-content: space-between; min-width: 150px; max-width: 180px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: all 0.15s ease; position: relative; flex-shrink: 0; background: var(--white); gap: 4px; }
+        /* Session item — grid card (tiada lagi scroller melintang / kad terpotong) */
+        .sesh-item { display: flex; flex-direction: column; justify-content: space-between; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: all 0.15s ease; position: relative; background: var(--white); gap: 4px; min-width: 0; }
         .sesh-item:hover { border-color: var(--accent); background: #f8fafc; }
         .sesh-item.active { border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 1.5px var(--accent); }
         .sesh-item-body { flex: 1; min-width: 0; }
@@ -635,7 +706,7 @@ export default function MonitoringPage() {
 
         /* Right area */
         .engage-area { min-width: 0; }
-        .engage-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 60px 32px; background: var(--white); border: 1px dashed var(--line); border-radius: 10px; text-align: center; gap: 6px; }
+        .engage-empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 36px 32px; background: var(--white); border: 1px dashed var(--line); border-radius: 10px; text-align: center; gap: 6px; }
         .engage-empty-ico { font-size: 32px; opacity: 0.4; }
         .engage-empty-title { font-size: 14px; font-weight: 600; color: var(--text-2); }
         .engage-empty-sub { font-size: 12px; color: var(--text-3); max-width: 280px; line-height: 1.5; }
@@ -799,7 +870,8 @@ export default function MonitoringPage() {
               sessions.map(s => {
                 const isActive = selectedSession?.sessionID === s.sessionID;
                 const uniquePlats = Array.from(new Set(s.posts.map(p => p.platformName)));
-                const coSummary = s.companies?.map(c => c.companyName).join(", ") ?? "";
+                const coNames = s.companies?.map(c => c.companyName) ?? [];
+                const coCount = coNames.length;
                 return (
                   <div key={s.sessionID} className={`sesh-item ${isActive ? "active" : ""}`} onClick={() => handleSelectSession(s)}>
                     <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
@@ -823,13 +895,19 @@ export default function MonitoringPage() {
                         <div className="sesh-item-date">
                           {parseDateOnly(s.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}
                         </div>
-                        {coSummary && <div className="sesh-item-co" title={coSummary}>{coSummary}</div>}
+                        {coCount > 0 && (
+                          <div className="sesh-item-co" title={coNames.join(", ")}>
+                            {coCount} {coCount === 1 ? "company" : "companies"}
+                          </div>
+                        )}
                         <div className="sesh-item-plats">
                           {uniquePlats.map(pl => (
                             <span key={pl} className="plat-pip" style={{ background: PLATFORM_COLORS[pl] || "var(--accent)" }} title={pl} />
                           ))}
                           {uniquePlats.length > 0 && (
-                            <span style={{ fontSize: 9.5, color: "var(--text-4)", fontWeight: 600 }}>{uniquePlats.join(" · ")}</span>
+                            <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 600 }} title={uniquePlats.join(", ")}>
+                              {uniquePlats.length} platform{uniquePlats.length === 1 ? "" : "s"}
+                            </span>
                           )}
                         </div>
                       </div>
@@ -901,6 +979,15 @@ export default function MonitoringPage() {
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 8v6M23 11h-6"/></svg>
                       Add Staff
+                    </button>
+                    <button
+                      onClick={() => { setSelectedStaffForRemove(new Set()); setRemoveSearch(""); setShowRemoveStaffModal(true); }}
+                      className="btn btn-secondary btn-sm"
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#dc2626", borderColor: "rgba(239, 68, 68, 0.35)" }}
+                      title="Remove Staff from Session"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 11h-6"/></svg>
+                      Remove Staff
                     </button>
                     <button
                       onClick={() => {
@@ -1806,6 +1893,119 @@ export default function MonitoringPage() {
         document.body
       )}
       
+      {/* ══════════════════════════════════════════════════════════════
+          REMOVE STAFF FROM SESSION MODAL
+         ══════════════════════════════════════════════════════════════ */}
+      {showRemoveStaffModal && selectedSession && typeof document !== "undefined" && createPortal(
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, zIndex: 9999 }} onClick={(e) => e.target === e.currentTarget && setShowRemoveStaffModal(false)}>
+          <div className="modal-box" style={{ maxWidth: 520 }} onClick={(e) => e.stopPropagation()}>
+            <div className="modal-head">
+              <h2 className="modal-title">Remove Staff from Session</h2>
+              <button onClick={() => setShowRemoveStaffModal(false)} className="btn btn-ghost btn-icon btn-sm">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+              </button>
+            </div>
+
+            <p style={{ fontSize: 12, color: "var(--text-3)", marginBottom: 12 }}>
+              Tick staf yang nak dikeluarkan dari sesi ini ({parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}). Rekod engagement mereka akan dipadam, tapi nama mereka kekal dalam sistem.
+            </p>
+
+            <div className="fi-wrap" style={{ marginBottom: 10 }}>
+              <svg className="fi-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <input className="fi-inp" placeholder="Search staff in this session..." value={removeSearch} onChange={e => setRemoveSearch(e.target.value)} />
+            </div>
+
+            <div style={{ maxHeight: 300, overflowY: "auto", border: "1px solid var(--line)", borderRadius: 10, padding: 8 }}>
+              {(() => {
+                const q = removeSearch.trim().toLowerCase();
+                const inSession = allStaffRows.filter(row => !q || row.staffName.toLowerCase().includes(q));
+
+                if (inSession.length === 0) {
+                  return (
+                    <div style={{ textAlign: "center", padding: "24px 8px", color: "var(--text-4)" }}>
+                      {allStaffRows.length === 0 ? "No staff in this session." : "No staff match your search."}
+                    </div>
+                  );
+                }
+
+                return (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                    {inSession.map((row) => {
+                      const isChecked = selectedStaffForRemove.has(row.staffID);
+                      const recCount = row.engagements.length;
+
+                      return (
+                        <label
+                          key={row.staffID}
+                          style={{
+                            display: "flex", alignItems: "center", gap: 10,
+                            padding: "10px 12px", borderRadius: 8, cursor: "pointer",
+                            border: `1.5px solid ${isChecked ? "rgba(239, 68, 68, 0.55)" : "var(--line)"}`,
+                            background: isChecked ? "rgba(239, 68, 68, 0.06)" : "var(--surface-2)",
+                            transition: "all 0.15s",
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={(e) => {
+                              setSelectedStaffForRemove((prev) => {
+                                const next = new Set(prev);
+                                e.target.checked ? next.add(row.staffID) : next.delete(row.staffID);
+                                return next;
+                              });
+                            }}
+                            style={{ accentColor: "#dc2626", width: 15, height: 15 }}
+                          />
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 6 }}>
+                              {toTitleCase(row.staffName)}
+                              {row.staffType === "Intern" && (
+                                <span style={{
+                                  fontSize: "0.65rem",
+                                  fontWeight: 700,
+                                  padding: "1px 6px",
+                                  borderRadius: 9999,
+                                  background: "#fef3c7",
+                                  color: "#92400e",
+                                  border: "1px solid #fde68a",
+                                  lineHeight: 1.4,
+                                }}>
+                                  🎓 Intern
+                                </span>
+                              )}
+                            </div>
+                            <div style={{ fontSize: 12, color: "var(--text-3)" }}>
+                              {row.department || "No Department"} • {recCount} record{recCount === 1 ? "" : "s"}
+                            </div>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  </div>
+                );
+              })()}
+            </div>
+
+            <div style={{ display: "flex", gap: 8, marginTop: 16 }}>
+              <button type="button" onClick={() => setShowRemoveStaffModal(false)} className="btn btn-secondary" style={{ flex: 1 }}>Cancel</button>
+              <button
+                type="button"
+                onClick={handleRemoveStaffClick}
+                disabled={selectedStaffForRemove.size === 0}
+                className="btn btn-primary"
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "#dc2626", borderColor: "#dc2626" }}
+              >
+                {`Remove ${selectedStaffForRemove.size} Staff`}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
       {/* ── Reason Modal ── */}
       {reasonModal && typeof document !== "undefined" && createPortal(
         <div

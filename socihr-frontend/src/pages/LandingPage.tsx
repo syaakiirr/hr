@@ -1,4 +1,6 @@
-import { motion, MotionConfig } from "framer-motion";
+import { motion, MotionConfig } from "motion/react";
+import SplitText from "../components/SplitText";
+import CountUp from "../components/CountUp";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -136,6 +138,7 @@ export default function LandingPage() {
           }}
         >
           <nav
+            className="landing-nav"
             style={{
               pointerEvents: "auto",
               display: "flex",
@@ -172,8 +175,8 @@ export default function LandingPage() {
               </span>
             </a>
 
-            {/* Links */}
-            <div className="hidden md:flex" style={{ display: "flex", alignItems: "center" }}>
+            {/* Links — disembunyikan di fon/tablet melalui .landing-nav-links */}
+            <div className="landing-nav-links" style={{ display: "flex", alignItems: "center" }}>
               {[
                 { label: "Capabilities", href: "#capabilities" },
                 { label: "Workflow", href: "#workflow" },
@@ -209,6 +212,7 @@ export default function LandingPage() {
             {/* CTA button */}
             <button
               id="nav-signin"
+              className="landing-nav-cta"
               onClick={() => navigate("/login")}
               style={{
                 display: "inline-flex",
@@ -289,23 +293,49 @@ export default function LandingPage() {
               />
 
               <h1
+                className="landing-hero-title"
                 style={{
                   fontSize: "clamp(2.7rem, 5.2vw, 4.4rem)",
                   fontWeight: 900,
-                  lineHeight: 1.05,
+                  lineHeight: 1.1,
                   letterSpacing: "-0.04em",
                   color: "#0f172a",
                   marginBottom: 22,
                 }}
               >
-                Track the posts.
-                <br />
-                <span style={{ color: "#4f46e5" }}>Verify the impact.</span>
-                <br />
-                <span style={{ color: "rgba(15, 23, 42, 0.35)" }}>Defend the data.</span>
+                <span style={{ display: "block" }}>
+                  <SplitText
+                    text="Track the posts."
+                    delay={0.05}
+                    duration={0.6}
+                    yOffset={32}
+                    once
+                  />
+                </span>
+                <span style={{ display: "block", color: "#4f46e5" }}>
+                  <SplitText
+                    text="Verify the impact."
+                    delay={0.05}
+                    duration={0.6}
+                    yOffset={32}
+                    style={{ color: "#4f46e5" }}
+                    once
+                  />
+                </span>
+                <span style={{ display: "block", color: "rgba(15, 23, 42, 0.35)" }}>
+                  <SplitText
+                    text="Defend the data."
+                    delay={0.045}
+                    duration={0.6}
+                    yOffset={32}
+                    style={{ color: "rgba(15, 23, 42, 0.35)" }}
+                    once
+                  />
+                </span>
               </h1>
 
               <p
+                className="landing-hero-sub"
                 style={{
                   fontSize: 17,
                   lineHeight: 1.65,
@@ -318,7 +348,7 @@ export default function LandingPage() {
               </p>
 
               {/* Action Buttons */}
-              <div style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+              <div className="landing-hero-ctas" style={{ display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
                 <button
                   id="hero-get-started"
                   onClick={() => navigate("/login")}
@@ -399,6 +429,7 @@ export default function LandingPage() {
 
         {/* ── Active Social Ingestion Bar (Animated & Interactive) ────────── */}
         <section
+          className="landing-section"
           style={{
             background: "#FFFFFF",
             borderTop: "1px solid rgba(0, 0, 0, 0.07)",
@@ -407,6 +438,7 @@ export default function LandingPage() {
           }}
         >
           <div
+            className="landing-pipeline"
             style={{
               maxWidth: 1240,
               margin: "0 auto",
@@ -435,7 +467,7 @@ export default function LandingPage() {
               </span>
             </div>
 
-            <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+            <div className="landing-pipeline-cards" style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
               {PLATFORMS.map((p) => (
                 <motion.div
                   key={p.name}
@@ -499,6 +531,7 @@ export default function LandingPage() {
         {/* ── Capabilities (Consistent Light Mode #F8F9FF) ─────────────────── */}
         <section
           id="capabilities"
+          className="landing-section"
           style={{
             background: "#F8F9FF",
             borderBottom: "1px solid rgba(0, 0, 0, 0.07)",
@@ -557,7 +590,7 @@ export default function LandingPage() {
                       boxShadow: "0 2px 14px rgba(0, 0, 0, 0.03)",
                       transition: "transform 0.2s, box-shadow 0.2s, border-color 0.2s",
                     }}
-                    className={isWide ? "cap-wide" : ""}
+                    className={isWide ? "cap-wide landing-cap-card" : "landing-cap-card"}
                     whileHover={{
                       y: -2,
                       borderColor: "rgba(79, 70, 229, 0.4)",
@@ -589,7 +622,16 @@ export default function LandingPage() {
 
                     <div style={{ textAlign: isWide ? "right" : "left", flexShrink: 0, marginTop: isWide ? 0 : 16 }}>
                       <div style={{ fontSize: 36, fontWeight: 900, letterSpacing: "-0.03em", color: "#4f46e5", lineHeight: 1 }}>
-                        {cap.stat}
+                        {/* CountUp for numeric stats, static text for others */}
+                        {cap.stat === "100%" ? (
+                          <><CountUp to={100} suffix="%" duration={1600} delay={i * 120} /></>
+                        ) : cap.stat === "3+" ? (
+                          <><CountUp to={3} suffix="+" duration={1200} delay={i * 120} /></>
+                        ) : cap.stat === "< 2s" ? (
+                          <><CountUp to={2} prefix="< " suffix="s" duration={1000} delay={i * 120} /></>
+                        ) : (
+                          cap.stat
+                        )}
                       </div>
                       <div style={{ fontSize: 11, fontWeight: 700, color: "#94a3b8", letterSpacing: "0.06em", textTransform: "uppercase", marginTop: 4 }}>
                         {cap.statLabel}
@@ -605,6 +647,7 @@ export default function LandingPage() {
         {/* ── Workflow (Consistent Light Mode #FFFFFF) ────────────────────── */}
         <section
           id="workflow"
+          className="landing-section"
           style={{
             background: "#FFFFFF",
             borderBottom: "1px solid rgba(0, 0, 0, 0.07)",
@@ -622,7 +665,7 @@ export default function LandingPage() {
               className="workflow-grid"
             >
               {/* Left sticky column */}
-              <motion.div {...fadeUp()} style={{ position: "sticky", top: 100 }}>
+              <motion.div {...fadeUp()} className="landing-sticky-col" style={{ position: "sticky", top: 100 }}>
                 <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "#4f46e5" }}>
                   Operational Pipeline
                 </span>
@@ -670,6 +713,7 @@ export default function LandingPage() {
                   <motion.div
                     key={step.n}
                     {...fadeUp(idx * 0.1)}
+                    className="landing-step-card"
                     style={{
                       background: "#F8F9FF",
                       border: "1px solid rgba(0, 0, 0, 0.07)",
@@ -715,6 +759,7 @@ export default function LandingPage() {
         {/* ── Security & Governance (NOW LIGHT MODE #F8F9FF! No black section) ── */}
         <section
           id="governance"
+          className="landing-section"
           style={{
             background: "#F8F9FF",
             borderBottom: "1px solid rgba(0, 0, 0, 0.07)",
@@ -757,6 +802,7 @@ export default function LandingPage() {
                   <motion.div
                     key={sec.title}
                     {...fadeUp(i * 0.08)}
+                    className="landing-sec-card"
                     style={{
                       background: "#FFFFFF",
                       border: "1px solid rgba(0, 0, 0, 0.07)",
@@ -804,6 +850,7 @@ export default function LandingPage() {
 
         {/* ── Clean Light CTA Section ─────────────────────────────────────── */}
         <section
+          className="landing-section"
           style={{
             background: "#FFFFFF",
             padding: "90px 28px 110px",
@@ -812,6 +859,7 @@ export default function LandingPage() {
           <div style={{ maxWidth: 1240, margin: "0 auto" }}>
             <motion.div
               {...fadeUp()}
+              className="landing-cta-card"
               style={{
                 background: "linear-gradient(135deg, #EEF2FF 0%, #F8F9FF 100%)",
                 border: "1px solid rgba(79, 70, 229, 0.2)",
@@ -886,6 +934,7 @@ export default function LandingPage() {
         <footer style={{ background: "#F0F1F3", padding: "40px 20px 30px" }}>
           <div style={{ maxWidth: 1240, margin: "0 auto" }}>
             <div
+              className="landing-footer-card"
               style={{
                 background: "#FFFFFF",
                 borderRadius: 20,
@@ -939,6 +988,16 @@ export default function LandingPage() {
             }
             .security-grid {
               grid-template-columns: 1fr !important;
+            }
+          }
+          @media (max-width: 640px) {
+            .hero-grid {
+              padding: 100px 20px 56px !important;
+              gap: 28px !important;
+            }
+            .landing-hero-ctas > * {
+              width: 100% !important;
+              justify-content: center !important;
             }
           }
         `}</style>

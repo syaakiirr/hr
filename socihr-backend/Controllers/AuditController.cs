@@ -71,12 +71,11 @@ public class AuditController : ControllerBase
         return Ok(new { total, page, pageSize, items = result });
     }
 
-    // GET /api/audit/security?action=login.failed&page=1&pageSize=50 — SuperAdmin only.
-    // Audit keselamatan umum: login, pengurusan pengguna, archive, eksport laporan.
+
     [Authorize(Roles = "SuperAdmin")]
     [HttpGet("security")]
     public async Task<IActionResult> GetSecurity(
-        [FromQuery] string? action,
+        [FromQuery] string? action, 
         [FromQuery] string? username,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 50)

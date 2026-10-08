@@ -562,6 +562,41 @@ public class MonitoringSessionController : ControllerBase
         });
     }
 
+    // DELETE /api/monitoringsession/{sessionId}/staff/{staffId}
+    // Keluarkan seorang staf dari sesi: padam semua Engagement dia dalam sesi ini
+    // (termasuk rekod AuditTrail berkaitan supaya tiada orphan). Staf itu sendiri TIDAK dipadam.
+    [HttpDelete("{sessionId:guid}/staff/{staffId:guid}")]
+    public async Task<IActionResult> RemoveStaffFromSession(Guid sessionId, Guid staffId)
+    {
+        var session = await _db.MonitoringSessions.FindAsync(sessionId);
+        if (session == null) return NotFound(new { message = "Session not found." });
+
+        var staff = await _db.Staff.FindAsync(staffId);
+        if (staff == null) return NotFound(new { message = "Staff not found." });
+
+        var engagements = await _db.Engagements
+            .Where(e => e.SessionID == sessionId && e.StaffID == staffId)
+            .ToListAsync();
+        if (!engagements.Any()) return NotFound(new { message = $"{staff.FullName} is not in this session." });
+
+        var engagementIds = engagements.Select(e => e.EngagementID).ToList();
+        var audits = await _db.AuditTrails
+            .Where(a => engagementIds.Contains(a.EngagementID))
+            .ToListAsync();
+
+        _db.AuditTrails.RemoveRange(audits);
+        _db.Engagements.RemoveRange(engagements);
+        Audit("RemoveStaffFromSession",
+            $"Removed {staff.FullName} ({engagements.Count} engagements, {audits.Count} audit rows) from session {session.SessionDate:yyyy-MM-dd}.");
+        await _db.SaveChangesAsync();
+
+        return Ok(new
+        {
+            message = $"Removed {staff.FullName} from the session ({engagements.Count} records).",
+            removedEngagements = engagements.Count
+        });
+    }
+
     // POST /api/monitoringsession/multi-report  — generate a combined PDF for multiple sessions
     [HttpPost("multi-report")]
     public async Task<IActionResult> GenerateMultiReportPdf([FromBody] MultiSessionReportRequest req)

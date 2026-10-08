@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { motion } from "framer-motion";
+import { motion } from "motion/react";
 import { CheckCircle2, ShieldCheck, Sparkles, TrendingUp } from "lucide-react";
 
 export default function GlassyOrb() {
