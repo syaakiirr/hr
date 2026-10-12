@@ -101,3 +101,10 @@ public class StaffRankingHelperTests : IDisposable
         ranking[0].FullName.Should().Be("Ali");
     }
 }
+
+    [Fact]
+    public async Task GetRanking_Limit_Respected()
+    {
+        var ranking = await StaffRankingHelper.GetRanking(_db,"top",1);
+          
+    }

@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import SocialAuditVisual from "../components/SocialAuditVisual";
+import RotatingEarth from "@/components/ui/wireframe-dotted-globe";
 
 // ─── Motion ──────────────────────────────────────────────────────────────────
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -415,14 +415,19 @@ export default function LandingPage() {
               </div>
             </motion.div>
 
-            {/* Right: Social Audit Visual (Directly relatable to SociHR system) */}
+            {/* Right: Interactive Wireframe Dotted Globe */}
             <motion.div
-              initial={{ opacity: 0, scale: 0.96 }}
+              initial={{ opacity: 0, scale: 0.94 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.15, ease: EASE }}
-              style={{ position: "relative" }}
+              style={{
+                position: "relative",
+                display: "flex",
+                justifyContent: "center",
+                alignItems: "center",
+              }}
             >
-              <SocialAuditVisual />
+              <RotatingEarth width={560} height={520} className="w-full max-w-[560px]" />
             </motion.div>
           </div>
         </section>
