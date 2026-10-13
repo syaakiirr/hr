@@ -59,15 +59,20 @@ if (rawConnectionString.StartsWith("postgres://") || rawConnectionString.StartsW
     var host     = colonIdx >= 0 ? hostPort[..colonIdx] : hostPort;
     var port     = colonIdx >= 0 ? hostPort[(colonIdx + 1)..] : "5432";
 
-    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Pooling=true;MaxPoolSize=30;MinPoolSize=1;CommandTimeout=30;Timeout=30;";
+    // MaxPoolSize=10 — bawah siling Supabase session mode (14 sambungan max).
+    // No Reset On Close + Max Auto Prepare=0 — wajib jika guna pgBouncer transaction mode (port 6543).
+    connectionString = $"Host={host};Port={port};Database={database};Username={username};Password={password};SSL Mode=Require;Trust Server Certificate=true;Pooling=true;MaxPoolSize=10;MinPoolSize=0;CommandTimeout=30;Timeout=15;No Reset On Close=true;Max Auto Prepare=0;";
     Console.WriteLine($"✅ Converted URI → Host={host};Port={port};Database={database};Username={username}");
 }
 else
 {
     // Add pooling settings to the existing connection string
+    // Jika env var sudah ada Pooling= (e.g. dari Render), hormat tetapan itu — jangan tambah lagi.
+    // Jika tiada, tambah tetapan selamat: MaxPoolSize=10 (bawah siling Supabase 14).
     if (!rawConnectionString.ToLower().Contains("pooling="))
     {
-        connectionString = rawConnectionString.TrimEnd(';') + ";Pooling=true;MaxPoolSize=30;MinPoolSize=1;CommandTimeout=30;Timeout=30;";
+        connectionString = rawConnectionString.TrimEnd(';') +
+            ";Pooling=true;MaxPoolSize=10;MinPoolSize=0;CommandTimeout=30;Timeout=15;No Reset On Close=true;Max Auto Prepare=0;";
     }
     else
     {

@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "motion/react";
 import { Clock, CalendarDays, BarChart3 } from "lucide-react";
 import { getSessions, getEngagements, type KpiData } from "../services/api";
 
-const MAX_SESSIONS = 30; // Limit concurrent API calls
+const MAX_SESSIONS = 20;      // Max sesi dimuatkan untuk elak timeout
+const CONCURRENCY  = 4;       // Max getEngagements() serentak — bawah pool limit (MaxPoolSize=10)
 
 // Frontend implementation of TickHelper.cs to calculate ticks at action level
 const calculateTicks = (_platformName: string, isLiked: boolean, isCommented: boolean, isShared: boolean) => {
@@ -131,10 +132,26 @@ export default function EngagementMetrics({ filter = "month", kpiData: kpiProp }
         const allSessions = await getSessions();
         const limited = allSessions.slice(0, MAX_SESSIONS);
 
-        const allData = await Promise.all(
-          limited.map((session) =>
+        // Hadkan concurrency: proses CONCURRENCY sesi pada satu masa sahaja.
+        // Promise.all(30 sesi serentak) akan cecah siling sambungan Supabase (14) — kita guna semaphore mudah.
+        async function fetchWithLimit<T>(tasks: (() => Promise<T>)[], limit: number): Promise<T[]> {
+          const results: T[] = [];
+          let index = 0;
+          async function worker() {
+            while (index < tasks.length) {
+              const i = index++;
+              results[i] = await tasks[i]();
+            }
+          }
+          await Promise.all(Array.from({ length: Math.min(limit, tasks.length) }, worker));
+          return results;
+        }
+
+        const allData = await fetchWithLimit(
+          limited.map((session) => () =>
             getEngagements(session.sessionID).then((engagements) => ({ session, engagements }))
-          )
+          ),
+          CONCURRENCY
         );
 
         const sessionMetrics: MetricRow[] = allData.map(({ session, engagements }, idx) => {

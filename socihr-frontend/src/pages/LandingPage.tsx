@@ -28,6 +28,8 @@ function fadeUp(delay = 0) {
   };
 }
 
+
+
 // ─── Data ─────────────────────────────────────────────────────────────────────
 const PLATFORMS = [
   { name: "Instagram", metric: "4,820+ Posts Tracked", sub: "Reels & Feed", color: "#E1306C" },

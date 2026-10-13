@@ -165,17 +165,26 @@ export default function DashboardPage() {
     }
     setError(null);
 
-    Promise.all([
-      getDashboardKpi(from, to),
-      getMonthlyTrend(new Date().getFullYear()),
-      getWeeklyTrend(from, to),
-      getPlatformComparison(from, to),
-      getStaffRanking("top", 10, from, to),
-      getStaffRanking("bottom", 10, from, to),
-      getCompanyPerformance(from, to),
-      getHeatmap(currentYear),
-      getDashboardTrend(from, to),
-    ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData]) => {
+    // Fetch dalam dua gelombang (4 + 5) untuk hadkan sambungan DB serentak.
+    // MaxPoolSize=10, jadi 4+5 selamat — vs. 9 serentak yang boleh cecah siling Supabase.
+    const fetchAll = async () => {
+      const [kpiData, monthData, weekData, platData] = await Promise.all([
+        getDashboardKpi(from, to),
+        getMonthlyTrend(new Date().getFullYear()),
+        getWeeklyTrend(from, to),
+        getPlatformComparison(from, to),
+      ]);
+      const [topData, botData, compData, heatData, trendData] = await Promise.all([
+        getStaffRanking("top", 10, from, to),
+        getStaffRanking("bottom", 10, from, to),
+        getCompanyPerformance(from, to),
+        getHeatmap(currentYear),
+        getDashboardTrend(from, to),
+      ]);
+      return [kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData] as const;
+    };
+
+    fetchAll().then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData]) => {
       if (isCancelled) return;
       setKpi(kpiData);
       setMonthly(monthData);
