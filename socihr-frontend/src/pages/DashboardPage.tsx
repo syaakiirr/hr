@@ -223,6 +223,10 @@ export default function DashboardPage() {
   // Hover prefetch — mula fetch data bila tetikus hover atas butang filter.
   // Bila user klik, data dah dalam cache → paparan hampir serta-merta, tiada loading.
   const prefetchFilter = (filterValue: string) => {
+    // Guard: jangan prefetch kalau tiada token (belum login / token expired)
+    if (!localStorage.getItem("token")) return;
+    // Skip kalau filter yang sama dengan yang aktif
+    if (filterValue === filter) return;
     const { from, to } = getDateRange(filterValue, customFrom, customTo);
     // Skip jika dah dalam cache
     if (queryClient.getQueryData(queryKeys.dashboard.kpi(from, to))) return;

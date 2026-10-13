@@ -10,6 +10,18 @@ function authHeaders(): Record<string, string> {
 
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
+    // 401 = token expired atau tidak sah — clear session dan redirect ke login
+    if (res.status === 401) {
+      localStorage.removeItem("token");
+      localStorage.removeItem("username");
+      localStorage.removeItem("role");
+      localStorage.removeItem("departmentId");
+      localStorage.removeItem("departmentName");
+      // Redirect ke login — guna replace supaya back button tak bawa balik ke page protected
+      window.location.replace("/login");
+      // Throw supaya Promise chain berhenti
+      throw new Error("Sesi tamat. Sila log masuk semula.");
+    }
     const text = await res.text();
     let message = "An error occurred. Please try again.";
     try {
@@ -28,6 +40,7 @@ async function handleResponse<T>(res: Response): Promise<T> {
   }
   return res.json();
 }
+
 
 // ─── Auth ───────────────────────────────────────────
 export interface LoginResult {
