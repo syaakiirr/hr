@@ -840,12 +840,12 @@ export default function DashboardPage() {
                 </div>
                 {trendOption ? (
                 <ReactEChartsCore 
+                  key={`trend-${filter}`}
                   echarts={treeShakenECharts}
                   option={trendOption} 
                   style={{ height: 230 }}
                   opts={{ renderer: 'canvas' }}
                   notMerge={true}
-                  lazyUpdate={true}
                 />
                 ) : (
                   <p style={{ fontSize: 12, color: "var(--text-3)", padding: "24px 0", textAlign: "center" }}>
@@ -881,12 +881,12 @@ export default function DashboardPage() {
                   </div>
                 </div>
                 <ReactEChartsCore 
+                  key={`platform-${filter}`}
                   echarts={treeShakenECharts}
                   option={platformOption} 
                   style={{ height: 210 }}
                   opts={{ renderer: 'canvas' }}
                   notMerge={true}
-                  lazyUpdate={true}
                 />
               </div>
 
@@ -895,12 +895,12 @@ export default function DashboardPage() {
                 <p className="chart-label">Completed Action Distribution</p>
                 <div style={{ display: "flex", height: 210, alignItems: "center", position: "relative" }}>
                   <ReactEChartsCore 
+                    key={`dist-${filter}`}
                     echarts={treeShakenECharts}
                     option={distributionOption} 
                     style={{ height: "100%", width: "100%" }}
                     opts={{ renderer: 'canvas' }}
                     notMerge={true}
-                    lazyUpdate={true}
                   />
                   <div style={{
                     position: "absolute", top: "50%", left: "50%", transform: "translate(-50%, -50%)",
@@ -925,12 +925,12 @@ export default function DashboardPage() {
 
                 <div style={{ display: "grid", gridTemplateColumns: "1.2fr 1fr", gap: 16, alignItems: "center" }}>
                   <ReactEChartsCore
+                    key={`company-${filter}`}
                     echarts={treeShakenECharts}
                     option={companyOption}
                     style={{ height: 190 }}
                     opts={{ renderer: 'canvas' }}
                     notMerge={true}
-                    lazyUpdate={true}
                   />
                   {/* Company breakdown table */}
                   <AnimatedList stagger={0.03} style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -970,23 +970,23 @@ export default function DashboardPage() {
               <div className="chart-wrap">
                 <p className="chart-label">Monthly Volume (This Year)</p>
                 <ReactEChartsCore 
+                  key={`monthly-${filter}`}
                   echarts={treeShakenECharts}
                   option={monthlyOption} 
                   style={{ height: 220 }} 
                   opts={{ renderer: 'canvas' }}
                   notMerge={true}
-                  lazyUpdate={true}
                 />
               </div>
               <div className="chart-wrap">
                 <p className="chart-label">Weekly Volume Velocity</p>
                 <ReactEChartsCore 
+                  key={`weekly-${filter}`}
                   echarts={treeShakenECharts}
                   option={weeklyOption} 
                   style={{ height: 220 }}
                   opts={{ renderer: 'canvas' }}
                   notMerge={true}
-                  lazyUpdate={true}
                 />
               </div>
             </div>
@@ -999,12 +999,12 @@ export default function DashboardPage() {
                   <p style={{ color: "var(--text-4)", fontSize: 13, padding: "20px 0" }}>No data available</p>
                 ) : (
                   <ReactEChartsCore 
+                    key={`top-${filter}`}
                     echarts={treeShakenECharts}
                     option={topOption} 
                     style={{ height: 230 }}
                     opts={{ renderer: 'canvas' }}
                     notMerge={true}
-                    lazyUpdate={true}
                   />
                 )}
               </div>
@@ -1014,12 +1014,12 @@ export default function DashboardPage() {
                   <p style={{ color: "var(--text-4)", fontSize: 13, padding: "20px 0" }}>No data available</p>
                 ) : (
                   <ReactEChartsCore 
+                    key={`bottom-${filter}`}
                     echarts={treeShakenECharts}
                     option={bottomOption} 
                     style={{ height: 230 }}
                     opts={{ renderer: 'canvas' }}
                     notMerge={true}
-                    lazyUpdate={true}
                   />
                 )}
               </div>
