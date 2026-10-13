@@ -153,6 +153,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let isCancelled = false;
+    const controller = new AbortController();
     const { from, to } = getDateRange(filter, customFrom, customTo);
 
     // If already in query cache (e.g. from hover prefetch or previous visit), display immediately
@@ -166,26 +167,32 @@ export default function DashboardPage() {
     setError(null);
 
     // Fetch dalam dua gelombang (4 + 5) untuk hadkan sambungan DB serentak.
-    // MaxPoolSize=10, jadi 4+5 selamat — vs. 9 serentak yang boleh cecah siling Supabase.
+    // AbortController memastikan bila filter bertukar, request lama dibatalkan di peringkat network —
+    // ini yang betulkan animation: data lama tidak akan overwrite state baru.
     const fetchAll = async () => {
       const [kpiData, monthData, weekData, platData] = await Promise.all([
-        getDashboardKpi(from, to),
-        getMonthlyTrend(new Date().getFullYear()),
-        getWeeklyTrend(from, to),
-        getPlatformComparison(from, to),
+        getDashboardKpi(from, to, controller.signal),
+        getMonthlyTrend(new Date().getFullYear(), controller.signal),
+        getWeeklyTrend(from, to, controller.signal),
+        getPlatformComparison(from, to, controller.signal),
       ]);
+
+      // Periksa di antara dua batch — kalau filter dah bertukar, berhenti awal
+      if (isCancelled) return null;
+
       const [topData, botData, compData, heatData, trendData] = await Promise.all([
-        getStaffRanking("top", 10, from, to),
-        getStaffRanking("bottom", 10, from, to),
-        getCompanyPerformance(from, to),
-        getHeatmap(currentYear),
+        getStaffRanking("top", 10, from, to, controller.signal),
+        getStaffRanking("bottom", 10, from, to, controller.signal),
+        getCompanyPerformance(from, to, controller.signal),
+        getHeatmap(currentYear, controller.signal),
         getDashboardTrend(from, to),
       ]);
       return [kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData] as const;
     };
 
-    fetchAll().then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData]) => {
-      if (isCancelled) return;
+    fetchAll().then((result) => {
+      if (isCancelled || !result) return;
+      const [kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData] = result;
       setKpi(kpiData);
       setMonthly(monthData);
       setWeekly(weekData);
@@ -213,6 +220,8 @@ export default function DashboardPage() {
       queryClient.setQueryData(queryKeys.dashboard.trend(from, to), trendData);
     }).catch((err) => {
       if (isCancelled) return;
+      // AbortError = request dibatalkan oleh cleanup — bukan ralat sebenar
+      if (err instanceof DOMException && err.name === "AbortError") return;
       console.error(err);
       setError(err instanceof Error ? err.message : "Gagal muatkan data, cuba lagi.");
       setLoading(false);
@@ -220,8 +229,11 @@ export default function DashboardPage() {
 
     return () => {
       isCancelled = true;
+      controller.abort();
     };
   }, [filter, customFrom, customTo]);
+
+
 
   const handleCreateSnapshot = async () => {
     if (!snapshotName.trim()) {
