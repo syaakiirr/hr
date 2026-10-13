@@ -166,33 +166,21 @@ export default function DashboardPage() {
     }
     setError(null);
 
-    // Fetch dalam dua gelombang (4 + 5) untuk hadkan sambungan DB serentak.
-    // AbortController memastikan bila filter bertukar, request lama dibatalkan di peringkat network —
-    // ini yang betulkan animation: data lama tidak akan overwrite state baru.
-    const fetchAll = async () => {
-      const [kpiData, monthData, weekData, platData] = await Promise.all([
-        getDashboardKpi(from, to, controller.signal),
-        getMonthlyTrend(new Date().getFullYear(), controller.signal),
-        getWeeklyTrend(from, to, controller.signal),
-        getPlatformComparison(from, to, controller.signal),
-      ]);
-
-      // Periksa di antara dua batch — kalau filter dah bertukar, berhenti awal
-      if (isCancelled) return null;
-
-      const [topData, botData, compData, heatData, trendData] = await Promise.all([
-        getStaffRanking("top", 10, from, to, controller.signal),
-        getStaffRanking("bottom", 10, from, to, controller.signal),
-        getCompanyPerformance(from, to, controller.signal),
-        getHeatmap(currentYear, controller.signal),
-        getDashboardTrend(from, to),
-      ]);
-      return [kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData] as const;
-    };
-
-    fetchAll().then((result) => {
-      if (isCancelled || !result) return;
-      const [kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData] = result;
+    // Semua 9 panggilan serentak — selamat kerana 9 < MaxPoolSize(10).
+    // Sequential batch sebelum ini hanya menambah latency (batch2 tunggu batch1 siap).
+    // AbortController cancel request lama bila filter bertukar → animation betul.
+    Promise.all([
+      getDashboardKpi(from, to, controller.signal),
+      getMonthlyTrend(new Date().getFullYear(), controller.signal),
+      getWeeklyTrend(from, to, controller.signal),
+      getPlatformComparison(from, to, controller.signal),
+      getStaffRanking("top", 10, from, to, controller.signal),
+      getStaffRanking("bottom", 10, from, to, controller.signal),
+      getCompanyPerformance(from, to, controller.signal),
+      getHeatmap(currentYear, controller.signal),
+      getDashboardTrend(from, to),
+    ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData]) => {
+      if (isCancelled) return;
       setKpi(kpiData);
       setMonthly(monthData);
       setWeekly(weekData);
@@ -220,7 +208,6 @@ export default function DashboardPage() {
       queryClient.setQueryData(queryKeys.dashboard.trend(from, to), trendData);
     }).catch((err) => {
       if (isCancelled) return;
-      // AbortError = request dibatalkan oleh cleanup — bukan ralat sebenar
       if (err instanceof DOMException && err.name === "AbortError") return;
       console.error(err);
       setError(err instanceof Error ? err.message : "Gagal muatkan data, cuba lagi.");
@@ -233,6 +220,35 @@ export default function DashboardPage() {
     };
   }, [filter, customFrom, customTo]);
 
+  // Hover prefetch — mula fetch data bila tetikus hover atas butang filter.
+  // Bila user klik, data dah dalam cache → paparan hampir serta-merta, tiada loading.
+  const prefetchFilter = (filterValue: string) => {
+    const { from, to } = getDateRange(filterValue, customFrom, customTo);
+    // Skip jika dah dalam cache
+    if (queryClient.getQueryData(queryKeys.dashboard.kpi(from, to))) return;
+    // Fire-and-forget — simpan ke cache tanpa ubah state
+    Promise.all([
+      getDashboardKpi(from, to),
+      getMonthlyTrend(new Date().getFullYear()),
+      getWeeklyTrend(from, to),
+      getPlatformComparison(from, to),
+      getStaffRanking("top", 10, from, to),
+      getStaffRanking("bottom", 10, from, to),
+      getCompanyPerformance(from, to),
+      getHeatmap(currentYear),
+      getDashboardTrend(from, to),
+    ]).then(([kpiData, monthData, weekData, platData, topData, botData, compData, heatData, trendData]) => {
+      queryClient.setQueryData(queryKeys.dashboard.kpi(from, to), kpiData);
+      queryClient.setQueryData(queryKeys.dashboard.monthly(new Date().getFullYear()), monthData);
+      queryClient.setQueryData(queryKeys.dashboard.weekly(from, to), weekData);
+      queryClient.setQueryData(queryKeys.dashboard.platform(from, to), platData);
+      queryClient.setQueryData(queryKeys.dashboard.staffRanking("top", 10, from, to), topData);
+      queryClient.setQueryData(queryKeys.dashboard.staffRanking("bottom", 10, from, to), botData);
+      queryClient.setQueryData(queryKeys.dashboard.company(from, to), compData);
+      queryClient.setQueryData(queryKeys.dashboard.heatmap(currentYear), heatData);
+      queryClient.setQueryData(queryKeys.dashboard.trend(from, to), trendData);
+    }).catch(() => { /* Prefetch gagal — biarkan, fetch biasa akan jalan bila klik */ });
+  };
 
 
   const handleCreateSnapshot = async () => {
@@ -753,6 +769,7 @@ export default function DashboardPage() {
                 <button
                   key={f.value}
                   onClick={() => setFilter(f.value)}
+                  onMouseEnter={() => prefetchFilter(f.value)}
                   className={`btn btn-sm ${filter === f.value ? "btn-primary" : "btn-secondary"}`}
                   title={`Shortcut: ${idx + 1}`}
                 >
