@@ -180,6 +180,7 @@ export default function LandingPage() {
             {/* Links — disembunyikan di fon/tablet melalui .landing-nav-links */}
             <div className="landing-nav-links" style={{ display: "flex", alignItems: "center" }}>
               {[
+                { label: "Introduction", href: "#introduction" },
                 { label: "Capabilities", href: "#capabilities" },
                 { label: "Workflow", href: "#workflow" },
                 { label: "Governance", href: "#governance" },
@@ -532,6 +533,65 @@ export default function LandingPage() {
                 </motion.div>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ── Introduction (Product Overview Video) ─────────────────────── */}
+        <section
+          id="introduction"
+          className="landing-section"
+          style={{
+            background: "#FFFFFF",
+            borderBottom: "1px solid rgba(0, 0, 0, 0.07)",
+            padding: "100px 28px",
+          }}
+        >
+          <div style={{ maxWidth: 960, margin: "0 auto", textAlign: "center" }}>
+            <motion.div {...fadeUp()} style={{ marginBottom: 36 }}>
+              <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "#4f46e5" }}>
+                Introduction
+              </span>
+              <h2
+                style={{
+                  fontSize: "clamp(2rem, 3.8vw, 3.2rem)",
+                  fontWeight: 900,
+                  letterSpacing: "-0.035em",
+                  color: "#0f172a",
+                  lineHeight: 1.1,
+                  margin: "10px 0 14px",
+                }}
+              >
+                See SociHR in action.
+              </h2>
+              <p style={{ fontSize: 16, color: "#64748b", lineHeight: 1.6, margin: 0, maxWidth: 620, marginLeft: "auto", marginRight: "auto" }}>
+                Watch this short introduction to understand how SociHR tracks, verifies, and audits employee social engagement.
+              </p>
+            </motion.div>
+
+            <motion.div
+              {...fadeUp(0.1)}
+              style={{
+                background: "#0f172a",
+                border: "1px solid rgba(0, 0, 0, 0.1)",
+                borderRadius: 20,
+                padding: 10,
+                boxShadow: "0 20px 60px rgba(15, 23, 42, 0.18)",
+              }}
+            >
+              <video
+                controls
+                preload="metadata"
+                poster="/manual/introduction-poster.png"
+                src="/manual/introduction.mp4"
+                style={{ width: "100%", borderRadius: 12, display: "block", background: "#000", maxHeight: "70vh" }}
+              >
+                Browser anda tidak menyokong video.{" "}
+                <a href="/manual/introduction.mp4" download>
+                  Muat turun video introduction
+                </a>
+                .
+              </video>
+            </motion.div>
           </div>
         </section>
 
