@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SociHR System Overview - Motion Video</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #000000;
+            color: #ffffff;
+            overflow: hidden;
+        }
+
+        .video-container {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            overflow: hidden;
+        }
+
+        /* Animated Background */
+        .bg-particles {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+        }
+
+        /* Scene Container */
+        .scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+        }
+
+        /* Logo Animation */
+        .logo-scene {
+            text-align: center;
+        }
+
+        .logo-text {
+            font-size: 180px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: -5px;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+
+        .logo-tagline {
+            font-size: 48px;
+            color: #94a3b8;
+            margin-top: 30px;
+            opacity: 0;
+            letter-spacing: 2px;
+        }
+
+        /* Problem Scene */
+        .problem-container {
+            display: grid;
+            grid-template-columns: 1fr 100px 1fr;
+            gap: 60px;
+            max-width: 1600px;
+            align-items: center;
+        }
+
+        .problem-box {
+            background: rgba(239, 68, 68, 0.1);
+            border: 3px solid #ef4444;
+            border-radius: 30px;
+            padding: 60px;
+            text-align: center;
+            opacity: 0;
+            transform: translateX(-100px);
+        }
+
+        .solution-box {
+            background: rgba(34, 197, 94, 0.1);
+            border: 3px solid #22c55e;
+            border-radius: 30px;
+            padding: 60px;
+            text-align: center;
+            opacity: 0;
+            transform: translateX(100px);
+        }
+
+        .vs-text {
+            font-size: 120px;
+            font-weight: 900;
+            color: #64748b;
+            text-align: center;
+            opacity: 0;
+        }
+
+        .box-icon {
+            font-size: 120px;
+            margin-bottom: 30px;
+        }
+
+        .box-title {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 30px;
+        }
+
+        .box-list {
+            text-align: left;
+            font-size: 28px;
+            line-height: 2;
+            color: #cbd5e1;
+        }
+
+        /* Features Showcase */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 50px;
+            max-width: 1600px;
+            padding: 0 100px;
+        }
+
+        .feature-card {
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.2) 0%, rgba(124, 58, 237, 0.1) 100%);
+            border: 2px solid rgba(79, 70, 229, 0.5);
+            border-radius: 30px;
+            padding: 50px;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.5) rotateY(90deg);
+        }
+
+        .feature-icon {
+            font-size: 100px;
+            margin-bottom: 30px;
+            filter: drop-shadow(0 0 20px rgba(79, 70, 229, 0.6));
+        }
+
+        .feature-title {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+
+        .feature-desc {
+            font-size: 22px;
+            color: #cbd5e1;
+            line-height: 1.6;
+        }
+
+        /* System Architecture */
+        .arch-container {
+            position: relative;
+            width: 1600px;
+            height: 900px;
+        }
+
+        .arch-layer {
+            position: absolute;
+            background: linear-gradient(135deg, rgba(79, 70, 229, 0.3) 0%, rgba(124, 58, 237, 0.2) 100%);
+            border: 3px solid #4f46e5;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            opacity: 0;
+        }
+
+        .arch-title {
+            font-size: 32px;
+            font-weight: 800;
+            margin-bottom: 20px;
+            color: #ffffff;
+        }
+
+        .arch-items {
+            font-size: 20px;
+            color: #cbd5e1;
+            line-height: 1.8;
+        }
+
+        .arch-arrow {
+            position: absolute;
+            font-size: 60px;
+            color: #4f46e5;
+            opacity: 0;
+        }
+
+        /* Stats Showcase */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 40px;
+            max-width: 1600px;
+            padding: 0 100px;
+        }
+
+        .stat-card {
+            background: rgba(79, 70, 229, 0.2);
+            border: 2px solid #4f46e5;
+            border-radius: 20px;
+            padding: 50px 30px;
+            text-align: center;
+            opacity: 0;
+            transform: translateY(100px);
+        }
+
+        .stat-number {
+            font-size: 80px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 15px;
+        }
+
+        .stat-label {
+            font-size: 24px;
+            color: #cbd5e1;
+            font-weight: 600;
+        }
+
+        /* Platform Icons */
+        .platforms-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 100px;
+        }
+
+        .platform-icon {
+            width: 250px;
+            height: 250px;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            border-radius: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 120px;
+            opacity: 0;
+            transform: scale(0) rotate(180deg);
+            box-shadow: 0 20px 60px rgba(79, 70, 229, 0.4);
+        }
+
+        .arrow-icon {
+            font-size: 100px;
+            color: #64748b;
+            opacity: 0;
+        }
+
+        .unified-box {
+            width: 400px;
+            height: 400px;
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            border-radius: 40px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-size: 140px;
+            opacity: 0;
+            transform: scale(0);
+            box-shadow: 0 20px 60px rgba(34, 197, 94, 0.4);
+        }
+
+        .unified-text {
+            font-size: 48px;
+            font-weight: 800;
+            margin-top: 20px;
+        }
+
+        /* Benefits */
+        .benefits-list {
+            max-width: 1400px;
+            padding: 0 100px;
+        }
+
+        .benefit-item {
+            background: linear-gradient(90deg, rgba(79, 70, 229, 0.3) 0%, transparent 100%);
+            border-left: 8px solid #4f46e5;
+            padding: 40px 60px;
+            margin-bottom: 30px;
+            border-radius: 20px;
+            font-size: 32px;
+            color: #ffffff;
+            opacity: 0;
+            transform: translateX(-200px);
+        }
+
+        .benefit-icon {
+            font-size: 48px;
+            margin-right: 30px;
+            display: inline-block;
+        }
+
+        /* Title Scenes */
+        .title-scene {
+            text-align: center;
+        }
+
+        .scene-title {
+            font-size: 96px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 30px;
+            opacity: 0;
+            transform: scale(0.5);
+        }
+
+        .scene-subtitle {
+            font-size: 42px;
+            color: #64748b;
+            opacity: 0;
+        }
+
+        /* Final CTA */
+        .cta-container {
+            text-align: center;
+        }
+
+        .cta-title {
+            font-size: 120px;
+            font-weight: 900;
+            background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 50px;
+            opacity: 0;
+        }
+
+        .cta-features {
+            font-size: 38px;
+            color: #cbd5e1;
+            line-height: 2;
+            margin-bottom: 60px;
+            opacity: 0;
+        }
+
+        .cta-button {
+            display: inline-block;
+            background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+            color: white;
+            font-size: 36px;
+            font-weight: 800;
+            padding: 30px 80px;
+            border-radius: 60px;
+            box-shadow: 0 20px 60px rgba(79, 70, 229, 0.5);
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .cta-credit {
+            font-size: 32px;
+            color: #64748b;
+            margin-top: 80px;
+            opacity: 0;
+        }
+
+        .cta-brand {
+            font-size: 42px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #4f46e5 0%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-top: 15px;
+            opacity: 0;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 12px;
+            background: linear-gradient(90deg, #4f46e5 0%, #ec4899 100%);
+            width: 0%;
+            z-index: 1000;
+            box-shadow: 0 -2px 20px rgba(79, 70, 229, 0.8);
+        }
+
+        /* Glow Effects */
+        @keyframes glow {
+            0%, 100% { filter: drop-shadow(0 0 20px rgba(79, 70, 229, 0.6)); }
+            50% { filter: drop-shadow(0 0 40px rgba(236, 72, 153, 0.8)); }
+        }
+
+        .glow-element {
+            animation: glow 3s ease-in-out infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <div class="video-container" id="videoContainer">
+        <!-- Animated Background -->
+        <div class="bg-particles" id="particles"></div>
+
+        <!-- Scene 1: Logo Intro -->
+        <div class="scene" id="scene1">
+            <div class="logo-scene">
+                <div class="logo-text glow-element">SociHR</div>
+                <div class="logo-tagline">Social Media Engagement Monitor</div>
+            </div>
+        </div>
+
+        <!-- Scene 2: The Problem -->
+        <div class="scene" id="scene2">
+            <div>
+                <div class="scene-title" style="margin-bottom: 100px;">Masalah Syarikat</div>
+                <div class="problem-container">
+                    <div class="problem-box">
+                        <div class="box-icon">😓</div>
+                        <div class="box-title" style="color: #ef4444;">TANPA SISTEM</div>
+                        <div class="box-list">
+                            ❌ Buka 3 apps berbeza<br>
+                            ❌ Tanya staf satu-satu<br>
+                            ❌ Excel manual, leceh<br>
+                            ❌ Tiada rekod bukti<br>
+                            ❌ Ambil masa berjam<br>
+                            ❌ Mudah tersilap
+                        </div>
+                    </div>
+                    <div class="vs-text">VS</div>
+                    <div class="solution-box">
+                        <div class="box-icon">✨</div>
+                        <div class="box-title" style="color: #22c55e;">DENGAN SOCIHR</div>
+                        <div class="box-list">
+                            ✅ Satu dashboard sahaja<br>
+                            ✅ Auto track semua staf<br>
+                            ✅ Report 1-klik siap<br>
+                            ✅ Audit trail lengkap<br>
+                            ✅ 5 minit sehari cukup<br>
+                            ✅ 100% tepat & selamat
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 3: Platform Consolidation -->
+        <div class="scene" id="scene3">
+            <div>
+                <div class="scene-title" style="margin-bottom: 100px;">Satu Platform. Semua Media Sosial.</div>
+                <div class="platforms-container">
+                    <div class="platform-icon">📷</div>
+                    <div class="platform-icon">🎵</div>
+                    <div class="platform-icon">👍</div>
+                    <div class="arrow-icon">→</div>
+                    <div class="unified-box">
+                        <div>🎯</div>
+                        <div class="unified-text">SociHR</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 4: Key Features Title -->
+        <div class="scene" id="scene4">
+            <div class="title-scene">
+                <div class="scene-title">Ciri-Ciri Utama</div>
+                <div class="scene-subtitle">Powerful Features untuk HR</div>
+            </div>
+        </div>
+
+        <!-- Scene 5: Features Grid 1 -->
+        <div class="scene" id="scene5">
+            <div>
+                <div class="scene-title" style="margin-bottom: 80px; font-size: 72px;">Monitoring & Tracking</div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Dashboard Real-time</div>
+                        <div class="feature-desc">
+                            KPI cards lengkap: Total Posts, Completion Rate, 
+                            Engaged vs Missed dalam satu skrin
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">✓</div>
+                        <div class="feature-title">Staff Ticks</div>
+                        <div class="feature-desc">
+                            Tick engagement setiap staf: Completed, Missed, Pending 
+                            dengan status berwarna
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">Monitoring Sessions</div>
+                        <div class="feature-desc">
+                            Buat sesi untuk setiap kempen dengan links 
+                            IG/TikTok/FB & track by company
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 6: Features Grid 2 -->
+        <div class="scene" id="scene6">
+            <div>
+                <div class="scene-title" style="margin-bottom: 80px; font-size: 72px;">Reports & Analytics</div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📄</div>
+                        <div class="feature-title">Excel & PDF Reports</div>
+                        <div class="feature-desc">
+                            Export laporan lengkap dengan presets: Executive, 
+                            Full Audit, Staff Only
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📈</div>
+                        <div class="feature-title">Custom Reports</div>
+                        <div class="feature-desc">
+                            Pilih sections sendiri: Summary, Rankings, Trends, 
+                            Platform Analysis, Staff Table
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🏆</div>
+                        <div class="feature-title">Leaderboard</div>
+                        <div class="feature-desc">
+                            Ranking staf real-time untuk motivasi & 
+                            recognition dalam team
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 7: Features Grid 3 -->
+        <div class="scene" id="scene7">
+            <div>
+                <div class="scene-title" style="margin-bottom: 80px; font-size: 72px;">Compliance & Security</div>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-title">Audit Trail</div>
+                        <div class="feature-desc">
+                            Log lengkap siapa tukar apa & bila - 
+                            compliance ready untuk audit
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">📸</div>
+                        <div class="feature-title">Snapshots</div>
+                        <div class="feature-desc">
+                            Simpan keadaan dashboard sebagai rekod 
+                            bulanan dengan notes
+                        </div>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">🔐</div>
+                        <div class="feature-title">Role-Based Access</div>
+                        <div class="feature-desc">
+                            SuperAdmin & DeptAdmin roles dengan 
+                            permissions terkawal & 2FA
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 8: System Architecture -->
+        <div class="scene" id="scene8">
+            <div>
+                <div class="scene-title" style="margin-bottom: 60px; font-size: 72px;">Arsitektur Sistem</div>
+                <div class="arch-container">
+                    <!-- Frontend Layer -->
+                    <div class="arch-layer" style="top: 50px; left: 200px; width: 1200px; height: 180px;">
+                        <div class="arch-title">🖥️ FRONTEND - User Interface</div>
+                        <div class="arch-items">
+                            React 19 + TypeScript | Vite | Responsive Design<br>
+                            17 Pages | Dashboard, Staff, Monitoring, Reports & More
+                        </div>
+                    </div>
+                    <div class="arch-arrow" style="top: 240px; left: 770px;">↓</div>
+
+                    <!-- API Layer -->
+                    <div class="arch-layer" style="top: 310px; left: 200px; width: 1200px; height: 180px;">
+                        <div class="arch-title">⚙️ BACKEND - Business Logic</div>
+                        <div class="arch-items">
+                            .NET 8 Web API | C# | RESTful Endpoints<br>
+                            11 Controllers | Auth, Staff, Engagement, Reports, Dashboard
+                        </div>
+                    </div>
+                    <div class="arch-arrow" style="top: 500px; left: 770px;">↓</div>
+
+                    <!-- Database Layer -->
+                    <div class="arch-layer" style="top: 570px; left: 200px; width: 1200px; height: 180px;">
+                        <div class="arch-title">🗄️ DATABASE - Data Storage</div>
+                        <div class="arch-items">
+                            PostgreSQL (Supabase) | Entity Framework Core<br>
+                            Staff, Engagements, Sessions, Companies, Audit Logs
+                        </div>
+                    </div>
+
+                    <!-- Side: Security -->
+                    <div class="arch-layer" style="top: 270px; left: 50px; width: 130px; height: 300px; writing-mode: vertical-rl;">
+                        <div class="arch-title" style="writing-mode: horizontal-tb; transform: rotate(-90deg); white-space: nowrap; position: absolute; top: 120px; left: -80px; width: 300px;">
+                            🔐 SECURITY
+                        </div>
+                    </div>
+
+                    <!-- Side: Testing -->
+                    <div class="arch-layer" style="top: 270px; right: 50px; width: 130px; height: 300px; writing-mode: vertical-rl;">
+                        <div class="arch-title" style="writing-mode: horizontal-tb; transform: rotate(90deg); white-space: nowrap; position: absolute; top: 120px; right: -80px; width: 300px;">
+                            ✅ TESTING
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 9: Stats -->
+        <div class="scene" id="scene9">
+            <div>
+                <div class="scene-title" style="margin-bottom: 100px;">Sistem Lengkap</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-number">17</div>
+                        <div class="stat-label">Pages/Modules</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">11</div>
+                        <div class="stat-label">API Controllers</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">3</div>
+                        <div class="stat-label">Platforms</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-number">100%</div>
+                        <div class="stat-label">Responsive</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 10: Benefits -->
+        <div class="scene" id="scene10">
+            <div>
+                <div class="scene-title" style="margin-bottom: 100px;">Kelebihan Utama</div>
+                <div class="benefits-list">
+                    <div class="benefit-item">
+                        <span class="benefit-icon">⚡</span>
+                        <strong>5 Minit Sehari Cukup</strong> - Dari 2 jam manual ke 5 minit dengan sistem
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">🎯</span>
+                        <strong>Satu Dashboard</strong> - Semua platform (IG/TikTok/FB) dalam satu skrin
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">📊</span>
+                        <strong>Reports 1-Klik</strong> - Excel & PDF siap terus untuk management
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">🔐</span>
+                        <strong>Audit-Ready</strong> - Setiap perubahan ada log siapa, bila, apa
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">👥</span>
+                        <strong>Multi-Company</strong> - Boleh urus banyak syarikat & jabatan serentak
+                    </div>
+                    <div class="benefit-item">
+                        <span class="benefit-icon">📱</span>
+                        <strong>Responsive</strong> - Berfungsi di desktop, tablet, dan mobile
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 11: Who Needs This -->
+        <div class="scene" id="scene11">
+            <div>
+                <div class="scene-title" style="margin-bottom: 80px;">Untuk Siapa?</div>
+                <div class="features-grid">
+                    <div class="feature-card" style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.2) 0%, rgba(219, 39, 119, 0.1) 100%); border-color: rgba(236, 72, 153, 0.5);">
+                        <div class="feature-icon">👔</div>
+                        <div class="feature-title">HR / People Ops</div>
+                        <div class="feature-desc">
+                            Team HR yang perlu monitor engagement 
+                            staf di media sosial syarikat
+                        </div>
+                    </div>
+                    <div class="feature-card" style="background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(22, 163, 74, 0.1) 100%); border-color: rgba(34, 197, 94, 0.5);">
+                        <div class="feature-icon">🏢</div>
+                        <div class="feature-title">Multi-Brand Companies</div>
+                        <div class="feature-desc">
+                            Syarikat dengan banyak cawangan atau 
+                            brand yang perlu consolidated view
+                        </div>
+                    </div>
+                    <div class="feature-card" style="background: linear-gradient(135deg, rgba(249, 115, 22, 0.2) 0%, rgba(234, 88, 12, 0.1) 100%); border-color: rgba(249, 115, 22, 0.5);">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Management Teams</div>
+                        <div class="feature-desc">
+                            Management yang perlukan reports & 
+                            analytics untuk decision making
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 12: Call to Action -->
+        <div class="scene" id="scene12">
+            <div class="cta-container">
+                <div class="cta-title glow-element">SociHR</div>
+                <div class="cta-features">
+                    ✓ Jimat Masa 95% untuk HR<br>
+                    ✓ Satu Dashboard untuk Semua Platform<br>
+                    ✓ Laporan Automatik & Audit Trail<br>
+                    ✓ Selamat, Cepat & Mudah Guna
+                </div>
+                <div class="cta-button glow-element">
+                    Mulakan Sekarang →
+                </div>
+                <div class="cta-credit">Crafted with ❤️ by</div>
+                <div class="cta-brand glow-element">@syaakiirr</div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // Create particles
+        function createParticles() {
+            const container = document.getElementById('particles');
+            for (let i = 0; i < 50; i++) {
+                const particle = document.createElement('div');
+                particle.className = 'particle';
+                particle.style.left = Math.random() * 100 + '%';
+                particle.style.top = Math.random() * 100 + '%';
+                container.appendChild(particle);
+                
+                gsap.to(particle, {
+                    x: Math.random() * 200 - 100,
+                    y: Math.random() * 200 - 100,
+                    opacity: Math.random() * 0.5 + 0.2,
+                    duration: Math.random() * 10 + 5,
+                    repeat: -1,
+                    yoyo: true,
+                    ease: 'sine.inOut'
+                });
+            }
+        }
+        createParticles();
+
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Main Timeline
+        const mainTimeline = gsap.timeline({
+            onUpdate: function() {
+                const progress = (this.progress() * 100).toFixed(0);
+                document.getElementById('progressBar').style.width = progress + '%';
+            }
+        });
+
+        // Scene 1: Logo Intro
+        mainTimeline
+            .to('#scene1', { opacity: 1, duration: 0 })
+            .to('#scene1 .logo-text', {
+                opacity: 1,
+                scale: 1,
+                duration: 2,
+                ease: 'elastic.out(1, 0.5)'
+            })
+            .to('#scene1 .logo-tagline', {
+                opacity: 1,
+                duration: 1.5,
+                ease: 'power2.out'
+            }, "-=1")
+            .to('#scene1 .logo-text', {
+                scale: 1.1,
+                duration: 0.8,
+                yoyo: true,
+                repeat: 1,
+                ease: 'power2.inOut'
+            }, "+=0.5")
+            .to('#scene1', { opacity: 0, duration: 1 }, "+=1.5");
+
+        // Scene 2: Problem vs Solution
+        mainTimeline
+            .to('#scene2', { opacity: 1, duration: 0.5 })
+            .to('#scene2 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene2 .problem-box', {
+                opacity: 1,
+                x: 0,
+                duration: 1.2,
+                ease: 'power3.out'
+            }, "-=0.5")
+            .to('#scene2 .vs-text', {
+                opacity: 1,
+                scale: 1.2,
+                duration: 0.8,
+                ease: 'back.out(2)'
+            }, "-=0.8")
+            .to('#scene2 .solution-box', {
+                opacity: 1,
+                x: 0,
+                duration: 1.2,
+                ease: 'power3.out'
+            }, "-=1")
+            .to('#scene2', { opacity: 0, duration: 1 }, "+=3");
+
+        // Scene 3: Platform Consolidation
+        mainTimeline
+            .to('#scene3', { opacity: 1, duration: 0.5 })
+            .to('#scene3 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene3 .platform-icon', {
+                opacity: 1,
+                scale: 1,
+                rotation: 0,
+                stagger: 0.2,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene3 .arrow-icon', {
+                opacity: 1,
+                x: 20,
+                duration: 0.8,
+                ease: 'power2.inOut'
+            }, "-=0.5")
+            .to('#scene3 .unified-box', {
+                opacity: 1,
+                scale: 1,
+                duration: 1.5,
+                ease: 'elastic.out(1, 0.6)'
+            }, "-=0.5")
+            .to('#scene3', { opacity: 0, duration: 1 }, "+=2");
+
+        // Scene 4: Features Title
+        mainTimeline
+            .to('#scene4', { opacity: 1, duration: 0.5 })
+            .to('#scene4 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1.5,
+                ease: 'elastic.out(1, 0.5)'
+            })
+            .to('#scene4 .scene-subtitle', {
+                opacity: 1,
+                duration: 1,
+                ease: 'power2.out'
+            }, "-=1")
+            .to('#scene4', { opacity: 0, duration: 0.8 }, "+=1.5");
+
+        // Scene 5: Features 1
+        mainTimeline
+            .to('#scene5', { opacity: 1, duration: 0.5 })
+            .to('#scene5 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene5 .feature-card', {
+                opacity: 1,
+                scale: 1,
+                rotateY: 0,
+                stagger: 0.2,
+                duration: 1.2,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene5', { opacity: 0, duration: 1 }, "+=2.5");
+
+        // Scene 6: Features 2
+        mainTimeline
+            .to('#scene6', { opacity: 1, duration: 0.5 })
+            .to('#scene6 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene6 .feature-card', {
+                opacity: 1,
+                scale: 1,
+                rotateY: 0,
+                stagger: 0.2,
+                duration: 1.2,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene6', { opacity: 0, duration: 1 }, "+=2.5");
+
+        // Scene 7: Features 3
+        mainTimeline
+            .to('#scene7', { opacity: 1, duration: 0.5 })
+            .to('#scene7 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene7 .feature-card', {
+                opacity: 1,
+                scale: 1,
+                rotateY: 0,
+                stagger: 0.2,
+                duration: 1.2,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene7', { opacity: 0, duration: 1 }, "+=2.5");
+
+        // Scene 8: Architecture
+        mainTimeline
+            .to('#scene8', { opacity: 1, duration: 0.5 })
+            .to('#scene8 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene8 .arch-layer', {
+                opacity: 1,
+                scale: 1,
+                stagger: 0.3,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.5")
+            .to('#scene8 .arch-arrow', {
+                opacity: 1,
+                y: 10,
+                stagger: 0.3,
+                duration: 0.8,
+                ease: 'power2.inOut'
+            }, "-=1")
+            .to('#scene8', { opacity: 0, duration: 1 }, "+=2.5");
+
+        // Scene 9: Stats
+        mainTimeline
+            .to('#scene9', { opacity: 1, duration: 0.5 })
+            .to('#scene9 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene9 .stat-card', {
+                opacity: 1,
+                y: 0,
+                stagger: 0.15,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene9 .stat-number', {
+                scale: 1.2,
+                duration: 0.5,
+                stagger: 0.15,
+                yoyo: true,
+                repeat: 1,
+                ease: 'power2.inOut'
+            }, "-=0.5")
+            .to('#scene9', { opacity: 0, duration: 1 }, "+=2");
+
+        // Scene 10: Benefits
+        mainTimeline
+            .to('#scene10', { opacity: 1, duration: 0.5 })
+            .to('#scene10 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene10 .benefit-item', {
+                opacity: 1,
+                x: 0,
+                stagger: 0.15,
+                duration: 0.8,
+                ease: 'power3.out'
+            }, "-=0.5")
+            .to('#scene10', { opacity: 0, duration: 1 }, "+=3");
+
+        // Scene 11: Target Audience
+        mainTimeline
+            .to('#scene11', { opacity: 1, duration: 0.5 })
+            .to('#scene11 .scene-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            })
+            .to('#scene11 .feature-card', {
+                opacity: 1,
+                scale: 1,
+                rotateY: 0,
+                stagger: 0.2,
+                duration: 1.2,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene11', { opacity: 0, duration: 1 }, "+=2.5");
+
+        // Scene 12: CTA
+        mainTimeline
+            .to('#scene12', { opacity: 1, duration: 0.5 })
+            .to('#scene12 .cta-title', {
+                opacity: 1,
+                scale: 1,
+                duration: 2,
+                ease: 'elastic.out(1, 0.5)'
+            })
+            .to('#scene12 .cta-features', {
+                opacity: 1,
+                duration: 1.5,
+                ease: 'power2.out'
+            }, "-=1")
+            .to('#scene12 .cta-button', {
+                opacity: 1,
+                scale: 1,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene12 .cta-button', {
+                scale: 1.1,
+                duration: 0.8,
+                yoyo: true,
+                repeat: 2,
+                ease: 'power2.inOut'
+            })
+            .to('#scene12 .cta-credit', {
+                opacity: 1,
+                duration: 1,
+                ease: 'power2.out'
+            }, "-=1")
+            .to('#scene12 .cta-brand', {
+                opacity: 1,
+                duration: 1,
+                ease: 'power2.out'
+            }, "-=0.5");
+
+        console.log("Total video duration:", mainTimeline.duration(), "seconds");
+        
+        // Loop the animation
+        mainTimeline.repeat(-1).repeatDelay(3);
+    </script>
+</body>
+</html>

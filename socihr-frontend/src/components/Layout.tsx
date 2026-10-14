@@ -56,6 +56,10 @@ const NAV: { label: string; path: string; icon: ReactNode; roles?: string[] }[] 
     label: "User Management", path: "/users", roles: ["SuperAdmin"],
     icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><circle cx="12" cy="8" r="4"/><path d="M20 21a8 8 0 1 0-16 0"/><path d="M16 11l2 2 4-4"/></svg>,
   },
+  {
+    label: "User Manual", path: "/user-manual",
+    icon: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+  },
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {

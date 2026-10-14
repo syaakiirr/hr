@@ -23,6 +23,7 @@ const CompanyProfilePage  = lazy(() => import("./pages/CompanyProfilePage"));
 const CompanyComparePage  = lazy(() => import("./pages/CompanyComparePage"));
 const DepartmentPage      = lazy(() => import("./pages/DepartmentPage"));
 const UsersPage           = lazy(() => import("./pages/UsersPage"));
+const UserManualPage      = lazy(() => import("./pages/UserManualPage"));
 
 
 function PageLoader() {
@@ -136,6 +137,13 @@ function AnimatedRoutes() {
           <SuperAdminRoute>
             <PageTransition><UsersPage /></PageTransition>
           </SuperAdminRoute>
+        } />
+
+        {/* ── User Manual — both roles ── */}
+        <Route path="/user-manual" element={
+          <ProtectedRoute>
+            <PageTransition><UserManualPage /></PageTransition>
+          </ProtectedRoute>
         } />
 
         <Route path="*" element={<Navigate replace to="/" />} />

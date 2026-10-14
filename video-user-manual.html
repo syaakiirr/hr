@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SociHR User Manual - Full Flow Motion Video</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #ffffff;
+            color: #0f172a;
+            overflow-x: hidden;
+        }
+
+        .video-container {
+            width: 1920px;
+            height: 1080px;
+            position: relative;
+            background: linear-gradient(135deg, #f8fafc 0%, #ffffff 100%);
+            overflow: hidden;
+        }
+
+        /* Header Section */
+        .header {
+            position: absolute;
+            top: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            z-index: 10;
+            opacity: 0;
+        }
+
+        .header h1 {
+            font-size: 72px;
+            font-weight: 800;
+            color: #4f46e5;
+            letter-spacing: -2px;
+            margin-bottom: 20px;
+        }
+
+        .header p {
+            font-size: 32px;
+            color: #64748b;
+            font-weight: 400;
+        }
+
+        /* Scene Container */
+        .scene {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+        }
+
+        /* Module Cards */
+        .module-card {
+            background: white;
+            border-radius: 24px;
+            padding: 60px;
+            box-shadow: 0 20px 60px rgba(15, 23, 42, 0.15);
+            border: 2px solid #e2e8f0;
+            max-width: 1400px;
+            position: relative;
+        }
+
+        .module-number {
+            position: absolute;
+            top: -30px;
+            left: 60px;
+            background: #4f46e5;
+            color: white;
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 36px;
+            font-weight: 800;
+            box-shadow: 0 10px 30px rgba(79, 70, 229, 0.3);
+        }
+
+        .module-title {
+            font-size: 56px;
+            font-weight: 800;
+            color: #0f172a;
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+
+        .module-subtitle {
+            font-size: 28px;
+            color: #4f46e5;
+            margin-bottom: 30px;
+            font-weight: 600;
+        }
+
+        .module-description {
+            font-size: 24px;
+            line-height: 1.8;
+            color: #334155;
+            margin-bottom: 40px;
+        }
+
+        .steps-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .steps-list li {
+            font-size: 22px;
+            color: #475569;
+            padding: 20px 0;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            opacity: 0;
+            transform: translateX(-50px);
+        }
+
+        .steps-list li:before {
+            content: "✓";
+            display: inline-block;
+            width: 40px;
+            height: 40px;
+            background: #16a34a;
+            color: white;
+            border-radius: 50%;
+            text-align: center;
+            line-height: 40px;
+            margin-right: 20px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* Feature Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 40px;
+            margin-top: 40px;
+        }
+
+        .feature-box {
+            background: #f8fafc;
+            padding: 40px;
+            border-radius: 16px;
+            border: 2px solid #e2e8f0;
+            text-align: center;
+            opacity: 0;
+            transform: scale(0.8);
+        }
+
+        .feature-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+        }
+
+        .feature-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 12px;
+        }
+
+        .feature-desc {
+            font-size: 18px;
+            color: #64748b;
+            line-height: 1.6;
+        }
+
+        /* Flow Diagram */
+        .flow-container {
+            position: relative;
+            width: 1600px;
+            height: 800px;
+            margin: 0 auto;
+        }
+
+        .flow-step {
+            position: absolute;
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(15, 23, 42, 0.12);
+            border: 3px solid #e2e8f0;
+            text-align: center;
+            width: 280px;
+            opacity: 0;
+            transform: scale(0);
+        }
+
+        .flow-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .flow-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 8px;
+        }
+
+        .flow-subtitle {
+            font-size: 16px;
+            color: #64748b;
+        }
+
+        .flow-arrow {
+            position: absolute;
+            width: 3px;
+            background: #cbd5e1;
+            opacity: 0;
+        }
+
+        .arrow-head {
+            position: absolute;
+            width: 0;
+            height: 0;
+            border-left: 12px solid transparent;
+            border-right: 12px solid transparent;
+            border-top: 20px solid #cbd5e1;
+        }
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            opacity: 0;
+        }
+
+        .footer-text {
+            font-size: 24px;
+            color: #64748b;
+            margin-bottom: 10px;
+        }
+
+        .footer-brand {
+            font-size: 20px;
+            color: #4f46e5;
+            font-weight: 700;
+        }
+
+        /* Progress Bar */
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 8px;
+            background: #4f46e5;
+            width: 0%;
+            z-index: 1000;
+            box-shadow: 0 2px 10px rgba(79, 70, 229, 0.5);
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+    
+    <div class="video-container" id="videoContainer">
+        <!-- Scene 1: Intro -->
+        <div class="scene" id="scene1">
+            <div class="header">
+                <h1>SociHR User Manual</h1>
+                <p>Panduan Lengkap Sistem HR Media Sosial</p>
+            </div>
+        </div>
+
+        <!-- Scene 2: Login -->
+        <div class="scene" id="scene2">
+            <div class="module-card">
+                <div class="module-number">1</div>
+                <h2 class="module-title">Cara Masuk Sistem</h2>
+                <p class="module-subtitle">Login & Authentication</p>
+                <p class="module-description">
+                    Langkah pertama untuk menggunakan SociHR adalah login ke dalam sistem. 
+                    Sistem ini dilindungi dengan keselamatan berlapis untuk melindungi data syarikat anda.
+                </p>
+                <ul class="steps-list">
+                    <li>Buka browser dan pergi ke alamat SociHR yang diberikan</li>
+                    <li>Masukkan Username dan Password yang diberikan oleh admin</li>
+                    <li>Jika ada 2FA, masukkan kod 6-digit dari authenticator app</li>
+                    <li>Tekan "Log Masuk" untuk masuk ke Dashboard</li>
+                    <li>Jika salah password 5 kali, akaun akan dikunci sementara</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Scene 3: Dashboard -->
+        <div class="scene" id="scene3">
+            <div class="module-card">
+                <div class="module-number">2</div>
+                <h2 class="module-title">Dashboard</h2>
+                <p class="module-subtitle">Pusat Kawalan & Analitik</p>
+                <p class="module-description">
+                    Dashboard adalah papan pemuka utama yang memaparkan kesihatan keseluruhan sistem dalam satu pandangan.
+                </p>
+                <div class="features-grid">
+                    <div class="feature-box">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">KPI Cards</div>
+                        <div class="feature-desc">Total Posts, Engaged, Completed, Missed & Completion Rate %</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">📈</div>
+                        <div class="feature-title">Trend Charts</div>
+                        <div class="feature-desc">Graf trend bulanan/mingguan mengikut platform & syarikat</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">🏆</div>
+                        <div class="feature-title">Rankings</div>
+                        <div class="feature-desc">Top 5 dan Bottom 5 staff berdasarkan completion rate</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 4: Staff Management -->
+        <div class="scene" id="scene4">
+            <div class="module-card">
+                <div class="module-number">3</div>
+                <h2 class="module-title">Staff Management</h2>
+                <p class="module-subtitle">Pengurusan Pekerja</p>
+                <p class="module-description">
+                    Modul Staff adalah buku alamat digital untuk semua pekerja dalam organisasi.
+                </p>
+                <ul class="steps-list">
+                    <li>Tambah staf baru dengan butang "+ Add Staff"</li>
+                    <li>Isi maklumat: Nama, Jabatan, Jawatan, Status</li>
+                    <li>Cari staf dengan Search atau tapis mengikut Department/Status</li>
+                    <li>Edit maklumat staf dengan ikon Edit (pensil)</li>
+                    <li>Toggle status Aktif/Tidak Aktif untuk staf</li>
+                    <li>Archive staf yang berhenti (boleh restore kemudian)</li>
+                    <li>Klik nama staf untuk lihat profil lengkap & sejarah engagement</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Scene 5: Monitoring Flow -->
+        <div class="scene" id="scene5">
+            <div class="module-card" style="max-width: 1600px;">
+                <div class="module-number">4</div>
+                <h2 class="module-title">Aliran Kerja Monitoring</h2>
+                <p class="module-subtitle">Pemantauan Sesi Harian</p>
+                <div class="flow-container">
+                    <!-- Step 1 -->
+                    <div class="flow-step" style="top: 50px; left: 100px;">
+                        <div class="flow-icon">📝</div>
+                        <div class="flow-title">Buat Sesi Baru</div>
+                        <div class="flow-subtitle">Create monitoring session</div>
+                    </div>
+                    <div class="flow-arrow" style="top: 165px; left: 238px; height: 100px;"></div>
+                    <div class="arrow-head" style="top: 265px; left: 226px;"></div>
+
+                    <!-- Step 2 -->
+                    <div class="flow-step" style="top: 280px; left: 100px;">
+                        <div class="flow-icon">🏢</div>
+                        <div class="flow-title">Pilih Syarikat</div>
+                        <div class="flow-subtitle">Select companies involved</div>
+                    </div>
+                    <div class="flow-arrow" style="top: 338px; left: 380px; width: 150px; height: 3px; transform: rotate(0deg);"></div>
+                    <div class="arrow-head" style="top: 327px; left: 530px; transform: rotate(90deg);"></div>
+
+                    <!-- Step 3 -->
+                    <div class="flow-step" style="top: 280px; left: 550px;">
+                        <div class="flow-icon">🔗</div>
+                        <div class="flow-title">Tambah Post Links</div>
+                        <div class="flow-subtitle">IG, TikTok, FB URLs</div>
+                    </div>
+                    <div class="flow-arrow" style="top: 395px; left: 688px; height: 100px;"></div>
+                    <div class="arrow-head" style="top: 495px; left: 676px;"></div>
+
+                    <!-- Step 4 -->
+                    <div class="flow-step" style="top: 510px; left: 550px;">
+                        <div class="flow-icon">✓</div>
+                        <div class="flow-title">Tick Engagement</div>
+                        <div class="flow-subtitle">Mark Completed/Missed</div>
+                    </div>
+                    <div class="flow-arrow" style="top: 568px; left: 400px; width: 150px; height: 3px;"></div>
+                    <div class="arrow-head" style="top: 557px; left: 250px; transform: rotate(-90deg);"></div>
+
+                    <!-- Step 5 -->
+                    <div class="flow-step" style="top: 510px; left: 100px;">
+                        <div class="flow-icon">📄</div>
+                        <div class="flow-title">Generate Report</div>
+                        <div class="flow-subtitle">Excel/PDF export</div>
+                    </div>
+                    <div class="flow-arrow" style="top: 625px; left: 238px; height: 100px;"></div>
+                    <div class="arrow-head" style="top: 725px; left: 226px;"></div>
+
+                    <!-- Step 6 -->
+                    <div class="flow-step" style="top: 740px; left: 100px;">
+                        <div class="flow-icon">📸</div>
+                        <div class="flow-title">Save Snapshot</div>
+                        <div class="flow-subtitle">Archive for future</div>
+                    </div>
+
+                    <!-- Info Box -->
+                    <div class="flow-step" style="top: 150px; left: 1050px; width: 450px; background: #eff6ff; border-color: #bfdbfe;">
+                        <div class="flow-icon">💡</div>
+                        <div class="flow-title" style="color: #2563eb;">Tip: Bulk Actions</div>
+                        <div class="flow-subtitle" style="margin-top: 15px; font-size: 18px; text-align: left;">
+                            • Guna "Mark All 3" untuk tick banyak post sekali<br>
+                            • Isi satu reason untuk semua engagement<br>
+                            • Jimat masa untuk staf yang rajin<br>
+                            • Semua perubahan masuk Audit Trail
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 6: Staff Engagement -->
+        <div class="scene" id="scene6">
+            <div class="module-card">
+                <div class="module-number">5</div>
+                <h2 class="module-title">Staff Engagement</h2>
+                <p class="module-subtitle">Pemantauan Like, Comment, Share</p>
+                <p class="module-description">
+                    Modul ini adalah checklist untuk memantau siapa yang sudah dan belum menjalankan tugasan media sosial.
+                </p>
+                <div class="features-grid">
+                    <div class="feature-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                        <div class="feature-icon">✓</div>
+                        <div class="feature-title" style="color: #16a34a;">Completed</div>
+                        <div class="feature-desc">Staf sudah like/comment/share</div>
+                    </div>
+                    <div class="feature-box" style="background: #fef2f2; border-color: #fecaca;">
+                        <div class="feature-icon">✗</div>
+                        <div class="feature-title" style="color: #b91c1c;">Missed</div>
+                        <div class="feature-desc">Staf tidak buat atau terlepas</div>
+                    </div>
+                    <div class="feature-box" style="background: #fffbeb; border-color: #fde68a;">
+                        <div class="feature-icon">⏳</div>
+                        <div class="feature-title" style="color: #b45309;">Pending</div>
+                        <div class="feature-desc">Belum disemak oleh HR</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 7: Reports -->
+        <div class="scene" id="scene7">
+            <div class="module-card">
+                <div class="module-number">6</div>
+                <h2 class="module-title">Reports & Analytics</h2>
+                <p class="module-subtitle">Laporan Excel & PDF</p>
+                <p class="module-description">
+                    Generate laporan lengkap untuk management dalam pelbagai format dan preset.
+                </p>
+                <ul class="steps-list">
+                    <li>Pilih jenis laporan: Latest, By Session Date, atau Custom Range</li>
+                    <li>Gunakan preset pantas: Executive, Full Audit, atau Staff Only</li>
+                    <li>Custom Excel: Tick bahagian yang diperlukan (Summary, Rankings, Trends, etc)</li>
+                    <li>Preview laporan sebelum download untuk pastikan data betul</li>
+                    <li>Download dalam format PDF (untuk viewing) atau Excel (untuk analysis)</li>
+                    <li>Semua laporan termasuk tarikh range dan metadata lengkap</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Scene 8: Advanced Features -->
+        <div class="scene" id="scene8">
+            <div class="module-card">
+                <div class="module-number">7</div>
+                <h2 class="module-title">Ciri-Ciri Lanjutan</h2>
+                <p class="module-subtitle">Untuk SuperAdmin</p>
+                <div class="features-grid">
+                    <div class="feature-box">
+                        <div class="feature-icon">📸</div>
+                        <div class="feature-title">Snapshots</div>
+                        <div class="feature-desc">Simpan keadaan dashboard sebagai rekod sejarah</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">📋</div>
+                        <div class="feature-title">Audit Trail</div>
+                        <div class="feature-desc">Log lengkap siapa tukar apa & bila untuk compliance</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">🗄️</div>
+                        <div class="feature-title">Archived</div>
+                        <div class="feature-desc">Stor untuk staf berhenti & sesi lama (boleh restore)</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">🏆</div>
+                        <div class="feature-title">Leaderboard</div>
+                        <div class="feature-desc">Ranking staf untuk motivasi & recognition</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">👥</div>
+                        <div class="feature-title">Users</div>
+                        <div class="feature-desc">Urus akaun login & roles (SuperAdmin/DeptAdmin)</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">🏢</div>
+                        <div class="feature-title">Companies</div>
+                        <div class="feature-desc">Pengurusan syarikat & perbandingan prestasi</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 9: Date Filter Concept -->
+        <div class="scene" id="scene9">
+            <div class="module-card">
+                <div class="module-number">8</div>
+                <h2 class="module-title">Penapis Tarikh</h2>
+                <p class="module-subtitle">Konsep Penting untuk Semua Modul</p>
+                <p class="module-description">
+                    Hampir semua skrin dalam SociHR bergantung kepada satu penapis tarikh bersama. 
+                    Ini bermakna bila anda tukar tarikh, semua data akan berubah mengikut range tersebut.
+                </p>
+                <div class="features-grid">
+                    <div class="feature-box">
+                        <div class="feature-icon">📅</div>
+                        <div class="feature-title">Today</div>
+                        <div class="feature-desc">Data hari ini sahaja</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">📆</div>
+                        <div class="feature-title">This Week</div>
+                        <div class="feature-desc">Minggu semasa (Mon-Sun)</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">🗓️</div>
+                        <div class="feature-title">This Month</div>
+                        <div class="feature-desc">Bulan berjalan</div>
+                    </div>
+                    <div class="feature-box">
+                        <div class="feature-icon">🎯</div>
+                        <div class="feature-title">Custom Range</div>
+                        <div class="feature-desc">Pilih sendiri dari/hingga</div>
+                    </div>
+                    <div class="feature-box" style="grid-column: 2; background: #fffbeb; border-color: #fde68a;">
+                        <div class="feature-icon">⚠️</div>
+                        <div class="feature-title" style="color: #b45309;">Peraturan Emas</div>
+                        <div class="feature-desc">Jika nombor nampak pelik/kosong, semak penapis tarikh dahulu!</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 10: Daily Workflow -->
+        <div class="scene" id="scene10">
+            <div class="module-card" style="max-width: 1600px;">
+                <div class="module-number">9</div>
+                <h2 class="module-title">Rutin Kerja Harian HR</h2>
+                <p class="module-subtitle">Workflow Standard 5 Minit</p>
+                <div class="flow-container">
+                    <!-- Morning -->
+                    <div class="flow-step" style="top: 100px; left: 150px; width: 400px; background: #fef3c7; border-color: #fcd34d;">
+                        <div class="flow-icon">🌅</div>
+                        <div class="flow-title" style="font-size: 28px;">PAGI (9:00 AM)</div>
+                        <div class="flow-subtitle" style="margin-top: 15px; font-size: 18px; text-align: left;">
+                            1️⃣ Login → Dashboard<br>
+                            2️⃣ Set penapis tarikh (Bulan Ini)<br>
+                            3️⃣ Check Completion Rate naik/turun<br>
+                            4️⃣ Lihat Bottom Staff yang perlu reminder
+                        </div>
+                    </div>
+
+                    <!-- Afternoon -->
+                    <div class="flow-step" style="top: 100px; left: 650px; width: 400px; background: #dbeafe; border-color: #93c5fd;">
+                        <div class="flow-icon">☀️</div>
+                        <div class="flow-title" style="font-size: 28px;">TENGAH HARI (2:00 PM)</div>
+                        <div class="flow-subtitle" style="margin-top: 15px; font-size: 18px; text-align: left;">
+                            5️⃣ Buka Monitoring → Sesi hari ini<br>
+                            6️⃣ Tick engagement: Completed/Missed<br>
+                            7️⃣ Guna "Mark All" untuk staf rajin<br>
+                            8️⃣ Isi reason jika ada yang miss
+                        </div>
+                    </div>
+
+                    <!-- Weekly/Monthly -->
+                    <div class="flow-step" style="top: 450px; left: 400px; width: 500px; background: #dcfce7; border-color: #86efac;">
+                        <div class="flow-icon">📊</div>
+                        <div class="flow-title" style="font-size: 28px;">MINGGUAN/BULANAN</div>
+                        <div class="flow-subtitle" style="margin-top: 15px; font-size: 18px; text-align: left;">
+                            9️⃣ Leaderboard → Screenshot untuk meeting<br>
+                            🔟 Reports → Download Excel/PDF untuk bos<br>
+                            1️⃣1️⃣ (SuperAdmin) Snapshots → Simpan rekod bulan<br>
+                            1️⃣2️⃣ Archive sesi lama untuk kemas sistem
+                        </div>
+                    </div>
+
+                    <!-- Arrows -->
+                    <div class="flow-arrow" style="top: 325px; left: 348px; height: 120px;"></div>
+                    <div class="arrow-head" style="top: 445px; left: 336px;"></div>
+                    <div class="flow-arrow" style="top: 325px; left: 848px; height: 120px;"></div>
+                    <div class="arrow-head" style="top: 445px; left: 836px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Scene 11: Troubleshooting -->
+        <div class="scene" id="scene11">
+            <div class="module-card">
+                <div class="module-number">10</div>
+                <h2 class="module-title">Penyelesaian Masalah</h2>
+                <p class="module-subtitle">Troubleshooting Guide</p>
+                <ul class="steps-list">
+                    <li><strong>Tak boleh login:</strong> Semak Caps Lock, tunggu 1 min jika kunci, hubungi SuperAdmin</li>
+                    <li><strong>Nombor kosong/0:</strong> 90% sebab: salah penapis tarikh. Tukar ke range yang betul</li>
+                    <li><strong>Menu hilang:</strong> Jika anda DeptAdmin, sesetengah menu memang tak nampak (normal)</li>
+                    <li><strong>Butang tak jalan:</strong> Refresh page, check internet, jangan tekan berkali-kali</li>
+                    <li><strong>Laporan tak keluar:</strong> Pastikan Tarikh Mula < Tarikh Tamat</li>
+                    <li><strong>Staf baru tak muncul:</strong> Check status Active & jabatan yang betul di Staff page</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Scene 12: Closing -->
+        <div class="scene" id="scene12">
+            <div style="text-align: center;">
+                <div style="font-size: 96px; font-weight: 800; color: #4f46e5; margin-bottom: 40px; opacity: 0;" class="closing-title">
+                    SociHR
+                </div>
+                <div style="font-size: 42px; color: #64748b; margin-bottom: 60px; opacity: 0;" class="closing-subtitle">
+                    Social Media Engagement Monitor<br>untuk HR Teams
+                </div>
+                <div style="font-size: 32px; color: #334155; margin-bottom: 40px; opacity: 0;" class="closing-features">
+                    ✓ Satu Dashboard untuk Semua Platform<br>
+                    ✓ Pemantauan Real-time & Audit Trail<br>
+                    ✓ Laporan Excel/PDF Automatik<br>
+                    ✓ Selamat & Mudah Digunakan
+                </div>
+                <div style="font-size: 28px; color: #4f46e5; font-weight: 700; margin-top: 80px; opacity: 0;" class="closing-credit">
+                    Crafted by @syaakiirr
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            <div class="footer-text">Untuk sokongan teknikal dan latihan</div>
+            <div class="footer-brand">hubungi developer anda</div>
+        </div>
+    </div>
+
+    <script>
+        gsap.registerPlugin(ScrollTrigger);
+
+        // Main Timeline
+        const mainTimeline = gsap.timeline({
+            onUpdate: function() {
+                const progress = (this.progress() * 100).toFixed(0);
+                document.getElementById('progressBar').style.width = progress + '%';
+            }
+        });
+
+        // Scene 1: Intro
+        mainTimeline
+            .to('#scene1', { opacity: 1, duration: 0 })
+            .to('#scene1 .header', { 
+                opacity: 1, 
+                y: 0, 
+                duration: 1.5, 
+                ease: 'power3.out' 
+            })
+            .to('#scene1 .header h1', {
+                scale: 1.1,
+                duration: 0.5,
+                yoyo: true,
+                repeat: 1,
+                ease: 'power2.inOut'
+            }, "+=0.5")
+            .to('#scene1', { opacity: 0, duration: 0.8 }, "+=2");
+
+        // Scene 2: Login
+        mainTimeline
+            .to('#scene2', { opacity: 1, duration: 0.5 })
+            .to('#scene2 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene2 .steps-list li', {
+                opacity: 1,
+                x: 0,
+                stagger: 0.15,
+                duration: 0.6,
+                ease: 'power2.out'
+            }, "-=0.5")
+            .to('#scene2', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 3: Dashboard
+        mainTimeline
+            .to('#scene3', { opacity: 1, duration: 0.5 })
+            .to('#scene3 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene3 .feature-box', {
+                opacity: 1,
+                scale: 1,
+                stagger: 0.15,
+                duration: 0.8,
+                ease: 'elastic.out(1, 0.5)'
+            }, "-=0.5")
+            .to('#scene3', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 4: Staff Management
+        mainTimeline
+            .to('#scene4', { opacity: 1, duration: 0.5 })
+            .to('#scene4 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene4 .steps-list li', {
+                opacity: 1,
+                x: 0,
+                stagger: 0.12,
+                duration: 0.6,
+                ease: 'power2.out'
+            }, "-=0.5")
+            .to('#scene4', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 5: Monitoring Flow
+        mainTimeline
+            .to('#scene5', { opacity: 1, duration: 0.5 })
+            .to('#scene5 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene5 .flow-step', {
+                opacity: 1,
+                scale: 1,
+                stagger: 0.2,
+                duration: 0.8,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene5 .flow-arrow, #scene5 .arrow-head', {
+                opacity: 1,
+                stagger: 0.15,
+                duration: 0.5
+            }, "-=1")
+            .to('#scene5', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 6: Staff Engagement
+        mainTimeline
+            .to('#scene6', { opacity: 1, duration: 0.5 })
+            .to('#scene6 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene6 .feature-box', {
+                opacity: 1,
+                scale: 1,
+                stagger: 0.15,
+                duration: 0.8,
+                ease: 'elastic.out(1, 0.5)'
+            }, "-=0.5")
+            .to('#scene6', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 7: Reports
+        mainTimeline
+            .to('#scene7', { opacity: 1, duration: 0.5 })
+            .to('#scene7 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene7 .steps-list li', {
+                opacity: 1,
+                x: 0,
+                stagger: 0.12,
+                duration: 0.6,
+                ease: 'power2.out'
+            }, "-=0.5")
+            .to('#scene7', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 8: Advanced Features
+        mainTimeline
+            .to('#scene8', { opacity: 1, duration: 0.5 })
+            .to('#scene8 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene8 .feature-box', {
+                opacity: 1,
+                scale: 1,
+                stagger: 0.1,
+                duration: 0.8,
+                ease: 'elastic.out(1, 0.5)'
+            }, "-=0.5")
+            .to('#scene8', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 9: Date Filter
+        mainTimeline
+            .to('#scene9', { opacity: 1, duration: 0.5 })
+            .to('#scene9 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene9 .feature-box', {
+                opacity: 1,
+                scale: 1,
+                stagger: 0.15,
+                duration: 0.8,
+                ease: 'elastic.out(1, 0.5)'
+            }, "-=0.5")
+            .to('#scene9', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 10: Daily Workflow
+        mainTimeline
+            .to('#scene10', { opacity: 1, duration: 0.5 })
+            .to('#scene10 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene10 .flow-step', {
+                opacity: 1,
+                scale: 1,
+                stagger: 0.3,
+                duration: 1,
+                ease: 'back.out(1.5)'
+            }, "-=0.5")
+            .to('#scene10 .flow-arrow, #scene10 .arrow-head', {
+                opacity: 1,
+                stagger: 0.2,
+                duration: 0.5
+            }, "-=1.5")
+            .to('#scene10', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 11: Troubleshooting
+        mainTimeline
+            .to('#scene11', { opacity: 1, duration: 0.5 })
+            .to('#scene11 .module-card', {
+                scale: 1,
+                opacity: 1,
+                duration: 1,
+                ease: 'back.out(1.2)'
+            }, "-=0.3")
+            .to('#scene11 .steps-list li', {
+                opacity: 1,
+                x: 0,
+                stagger: 0.12,
+                duration: 0.6,
+                ease: 'power2.out'
+            }, "-=0.5")
+            .to('#scene11', { opacity: 0, duration: 0.8 }, "+=3");
+
+        // Scene 12: Closing
+        mainTimeline
+            .to('#scene12', { opacity: 1, duration: 0.5 })
+            .to('#scene12 .closing-title', {
+                opacity: 1,
+                scale: 1.2,
+                duration: 1.5,
+                ease: 'power3.out'
+            })
+            .to('#scene12 .closing-subtitle', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: 'power2.out'
+            }, "-=0.8")
+            .to('#scene12 .closing-features', {
+                opacity: 1,
+                y: 0,
+                duration: 1,
+                ease: 'power2.out'
+            }, "-=0.5")
+            .to('#scene12 .closing-credit', {
+                opacity: 1,
+                duration: 1,
+                ease: 'power2.out'
+            }, "-=0.3")
+            .to('#scene12 .closing-title', {
+                scale: 1.3,
+                color: '#6366f1',
+                duration: 0.8,
+                yoyo: true,
+                repeat: 2,
+                ease: 'power2.inOut'
+            }, "+=1");
+
+        // Footer always visible at end
+        mainTimeline.to('.footer', {
+            opacity: 1,
+            duration: 1,
+            ease: 'power2.out'
+        }, "-=2");
+
+        // Auto-play or manual control
+        console.log("Video duration:", mainTimeline.duration(), "seconds");
+        
+        // Uncomment to loop
+        // mainTimeline.repeat(-1).repeatDelay(2);
+    </script>
+</body>
+</html>
