@@ -102,9 +102,4 @@ public class StaffRankingHelperTests : IDisposable
     }
 }
 
-    [Fact]
-    public async Task GetRanking_Limit_Respected()
-    {
-        var ranking = await StaffRankingHelper.GetRanking(_db,"top",1);
-          
-    }
+    

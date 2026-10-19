@@ -14,7 +14,7 @@ import {
   ShieldCheck,
   Users,
 } from "lucide-react";
-import RotatingEarth from "@/components/ui/wireframe-dotted-globe";
+import HeroOrbit from "../components/HeroOrbit";
 
 // ─── Motion ──────────────────────────────────────────────────────────────────
 const EASE = [0.22, 1, 0.36, 1] as const;
@@ -430,7 +430,7 @@ export default function LandingPage() {
                 alignItems: "center",
               }}
             >
-              <RotatingEarth width={560} height={520} className="w-full max-w-[560px]" />
+              <HeroOrbit />
             </motion.div>
           </div>
         </section>

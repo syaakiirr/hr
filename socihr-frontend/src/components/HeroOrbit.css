@@ -1,0 +1,84 @@
+.hero-orbit {
+  position: relative;
+  width: 100%;
+  max-width: 560px;
+  isolation: isolate;
+  padding-bottom: 36px;
+}
+.hero-orbit__globe { width: 100%; position: relative; z-index: 1; }
+.hero-orbit__paths {
+  position: absolute;
+  inset: 0 0 36px;
+  width: 100%;
+  height: calc(100% - 36px);
+  overflow: visible;
+  pointer-events: none;
+}
+.hero-orbit__track { fill: none; stroke: #c7c9ea; stroke-width: .8; }
+.hero-orbit__track--secondary { stroke: #e0e3f1; }
+.hero-orbit__signal {
+  fill: none;
+  stroke: #7770da;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  stroke-dasharray: 2 98;
+  animation: hero-orbit-signal 18s linear infinite;
+}
+.hero-orbit__signal--secondary { stroke: #a8a2e3; stroke-width: 2; animation-duration: 26s; animation-direction: reverse; }
+.hero-orbit__platform {
+  position: absolute;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: #475569;
+  pointer-events: none;
+  animation: hero-orbit-drift 8s ease-in-out infinite alternate;
+}
+.hero-orbit__platform > span:last-child {
+  padding: 3px 6px;
+  border-radius: 4px;
+  background: #ffffffed;
+}
+.hero-orbit__icon {
+  width: 42px;
+  height: 42px;
+  display: grid;
+  place-items: center;
+  background: #fff;
+  border: 1px solid #e5e7f0;
+  border-radius: 50%;
+  box-shadow: 0 6px 15px #2026540b;
+}
+.hero-orbit__platform--instagram { top: 17%; left: 0; color: #9b467c; }
+.hero-orbit__platform--facebook { top: 31%; right: -1%; color: #4768ac; animation-delay: -3s; }
+.hero-orbit__platform--tiktok { bottom: 19%; left: 7%; color: #334155; animation-delay: -5s; }
+.hero-orbit__caption {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+.hero-orbit__caption > span { width: 5px; height: 5px; background: #817aca; border-radius: 50%; }
+.hero-orbit[data-active="false"] * { animation-play-state: paused; }
+@keyframes hero-orbit-signal { to { stroke-dashoffset: -100; } }
+@keyframes hero-orbit-drift { from { transform: translateY(-4px); } to { transform: translateY(4px); } }
+@media (max-width: 600px) {
+  .hero-orbit__platform { font-size: 10px; gap: 3px; }
+  .hero-orbit__icon { width: 34px; height: 34px; }
+  .hero-orbit__platform--facebook { right: -3%; }
+  .hero-orbit__platform--instagram { left: -3%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .hero-orbit * { animation: none; }
+}

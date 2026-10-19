@@ -260,13 +260,21 @@ export default function RotatingEarth({
       }
     };
 
-    const rotation = [0, 0];
+    const rotation = [-105, -10];
+    projection.rotate(rotation as [number, number]);
     let isAutoRotating = true;
-    const rotationSpeed = 0.45;
+    const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+    let inView = true;
+    const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; });
+    observer.observe(canvas);
+    let lastFrame = 0;
 
-    const timer = d3.timer(() => {
+    const timer = d3.timer((elapsed) => {
+      const delta = Math.min(elapsed - lastFrame, 50);
+      lastFrame = elapsed;
+      if (!inView || document.hidden || reducedMotion.matches) return;
       if (isAutoRotating) {
-        rotation[0] += rotationSpeed;
+        rotation[0] += delta * 0.006;
         projection.rotate(rotation as [number, number]);
       }
       render();
@@ -353,6 +361,7 @@ export default function RotatingEarth({
 
     return () => {
       timer.stop();
+      observer.disconnect();
       canvas.removeEventListener("mousedown", handleMouseDown);
       canvas.removeEventListener("touchstart", handleTouchStart);
       canvas.removeEventListener("wheel", handleWheel);
