@@ -8,6 +8,7 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 
 import LoginPage           from "./pages/LoginPage";
 import LandingPage         from "./pages/LandingPage";
+const LogoSphereStudio = lazy(() => import("./pages/LogoSphereStudio"));
 const DashboardPage       = lazy(() => import("./pages/DashboardPage"));
 const LeaderboardPage     = lazy(() => import("./pages/LeaderboardPage"));
 const SnapshotsPage       = lazy(() => import("./pages/SnapshotsPage"));
@@ -59,6 +60,7 @@ function AnimatedRoutes() {
         {/* Landing awam — pengguna ber-token terus ke dashboard */}
         <Route path="/" element={localStorage.getItem("token") ? <Navigate replace to="/dashboard" /> : <LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/logo-sphere" element={<Suspense fallback={<PageLoader />}><LogoSphereStudio /></Suspense>} />
 
         {/* ── Both roles can access these ── */}
         <Route path="/dashboard" element={
