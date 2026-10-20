@@ -27,7 +27,6 @@ export default function RotatingEarth({
   themeColor = "peach-pink",
 }: RotatingEarthProps) {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const [, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -40,7 +39,7 @@ export default function RotatingEarth({
     const w = Math.min(width, parentW, window.innerWidth - 32);
     const h = Math.min(height, Math.max(340, w * (height / width)));
     const initialScale = Math.min(w, h) / 2.35;
-    const dpr = window.devicePixelRatio || 1;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
 
     canvas.width = w * dpr;
     canvas.height = h * dpr;
@@ -56,67 +55,11 @@ export default function RotatingEarth({
 
     const path = d3.geoPath().projection(projection).context(ctx);
 
-    const pointInPolygon = (point: [number, number], polygon: number[][]) => {
-      const [x, y] = point;
-      let inside = false;
-      for (let i = 0, j = polygon.length - 1; i < polygon.length; j = i++) {
-        const [xi, yi] = polygon[i];
-        const [xj, yj] = polygon[j];
-        if (
-          yi > y !== yj > y &&
-          x < ((xj - xi) * (y - yi)) / (yj - yi) + xi
-        ) {
-          inside = !inside;
-        }
-      }
-      return inside;
-    };
-
-    const pointInFeature = (point: [number, number], feature: any) => {
-      const geom = feature.geometry;
-      if (geom.type === "Polygon") {
-        const coords = geom.coordinates;
-        if (!pointInPolygon(point, coords[0])) return false;
-        for (let i = 1; i < coords.length; i++) {
-          if (pointInPolygon(point, coords[i])) return false;
-        }
-        return true;
-      } else if (geom.type === "MultiPolygon") {
-        for (const coords of geom.coordinates) {
-          if (pointInPolygon(point, coords[0])) {
-            let inHole = false;
-            for (let i = 1; i < coords.length; i++) {
-              if (pointInPolygon(point, coords[i])) {
-                inHole = true;
-                break;
-              }
-            }
-            if (!inHole) return true;
-          }
-        }
-        return false;
-      }
-      return false;
-    };
-
-    const generateDotsInPolygon = (feature: any, density = 16) => {
-      const points: [number, number][] = [];
-      const bounds = d3.geoBounds(feature);
-      const [[minLng, minLat], [maxLng, maxLat]] = bounds;
-      const step = density * 0.08;
-      for (let lng = minLng; lng <= maxLng; lng += step) {
-        for (let lat = minLat; lat <= maxLat; lat += step) {
-          const pt: [number, number] = [lng, lat];
-          if (pointInFeature(pt, feature)) {
-            points.push(pt);
-          }
-        }
-      }
-      return points;
-    };
-
-    const dots: { lng: number; lat: number; visible: boolean; color: string }[] = [];
-    let worldData: any = null;
+    const controller = new AbortController();
+    let disposed = false;
+    const graticule = d3.geoGraticule10();
+    let worldData: GeoJSON.FeatureCollection | null = null;
+    const dotGroups = new Map<string, [number, number][]>();
 
     const render = () => {
       // Clear entire canvas — completely transparent, zero outer glow
@@ -147,7 +90,6 @@ export default function RotatingEarth({
 
       if (worldData) {
         // --- 2. Clean Graticule Lat/Long Grid (NO glow) ---
-        const graticule = d3.geoGraticule10();
         ctx.beginPath();
         path(graticule);
         ctx.strokeStyle =
@@ -159,7 +101,7 @@ export default function RotatingEarth({
 
         // --- 3. Clean Coastlines / Land Contours ---
         ctx.beginPath();
-        worldData.features.forEach((feat: any) => {
+        worldData.features.forEach((feat) => {
           path(feat);
         });
         ctx.strokeStyle =
@@ -170,24 +112,25 @@ export default function RotatingEarth({
         ctx.stroke();
 
         // --- 4. Sharp Land Surface Dots (Peach, Coral & Soft Pink) ---
-        dots.forEach((dot) => {
-          const coord = projection([dot.lng, dot.lat]);
-          if (
-            coord &&
-            coord[0] >= 0 &&
-            coord[0] <= w &&
-            coord[1] >= 0 &&
-            coord[1] <= h
-          ) {
-            ctx.beginPath();
-            ctx.arc(coord[0], coord[1], 1.25 * scaleFactor, 0, 2 * Math.PI);
-            ctx.fillStyle = dot.color;
-            ctx.fill();
+        const center = projection.invert?.([w / 2, h / 2]);
+        const visible = (point: [number, number]) => !!center && d3.geoDistance(point, center) < Math.PI / 2;
+        for (const [color, points] of dotGroups) {
+          ctx.beginPath();
+          const radius = 1.25 * scaleFactor;
+          for (const point of points) {
+            if (!visible(point)) continue;
+            const coord = projection(point);
+            if (!coord) continue;
+            ctx.moveTo(coord[0] + radius, coord[1]);
+            ctx.arc(coord[0], coord[1], radius, 0, 2 * Math.PI);
           }
-        });
+          ctx.fillStyle = color;
+          ctx.fill();
+        }
 
         // --- 5. Clean Global Hub Indicators (Sharp vector points, no fuzzy glow) ---
         GLOBAL_HUBS.forEach(([lng, lat]) => {
+          if (!visible([lng, lat])) return;
           const coord = projection([lng, lat]);
           if (
             coord &&
@@ -219,44 +162,24 @@ export default function RotatingEarth({
 
     const loadWorldData = async () => {
       try {
-        setLoading(true);
-        let res: Response;
-        try {
-          res = await fetch("/data/ne_110m_land.json");
-          if (!res.ok) throw new Error("Local fallback");
-        } catch {
-          res = await fetch(
-            "https://raw.githubusercontent.com/martynafford/natural-earth-geojson/refs/heads/master/110m/physical/ne_110m_land.json"
-          );
+        const response = await fetch('/data/hero-globe.json', { signal: controller.signal });
+        if (!response.ok) throw new Error('Failed to load land data');
+        const data: GeoJSON.FeatureCollection & { dots: [number, number][] } = await response.json();
+        if (disposed) return;
+        worldData = data;
+        for (const point of data.dots) {
+          const latitude = Math.abs(point[1]);
+          const color = themeColor === 'peach-pink'
+            ? latitude < 20 ? '#fb923c' : latitude < 45 ? '#f43f5e' : '#fb7185'
+            : '#4f46e5';
+          const group = dotGroups.get(color) ?? [];
+          group.push(point);
+          dotGroups.set(color, group);
         }
-        if (!res.ok) throw new Error("Failed to load land data");
-        worldData = await res.json();
-
-        // Assign harmonic peach / soft-pink / coral colors to dots
-        worldData.features.forEach((feat: any) => {
-          generateDotsInPolygon(feat, 16).forEach(([lng, lat]) => {
-            let dotColor = "#fb7185";
-            if (themeColor === "peach-pink") {
-              const absLat = Math.abs(lat);
-              if (absLat < 20) {
-                dotColor = "#fb923c"; // warm peach
-              } else if (absLat < 45) {
-                dotColor = "#f43f5e"; // vibrant coral rose
-              } else {
-                dotColor = "#fb7185"; // soft blush pink
-              }
-            } else {
-              dotColor = "#4f46e5";
-            }
-            dots.push({ lng, lat, visible: true, color: dotColor });
-          });
-        });
-
         render();
-        setLoading(false);
+        canvas.dataset.ready = 'true';
       } catch {
-        setError("Failed to load land map data");
-        setLoading(false);
+        if (!disposed) setError('Failed to load land map data');
       }
     };
 
@@ -265,82 +188,49 @@ export default function RotatingEarth({
     let isAutoRotating = true;
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
     let inView = true;
-    const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; });
+    const observer = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; syncAnimation(); });
     observer.observe(canvas);
+    let frame = 0;
     let lastFrame = 0;
-
-    const timer = d3.timer((elapsed) => {
-      const delta = Math.min(elapsed - lastFrame, 50);
-      lastFrame = elapsed;
-      if (!inView || document.hidden || reducedMotion.matches) return;
-      if (isAutoRotating) {
-        rotation[0] += delta * 0.006;
-        projection.rotate(rotation as [number, number]);
+    const tick = (now: number) => {
+      frame = 0;
+      if (disposed || !inView || document.hidden || reducedMotion.matches) return;
+      const delta = now - lastFrame;
+      if (delta >= 1000 / 30) {
+        if (isAutoRotating) {
+          rotation[0] += Math.min(delta, 50) * 0.006;
+          projection.rotate(rotation as [number, number]);
+          render();
+        }
+        lastFrame = now;
       }
+      frame = requestAnimationFrame(tick);
+    };
+    const syncAnimation = () => {
+      cancelAnimationFrame(frame);
+      frame = 0;
+      lastFrame = performance.now();
+      if (inView && !document.hidden && !reducedMotion.matches) frame = requestAnimationFrame(tick);
+    };
+    document.addEventListener('visibilitychange', syncAnimation);
+    reducedMotion.addEventListener('change', syncAnimation);
+    syncAnimation();
+
+    let drag: { x: number; y: number; rotation: number[] } | null = null;
+    const handlePointerDown = (event: PointerEvent) => {
+      if (!event.isPrimary || event.button !== 0) return;
+      drag = { x: event.clientX, y: event.clientY, rotation: [...rotation] };
+      isAutoRotating = false;
+      canvas.setPointerCapture(event.pointerId);
+    };
+    const handlePointerMove = (event: PointerEvent) => {
+      if (!drag) return;
+      rotation[0] = drag.rotation[0] + (event.clientX - drag.x) * 0.5;
+      rotation[1] = Math.max(-90, Math.min(90, drag.rotation[1] - (event.clientY - drag.y) * 0.5));
+      projection.rotate(rotation as [number, number]);
       render();
-    });
-
-    const handleMouseDown = (e: MouseEvent) => {
-      isAutoRotating = false;
-      const startX = e.clientX;
-      const startY = e.clientY;
-      const startRot = [...rotation];
-
-      const handleMouseMove = (moveEvent: MouseEvent) => {
-        const dx = moveEvent.clientX - startX;
-        const dy = moveEvent.clientY - startY;
-        rotation[0] = startRot[0] + dx * 0.5;
-        rotation[1] = startRot[1] - dy * 0.5;
-        rotation[1] = Math.max(-90, Math.min(90, rotation[1]));
-        projection.rotate(rotation as [number, number]);
-        render();
-      };
-
-      const handleMouseUp = () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-        setTimeout(() => {
-          isAutoRotating = true;
-        }, 10);
-      };
-
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
     };
-
-    const handleTouchStart = (e: TouchEvent) => {
-      if (e.touches.length !== 1) return;
-      isAutoRotating = false;
-      const touch = e.touches[0];
-      const startX = touch.clientX;
-      const startY = touch.clientY;
-      const startRot = [...rotation];
-
-      const handleTouchMove = (moveEvent: TouchEvent) => {
-        if (moveEvent.touches.length !== 1) return;
-        const moveTouch = moveEvent.touches[0];
-        const dx = moveTouch.clientX - startX;
-        const dy = moveTouch.clientY - startY;
-        rotation[0] = startRot[0] + dx * 0.5;
-        rotation[1] = startRot[1] - dy * 0.5;
-        rotation[1] = Math.max(-90, Math.min(90, rotation[1]));
-        projection.rotate(rotation as [number, number]);
-        render();
-      };
-
-      const handleTouchEnd = () => {
-        document.removeEventListener("touchmove", handleTouchMove);
-        document.removeEventListener("touchend", handleTouchEnd);
-        setTimeout(() => {
-          isAutoRotating = true;
-        }, 10);
-      };
-
-      document.addEventListener("touchmove", handleTouchMove, {
-        passive: true,
-      });
-      document.addEventListener("touchend", handleTouchEnd);
-    };
+    const handlePointerEnd = () => { drag = null; isAutoRotating = true; };
 
     const handleWheel = (e: WheelEvent) => {
       e.preventDefault();
@@ -353,17 +243,28 @@ export default function RotatingEarth({
       render();
     };
 
-    canvas.addEventListener("mousedown", handleMouseDown);
-    canvas.addEventListener("touchstart", handleTouchStart, { passive: true });
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('pointerup', handlePointerEnd);
+    canvas.addEventListener('pointercancel', handlePointerEnd);
+    canvas.addEventListener('lostpointercapture', handlePointerEnd);
     canvas.addEventListener("wheel", handleWheel, { passive: false });
 
+    render();
     loadWorldData();
 
     return () => {
-      timer.stop();
+      disposed = true;
+      controller.abort();
+      cancelAnimationFrame(frame);
+      document.removeEventListener('visibilitychange', syncAnimation);
+      reducedMotion.removeEventListener('change', syncAnimation);
       observer.disconnect();
-      canvas.removeEventListener("mousedown", handleMouseDown);
-      canvas.removeEventListener("touchstart", handleTouchStart);
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointerup', handlePointerEnd);
+      canvas.removeEventListener('pointercancel', handlePointerEnd);
+      canvas.removeEventListener('lostpointercapture', handlePointerEnd);
       canvas.removeEventListener("wheel", handleWheel);
     };
   }, [width, height, themeColor]);
@@ -392,6 +293,7 @@ export default function RotatingEarth({
         ref={canvasRef}
         className="cursor-grab active:cursor-grabbing transition-transform duration-200"
         style={{
+          touchAction: "pan-y",
           maxWidth: "100%",
           height: "auto",
           display: "block",

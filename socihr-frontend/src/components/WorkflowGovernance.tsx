@@ -8,9 +8,8 @@ const SECURITY = [
   { icon: History, title: "A record you can return to", summary: "Activity with context, not guesswork.", body: "Review recorded engagement status changes in the audit trail. Security audit records also capture sign-in events, giving administrators context when reviewing account activity." },
 ];
 
-export default function WorkflowGovernance() {
-  return <>
-    <section id="workflow" className="work-story" aria-labelledby="work-story-title">
+export function WorkflowSection() {
+  return <section id="workflow" className="work-story" aria-labelledby="work-story-title">
       <div className="work-story__header"><div><h2 id="work-story-title">From the first name.<br /><span>To the full picture.</span></h2></div><p>A simple rhythm for your team’s social activity.<br />Set it up, keep track, and share what matters.</p></div>
       <ol className="work-story__steps">
         <li>
@@ -42,14 +41,15 @@ export default function WorkflowGovernance() {
         </li>
       </ol>
       <div className="work-story__footer"><span>Illustrative workflow · Sample data</span><Link to="/login">Start in your workspace <ArrowRight size={16} /></Link></div>
-    </section>
+    </section>;
+}
 
-    <section id="governance" className="trust-story" aria-labelledby="trust-story-title">
+export function GovernanceSection() {
+  return <section id="governance" className="trust-story" aria-labelledby="trust-story-title">
       <div className="trust-story__inner">
         <div className="trust-story__intro"><div className="trust-story__signature"><ShieldCheck size={21} strokeWidth={1.5} /><span>Security & governance</span></div><h2 id="trust-story-title">Clear boundaries.<br />Thoughtful safeguards.</h2><p>Your team’s activity deserves careful handling. SociHR brings access controls, account protection and a reviewable history into the workspace.</p><div className="trust-story__note"><LockKeyhole size={15} /><span>Designed around accountable access.</span></div></div>
         <div className="trust-story__details">{SECURITY.map((item, index) => <details key={item.title} className="trust-detail" open={index === 0 ? true : undefined} name="socihr-security"><summary><item.icon size={20} strokeWidth={1.5} /><span><strong>{item.title}</strong><small>{item.summary}</small></span><ChevronDown size={17} className="trust-detail__chevron" /></summary><div className="trust-detail__body"><p>{item.body}</p></div></details>)}</div>
       </div>
       <div className="trust-story__footer"><span>Access with purpose. Activity with context.</span><Link to="/login">Open your workspace <ArrowRight size={16} /></Link></div>
-    </section>
-  </>;
+    </section>;
 }

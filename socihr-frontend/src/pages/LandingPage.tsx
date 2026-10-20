@@ -1,7 +1,8 @@
 import { motion, MotionConfig } from "motion/react";
 import SplitText from "../components/SplitText";
 import CapabilitiesShowcase from "../components/CapabilitiesShowcase";
-import WorkflowGovernance from "../components/WorkflowGovernance";
+import { WorkflowSection, GovernanceSection } from "../components/WorkflowGovernance";
+import LandingClosing from "../components/LandingClosing";
 import { useNavigate } from "react-router-dom";
 import {
   ArrowRight,
@@ -101,10 +102,11 @@ export default function LandingPage() {
             {/* Links — disembunyikan di fon/tablet melalui .landing-nav-links */}
             <div className="landing-nav-links" style={{ display: "flex", alignItems: "center" }}>
               {[
-                { label: "Introduction", href: "#introduction" },
                 { label: "Capabilities", href: "#capabilities" },
-                { label: "Workflow", href: "#workflow" },
-                { label: "Governance", href: "#governance" },
+                { label: "Demo", href: "#introduction" },
+                { label: "How it works", href: "#workflow" },
+                { label: "Technology", href: "#technology" },
+                { label: "Security", href: "#governance" },
               ].map((link) => (
                 <a
                   key={link.label}
@@ -457,6 +459,8 @@ export default function LandingPage() {
           </div>
         </section>
 
+        <CapabilitiesShowcase />
+
         {/* ── Introduction (Product Overview Video) ─────────────────────── */}
         <section
           id="introduction"
@@ -516,7 +520,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <CapabilitiesShowcase />
+        <WorkflowSection />
 
         <section id="technology" className="landing-stack" aria-labelledby="landing-stack-title">
           <div className="landing-stack__copy">
@@ -527,129 +531,15 @@ export default function LandingPage() {
           <LandingLogoSphere />
         </section>
 
-        <WorkflowGovernance />
+        <GovernanceSection />
 
-        {/* ── Clean Light CTA Section ─────────────────────────────────────── */}
-        <section
-          className="landing-section"
-          style={{
-            background: "#FFFFFF",
-            padding: "90px 28px 110px",
-          }}
-        >
-          <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-            <motion.div
-              {...fadeUp()}
-              className="landing-cta-card"
-              style={{
-                background: "linear-gradient(135deg, #EEF2FF 0%, #F8F9FF 100%)",
-                border: "1px solid rgba(79, 70, 229, 0.2)",
-                borderRadius: 24,
-                padding: "60px 48px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 36,
-                boxShadow: "0 12px 36px rgba(79, 70, 229, 0.06)",
-              }}
-            >
-              <div>
-                <span style={{ fontSize: 11, fontWeight: 800, letterSpacing: "0.12em", textTransform: "uppercase", color: "#4f46e5" }}>
-                  Get Started Today
-                </span>
-                <h2
-                  style={{
-                    fontSize: "clamp(2rem, 3.4vw, 2.8rem)",
-                    fontWeight: 900,
-                    letterSpacing: "-0.035em",
-                    color: "#0f172a",
-                    lineHeight: 1.1,
-                    margin: "8px 0 10px",
-                  }}
-                >
-                  Ready to audit employee engagement?
-                </h2>
-                <p style={{ fontSize: 16, color: "#64748b", margin: 0 }}>
-                  Sign in to your organization workspace or request access from your People Ops team.
-                </p>
-              </div>
-
-              <button
-                id="cta-launch"
-                onClick={() => navigate("/login")}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 10,
-                  height: 52,
-                  padding: "0 28px",
-                  borderRadius: 14,
-                  background: "#4f46e5",
-                  color: "#fff",
-                  fontSize: 14,
-                  fontWeight: 700,
-                  border: "none",
-                  cursor: "pointer",
-                  boxShadow: "0 6px 20px rgba(79, 70, 229, 0.32)",
-                  transition: "transform 0.15s, box-shadow 0.15s",
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(-2px)";
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 10px 28px rgba(79, 70, 229, 0.4)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.transform = "translateY(0)";
-                  (e.currentTarget as HTMLButtonElement).style.boxShadow = "0 6px 20px rgba(79, 70, 229, 0.32)";
-                }}
-              >
-                Access Dashboard
-                <ArrowRight size={16} />
-              </button>
-            </motion.div>
-          </div>
-        </section>
-
-        {/* ── Rounded Light Footer (Traceo style) ─────────────────────────── */}
-        <footer style={{ background: "#F0F1F3", padding: "40px 20px 30px" }}>
-          <div style={{ maxWidth: 1240, margin: "0 auto" }}>
-            <div
-              className="landing-footer-card"
-              style={{
-                background: "#FFFFFF",
-                borderRadius: 20,
-                border: "1px solid rgba(0, 0, 0, 0.07)",
-                padding: "32px 36px",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                flexWrap: "wrap",
-                gap: 20,
-                boxShadow: "0 2px 10px rgba(0, 0, 0, 0.02)",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <img
-                  src="/logo.png"
-                  alt="SociHR"
-                  style={{ width: 22, height: 22, objectFit: "contain", display: "block" }}
-                  onError={(e) => { (e.target as HTMLElement).style.display = "none"; }}
-                />
-                <span style={{ fontSize: 14, fontWeight: 800, color: "#0f172a" }}>SociHR</span>
-                <span style={{ color: "#cbd5e1" }}>·</span>
-                <span style={{ fontSize: 13, color: "#64748b" }}>Social Engagement &amp; Audit Engine</span>
-              </div>
-
-              <div style={{ fontSize: 13, color: "#64748b" }}>
-                © 2026 SociHR. Designed &amp; Developed by <strong style={{ color: "#4f46e5" }}>@syaakiirr</strong>.
-              </div>
-            </div>
-          </div>
-        </footer>
+        <LandingClosing />
 
         {/* ── Responsive Overrides ────────────────────────────────────────── */}
         <style>{`
+          #top, #introduction, #technology {
+            scroll-margin-top: 100px;
+          }
           @media (max-width: 1024px) {
             .hero-grid {
               grid-template-columns: 1fr !important;
