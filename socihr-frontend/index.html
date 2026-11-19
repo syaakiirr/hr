@@ -2,6 +2,20 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("socihr-theme");
+          if (t !== "dark" && t !== "light") {
+            t = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+          }
+          var r = document.documentElement;
+          r.dataset.theme = t;
+          r.classList.toggle("dark", t === "dark");
+          r.style.colorScheme = t;
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="apple-touch-icon" href="/logo.png" />
     <style>
@@ -27,6 +41,9 @@
       #loading-screen p {
         margin-top:12px;color:#475569;font-size:13px;font-weight:600;letter-spacing:.04em;
       }
+      html[data-theme="dark"] #loading-screen { background:#0a0e15; }
+      html[data-theme="dark"] #loading-screen .spinner { border-color:#232c3d; border-top-color:#818cf8; }
+      html[data-theme="dark"] #loading-screen p { color:#94a3b8; }
       @keyframes spin { to { transform:rotate(360deg); } }
       @keyframes pulse { 0%, 100% { transform:scale(1); opacity:1; } 50% { transform:scale(1.08); opacity:0.85; } }
     </style>

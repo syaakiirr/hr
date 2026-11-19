@@ -57,11 +57,11 @@ function StatusBadge({ status }: { status: string }) {
           fontSize: "0.74rem",
           fontWeight: 600,
           background: "rgba(239,68,68,0.08)",
-          color: "#dc2626",
+          color: "var(--red-text)",
           border: "1px solid rgba(239,68,68,0.2)",
         }}
       >
-        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#dc2626" }} />
+        <span style={{ width: 6, height: 6, borderRadius: "50%", background: "var(--red)" }} />
         Missed
       </span>
     );

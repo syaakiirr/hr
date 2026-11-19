@@ -1,0 +1,51 @@
+# SociHR — gateway + two API replicas.
+#
+#   docker compose up --build
+#
+# Requires these in the environment (or a local .env file):
+#   ConnectionStrings__DefaultConnection   Postgres URI/conn string
+#   Jwt__Key                               signing key (must match across replicas)
+# Optional:
+#   ADMIN_PASSWORD, OpenAI__ApiKey, Jwt__Issuer, Jwt__Audience, GATEWAY_PORT
+#
+# api1/api2 are declared explicitly so plain `docker compose up` load-balances
+# without needing --scale. The API is stateless (JWT + Postgres), so replicas
+# can share the same database.
+
+x-api: &api
+  image: socihr-api:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+  restart: unless-stopped
+  expose:
+    - "8080"
+  environment:
+    PORT: "8080"
+    ASPNETCORE_ENVIRONMENT: Production
+    # Trust the gateway's X-Forwarded-* headers (see Program.cs).
+    SOCIHR_BEHIND_PROXY: "true"
+    ConnectionStrings__DefaultConnection: ${ConnectionStrings__DefaultConnection:?set ConnectionStrings__DefaultConnection}
+    Jwt__Key: ${Jwt__Key:?set Jwt__Key}
+    Jwt__Issuer: ${Jwt__Issuer:-socihr-backend}
+    Jwt__Audience: ${Jwt__Audience:-socihr-frontend}
+    ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+    OpenAI__ApiKey: ${OpenAI__ApiKey:-}
+
+services:
+  api1:
+    <<: *api
+
+  api2:
+    <<: *api
+
+  gateway:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "${GATEWAY_PORT:-8080}:80"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - api1
+      - api2

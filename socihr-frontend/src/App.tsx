@@ -189,13 +189,13 @@ function AppContent() {
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <DateFilterProvider>
+      <AuthProvider>
+        <DateFilterProvider>
+          <ThemeProvider>
             <AppContent />
-          </DateFilterProvider>
-        </AuthProvider>
-      </ThemeProvider>
+          </ThemeProvider>
+        </DateFilterProvider>
+      </AuthProvider>
     </BrowserRouter>
   );
 }

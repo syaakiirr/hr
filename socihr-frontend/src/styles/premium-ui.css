@@ -57,7 +57,7 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 /* ─── Premium Card System (Performance Optimized) ────────────────────────────────────── */
 
 .card-premium {
-  background: #ffffff;
+  background: var(--panel);
   border-radius: 12px;
   border: 1px solid var(--line);
   padding: 20px 24px;
@@ -76,7 +76,7 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 /* ─── Premium Glassmorphism Cards (SOLID) ───────────────────────────── */
 
 .glass-card {
-  background: #ffffff;
+  background: var(--panel);
   border-radius: 14px;
   border: 1px solid var(--line);
   box-shadow: var(--shadow-xs);
@@ -86,7 +86,7 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 }
 
 .glass-card:hover {
-  background: #ffffff;
+  background: var(--panel);
   box-shadow: var(--shadow-md);
   transform: translateY(-1px);
 }
@@ -126,7 +126,7 @@ aside > div:last-child > div:first-child > div:first-child:hover {
   background: linear-gradient(
     45deg,
     transparent 30%,
-    rgba(255, 255, 255, 0.2) 50%,
+    var(--glow-white) 50%,
     transparent 70%
   );
   transform: rotate(45deg);
@@ -179,14 +179,14 @@ aside > div:last-child > div:first-child > div:first-child:hover {
   border-collapse: separate;
   border-spacing: 0;
   width: 100%;
-  background: #ffffff;
+  background: var(--panel);
   border-radius: 12px;
   overflow: hidden;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02), 0 0 0 1px rgba(99, 102, 241, 0.04);
 }
 
 .data-table thead {
-  background: linear-gradient(180deg, #fafbfc 0%, #f5f5f9 100%);
+  background: linear-gradient(180deg, var(--table-head-1) 0%, var(--table-head-2) 100%);
 }
 
 .data-table thead th {
@@ -194,7 +194,7 @@ aside > div:last-child > div:first-child > div:first-child:hover {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #6b7280;
+  color: var(--table-head-text);
   padding: 14px 16px;
   text-align: left;
   border-bottom: 2px solid rgba(99, 102, 241, 0.1);
@@ -202,19 +202,19 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 
 .data-table tbody tr {
   transition: background-color 0.15s ease, transform 0.15s ease;
-  border-bottom: 1px solid #f3f4f6;
+  border-bottom: 1px solid var(--table-row-line);
   will-change: transform;
 }
 
 .data-table tbody tr:hover {
-  background: rgba(99, 102, 241, 0.02);
+  background: var(--hover);
   transform: translateX(2px);
 }
 
 .data-table tbody td {
   padding: 16px;
   font-size: 14px;
-  color: #374151;
+  color: var(--table-text);
 }
 
 /* ─── Premium Badges with Glow ──────────────────────────────── */
@@ -252,9 +252,9 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 }
 
 .badge.success {
-  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
-  color: #166534;
-  border-color: #bbf7d0;
+  background: var(--green-soft);
+  color: var(--green-text);
+  border-color: var(--green-line);
 }
 
 .badge.success:hover {
@@ -263,9 +263,9 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 }
 
 .badge.danger {
-  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
-  color: #991b1b;
-  border-color: #fecaca;
+  background: var(--red-soft);
+  color: var(--red-text);
+  border-color: var(--red-line);
 }
 
 .badge.danger:hover {
@@ -274,9 +274,9 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 }
 
 .badge.warning {
-  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
-  color: #92400e;
-  border-color: #fde68a;
+  background: var(--amber-soft);
+  color: var(--amber-text);
+  border-color: var(--amber-line);
 }
 
 .badge.warning:hover {
@@ -291,10 +291,10 @@ aside > div:last-child > div:first-child > div:first-child:hover {
   height: 44px;
   padding: 0 16px;
   border-radius: 12px;
-  border: 1.5px solid #e5e7eb;
-  background: #ffffff;
+  border: 1.5px solid var(--input-border);
+  background: var(--panel);
   font-size: 14px;
-  color: #1f2937;
+  color: var(--text-1);
   transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
   font-family: 'Geist', sans-serif;
 }
@@ -305,11 +305,11 @@ aside > div:last-child > div:first-child > div:first-child:hover {
   box-shadow: 
     0 0 0 4px rgba(99, 102, 241, 0.1),
     0 2px 8px rgba(99, 102, 241, 0.15);
-  background: #fafbfc;
+  background: var(--panel-soft);
 }
 
 .input-premium::placeholder {
-  color: #9ca3af;
+  color: var(--placeholder);
 }
 
 /* ─── Premium Buttons with Magnetic Effect (DISABLED - causes jank) ──────────────────── */
@@ -319,7 +319,7 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 /* ─── Premium Loading States ────────────────────────────────── */
 
 .skeleton {
-  background: #f3f4f6;
+  background: var(--scroll-track);
   /* animation: skeleton-loading 1.5s ease-in-out infinite; DISABLED FOR PERFORMANCE */
   border-radius: 8px;
 }
@@ -386,14 +386,14 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 }
 
 .scroll-premium::-webkit-scrollbar-track {
-  background: #f3f4f6;
+  background: var(--scroll-track);
   border-radius: 99px;
 }
 
 .scroll-premium::-webkit-scrollbar-thumb {
   background: linear-gradient(180deg, #6366f1 0%, #a855f7 100%);
   border-radius: 99px;
-  border: 2px solid #f3f4f6;
+  border: 2px solid var(--scroll-track);
 }
 
 .scroll-premium::-webkit-scrollbar-thumb:hover {
@@ -411,12 +411,12 @@ aside > div:last-child > div:first-child > div:first-child:hover {
 }
 
 .status-dot.active {
-  background: #16a34a;
+  background: var(--green);
   box-shadow: 0 0 0 2px rgba(22, 163, 74, 0.2);
 }
 
 .status-dot.inactive {
-  background: #6b7280;
+  background: var(--text-3);
 }
 
 @keyframes pulse-dot {
@@ -439,12 +439,12 @@ aside > div:last-child > div:first-child > div:first-child:hover {
   width: 80px;
   height: 80px;
   margin: 0 auto 24px;
-  background: linear-gradient(135deg, #f3f4f6 0%, #e5e7eb 100%);
+  background: linear-gradient(135deg, var(--surface-2) 0%, var(--line) 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9ca3af;
+  color: var(--text-3);
   /* animation: float 3s ease-in-out infinite; DISABLED FOR PERFORMANCE */
 }
 
@@ -470,7 +470,7 @@ aside > div:last-child > div:first-child > div:first-child:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4), 0 0 0 2px #ffffff;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4), 0 0 0 2px var(--panel);
   animation: badge-pop 0.25s cubic-bezier(0.22, 1, 0.36, 1);
 }
 

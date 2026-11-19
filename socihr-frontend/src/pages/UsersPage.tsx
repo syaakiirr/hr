@@ -175,7 +175,7 @@ export default function UsersPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                         <div style={{
                           width: 28, height: 28, borderRadius: "50%",
-                          background: "var(--bg-tag, #f1f5f9)", border: "1px solid var(--line, #e2e8f0)",
+                          background: "var(--surface-2)", border: "1px solid var(--line)",
                           display: "flex", alignItems: "center", justifyContent: "center",
                           fontSize: "0.75rem", fontWeight: 600, color: "var(--text-2)", flexShrink: 0,
                         }}>{u.username.charAt(0).toUpperCase()}</div>
@@ -298,8 +298,8 @@ export default function UsersPage() {
         <div style={{ position: "fixed", inset: 0, zIndex: 1000, background: "rgba(17,17,24,0.5)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16 }}>
           <div style={{ background: "var(--white)", borderRadius: 16, padding: 28, width: "100%", maxWidth: 380, boxShadow: "0 20px 60px rgba(0,0,0,0.2)" }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-              <div style={{ width: 36, height: 36, borderRadius: 10, background: "#fef2f2", border: "1px solid #fecaca", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#dc2626" strokeWidth="2.25" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <div style={{ width: 36, height: 36, borderRadius: 10, background: "var(--surface-2)", border: "1px solid var(--line)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--red-text)" strokeWidth="2.25" strokeLinecap="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
               </div>
               <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>Delete User</h3>
             </div>
@@ -311,7 +311,7 @@ export default function UsersPage() {
               <button
                 id="user-delete-confirm-btn"
                 className="btn"
-                style={{ fontSize: 13, background: "#dc2626", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
+                style={{ fontSize: 13, background: "var(--red)", color: "#fff", border: "none", padding: "7px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
                 onClick={() => handleDelete(deleteConfirm)}
               >
                 Delete

@@ -129,7 +129,7 @@ function Avatar({ name }: { name: string }) {
         height: 32,
         borderRadius: "50%",
         flexShrink: 0,
-        background: "var(--bg-tag, #f1f5f9)",
+        background: "var(--surface-2)",
         border: "1px solid var(--line, #e2e8f0)",
         display: "flex",
         alignItems: "center",

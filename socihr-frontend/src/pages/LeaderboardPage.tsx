@@ -761,7 +761,7 @@ export default function LeaderboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.1, duration: 0.4 }}
                       style={{
-                        background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(248,250,252,0.95) 100%)",
+                        background: "linear-gradient(180deg, var(--white) 0%, var(--surface-2) 100%)",
                         borderRadius: 20,
                         border: "1px solid rgba(148, 163, 184, 0.45)",
                         padding: "24px 18px 16px",
@@ -883,7 +883,7 @@ export default function LeaderboardPage() {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       transition={{ delay: 0.2, duration: 0.4 }}
                       style={{
-                        background: "linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(254,243,199,0.2) 100%)",
+                        background: "linear-gradient(180deg, var(--white) 0%, var(--amber-soft) 100%)",
                         borderRadius: 22,
                         border: "2px solid #f59e0b",
                         padding: "26px 20px 20px",
@@ -1000,7 +1000,7 @@ export default function LeaderboardPage() {
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: 0.3, duration: 0.4 }}
                       style={{
-                        background: "linear-gradient(180deg, rgba(255,255,255,0.98) 0%, rgba(255,247,237,0.95) 100%)",
+                        background: "linear-gradient(180deg, var(--white) 0%, var(--amber-soft) 100%)",
                         borderRadius: 20,
                         border: "1px solid rgba(217, 119, 6, 0.4)",
                         padding: "24px 18px 16px",

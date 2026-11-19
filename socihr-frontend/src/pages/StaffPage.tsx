@@ -172,7 +172,7 @@ function Avatar({ name }: { name: string }) {
         height: 32,
         borderRadius: "50%",
         flexShrink: 0,
-        background: "var(--bg-tag, #f1f5f9)",
+        background: "var(--surface-2)",
         border: "1px solid var(--line, #e2e8f0)",
         display: "flex",
         alignItems: "center",
@@ -518,16 +518,16 @@ export default function StaffPage() {
             style={{
               padding: "12px 16px",
               borderRadius: "var(--r-md)",
-              background: "#fef3c7",
-              border: "1px solid #fde68a",
+              background: "var(--amber-soft)",
+              border: "1px solid var(--amber-line)",
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
             }}
           >
             <div>
-              <span style={{ fontSize: "0.74rem", color: "#92400e", fontWeight: 500 }}>Interns</span>
-              <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "#92400e", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
+              <span style={{ fontSize: "0.74rem", color: "var(--amber-text)", fontWeight: 500 }}>Interns</span>
+              <p style={{ fontSize: "1.2rem", fontWeight: 700, color: "var(--amber-text)", marginTop: 2, fontVariantNumeric: "tabular-nums" }}>
                 {internCount}
               </p>
             </div>
@@ -781,9 +781,9 @@ export default function StaffPage() {
                                       borderRadius: 99,
                                       fontSize: "0.67rem",
                                       fontWeight: 700,
-                                      background: "#fef3c7",
-                                      color: "#92400e",
-                                      border: "1px solid #fde68a",
+                                      background: "var(--amber-soft)",
+                                      color: "var(--amber-text)",
+                                      border: "1px solid var(--amber-line)",
                                       letterSpacing: "0.04em",
                                       textTransform: "uppercase",
                                     }}

@@ -4,6 +4,16 @@ import { useNavigate } from "react-router-dom";
 import Layout from "../components/Layout";
 import ConfirmationDialog from "../components/ConfirmationDialog";
 import {
+  CalendarDays,
+  Building2,
+  ChevronUp,
+  ChevronDown,
+  Search,
+  X,
+  FileText,
+  FileSpreadsheet
+} from "lucide-react";
+import {
   getSessions, getPlatforms, getCompanies, createSession, updateSession, deleteSession, archiveSession,
   getEngagements, updateEngagementAction, updateEngagementReason,
   downloadSessionReportPdf, downloadMultiSessionReportPdf,
@@ -79,6 +89,11 @@ export default function MonitoringPage() {
   const [bulkReason, setBulkReason] = useState("");
   const [savingBulk, setSavingBulk] = useState(false);
 
+  // Session selector filter & collapse state
+  const [sessionSearch, setSessionSearch] = useState("");
+  const [selectedMonthFilter, setSelectedMonthFilter] = useState<string>("");
+  const [isSessionPanelCollapsed, setIsSessionPanelCollapsed] = useState(false);
+
   // Track the current session ID to prevent stale async updates from a previous session
   // bleeding into the current session's engagement state (Bug #2 fix)
   const currentSessionIDRef = useRef<string | null>(null);
@@ -138,6 +153,77 @@ export default function MonitoringPage() {
 
   // Debounced filter for name (avoids re-render on every keystroke)
   const debouncedFilterName = useDebounce(filterName, 300);
+
+  // Group sessions by month (YYYY-MM)
+  const monthGroups = useMemo(() => {
+    const map = new Map<string, { key: string; label: string; year: number; month: number; count: number }>();
+    for (const s of sessions) {
+      if (!s.sessionDate) continue;
+      const d = parseDateOnly(s.sessionDate);
+      const year = d.getFullYear();
+      const month = d.getMonth() + 1;
+      const key = `${year}-${String(month).padStart(2, "0")}`;
+      const label = d.toLocaleDateString("en-MY", { month: "short", year: "numeric" });
+      if (!map.has(key)) {
+        map.set(key, { key, label, year, month, count: 0 });
+      }
+      map.get(key)!.count++;
+    }
+    return Array.from(map.values()).sort((a, b) => b.key.localeCompare(a.key));
+  }, [sessions]);
+
+  // Active month filter (defaults to latest month with sessions)
+  const activeMonthFilter = useMemo(() => {
+    if (selectedMonthFilter !== "") return selectedMonthFilter;
+    return monthGroups.length > 0 ? monthGroups[0].key : "all";
+  }, [selectedMonthFilter, monthGroups]);
+
+  // Filtered sessions based on month pill & search
+  const filteredSessions = useMemo(() => {
+    return sessions.filter((s) => {
+      if (activeMonthFilter !== "all") {
+        const d = parseDateOnly(s.sessionDate);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+        if (key !== activeMonthFilter) return false;
+      }
+      if (sessionSearch.trim()) {
+        const q = sessionSearch.toLowerCase();
+        const d = parseDateOnly(s.sessionDate);
+        const formatted = d.toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" }).toLowerCase();
+        const weekday = d.toLocaleDateString("en-MY", { weekday: "long" }).toLowerCase();
+        const coNames = s.companies?.map(c => c.companyName.toLowerCase()).join(" ") ?? "";
+        const platNames = s.posts.map(p => p.platformName.toLowerCase()).join(" ");
+        const match = s.sessionDate.includes(q) || formatted.includes(q) || weekday.includes(q) || coNames.includes(q) || platNames.includes(q);
+        if (!match) return false;
+      }
+      return true;
+    });
+  }, [sessions, activeMonthFilter, sessionSearch]);
+
+  // Active session's month key
+  const activeSessionMonthKey = useMemo(() => {
+    if (!selectedSession) return null;
+    const d = parseDateOnly(selectedSession.sessionDate);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  }, [selectedSession]);
+
+  const allInViewSelected = filteredSessions.length > 0 && filteredSessions.every(s => selectedForReport.has(s.sessionID));
+
+  const toggleSelectAllInView = () => {
+    if (allInViewSelected) {
+      setSelectedForReport(prev => {
+        const next = new Set(prev);
+        filteredSessions.forEach(s => next.delete(s.sessionID));
+        return next;
+      });
+    } else {
+      setSelectedForReport(prev => {
+        const next = new Set(prev);
+        filteredSessions.forEach(s => next.add(s.sessionID));
+        return next;
+      });
+    }
+  };
 
   useEffect(() => {
     const cachedSessions = queryClient.getQueryData<MonitoringSession[]>(queryKeys.sessions.list);
@@ -685,24 +771,439 @@ export default function MonitoringPage() {
         /* Vertical stack layout */
         .mon-grid { display: flex; flex-direction: column; gap: 14px; }
 
-        /* Sessions Panel — horizontal strip at top */
-        .sesh-panel { background: var(--white); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; box-shadow: 0 1px 3px rgba(15,23,42,0.03); }
-        .sesh-panel-hd { display: flex; align-items: center; gap: 10px; padding: 8px 14px; border-bottom: 1px solid var(--line); background: #f8fafc; flex-shrink: 0; }
-        .sesh-panel-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-3); white-space: nowrap; }
-        .sesh-panel-count { font-size: 11px; font-weight: 700; color: var(--text-2); background: var(--surface-2); border-radius: 6px; padding: 2px 7px; }
-        .sesh-panel-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 8px; padding: 10px 12px; }
+        /* Sessions Panel — Modernized Container */
+        .sesh-panel {
+          background: var(--white);
+          border: 1px solid var(--line);
+          border-radius: 12px;
+          overflow: hidden;
+          box-shadow: 0 1px 3px rgba(15,23,42,0.03);
+          transition: all 0.2s ease;
+        }
+        .sesh-panel-hd {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 8px 14px;
+          border-bottom: 1px solid var(--line);
+          background: var(--panel-soft);
+          flex-shrink: 0;
+          flex-wrap: wrap;
+        }
+        .sesh-panel-label {
+          font-size: 11px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.06em;
+          color: var(--text-2);
+        }
+        .sesh-panel-count {
+          font-size: 11px;
+          font-weight: 700;
+          color: var(--text-2);
+          background: var(--surface-2);
+          border-radius: 6px;
+          padding: 2px 7px;
+        }
+        .sesh-active-indicator-tag {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 3px 10px;
+          border-radius: 9999px;
+          background: rgba(99,102,241,0.08);
+          border: 1px solid rgba(99,102,241,0.2);
+          color: var(--accent);
+          font-size: 11px;
+        }
+        .sesh-active-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: var(--accent);
+          box-shadow: 0 0 0 2px rgba(99,102,241,0.25);
+        }
+        .sesh-toggle-btn {
+          color: var(--text-3);
+          font-size: 11.5px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          gap: 5px;
+          padding: 0 8px;
+          border-radius: 6px;
+          transition: all 0.15s ease;
+        }
+        .sesh-toggle-btn:hover {
+          color: var(--text-1);
+          background: var(--surface-2);
+        }
 
-        /* Session item — grid card (tiada lagi scroller melintang / kad terpotong) */
-        .sesh-item { display: flex; flex-direction: column; justify-content: space-between; padding: 8px 11px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; transition: all 0.15s ease; position: relative; background: var(--white); gap: 4px; min-width: 0; }
-        .sesh-item:hover { border-color: var(--accent); background: #f8fafc; }
-        .sesh-item.active { border-color: var(--accent); background: var(--white); box-shadow: 0 0 0 1.5px var(--accent); }
-        .sesh-item-body { flex: 1; min-width: 0; }
-        .sesh-item-date { font-size: 12px; font-weight: 600; color: var(--text-1); white-space: nowrap; }
-        .sesh-item-co { font-size: 10.5px; color: var(--text-3); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .sesh-item-plats { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 2px; }
-        .plat-pip { width: 6px; height: 6px; border-radius: 50%; }
-        .sesh-item-acts { display: flex; gap: 2px; opacity: 0; transition: opacity 0.12s; }
-        .sesh-item:hover .sesh-item-acts { opacity: 1; }
+        /* Collapsed Bar */
+        .sesh-collapsed-bar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 10px 16px;
+          background: var(--panel);
+          cursor: pointer;
+          transition: background 0.15s ease;
+        }
+        .sesh-collapsed-bar:hover {
+          background: var(--panel-soft);
+        }
+        .sesh-collapsed-info {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .sesh-cal-badge-mini {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 36px;
+          height: 36px;
+          border-radius: 6px;
+          background: var(--accent-soft);
+          border: 1px solid var(--accent-border);
+          flex-shrink: 0;
+        }
+        .sesh-cal-day-mini {
+          font-size: 14px;
+          font-weight: 700;
+          color: var(--accent-text);
+          line-height: 1;
+        }
+        .sesh-cal-month-mini {
+          font-size: 8px;
+          font-weight: 700;
+          text-transform: uppercase;
+          color: var(--accent);
+        }
+        .sesh-collapsed-title {
+          font-size: 12.5px;
+          font-weight: 600;
+          color: var(--text-1);
+        }
+        .sesh-collapsed-meta {
+          font-size: 11px;
+          color: var(--text-3);
+        }
+
+        /* Filter & Controls Toolbar */
+        .sesh-toolbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 10px;
+          padding: 8px 14px;
+          background: var(--panel-soft);
+          border-bottom: 1px solid var(--line);
+          flex-wrap: wrap;
+        }
+        .sesh-months-bar {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+          overflow-x: auto;
+          scrollbar-width: none;
+          max-width: 100%;
+          padding: 2px 0;
+        }
+        .sesh-months-bar::-webkit-scrollbar {
+          display: none;
+        }
+        .sesh-month-pill {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 4px 10px;
+          border-radius: 6px;
+          font-size: 11px;
+          font-weight: 600;
+          border: 1px solid transparent;
+          cursor: pointer;
+          white-space: nowrap;
+          background: transparent;
+          color: var(--text-3);
+          transition: all 0.15s ease;
+        }
+        .sesh-month-pill:hover {
+          color: var(--text-1);
+          background: var(--surface-2);
+        }
+        .sesh-month-pill.active {
+          background: var(--accent);
+          color: white;
+          box-shadow: 0 1px 3px rgba(79, 70, 229, 0.25);
+        }
+        .sesh-pill-count {
+          font-size: 10px;
+          font-weight: 700;
+          padding: 1px 5px;
+          border-radius: 10px;
+          background: rgba(0,0,0,0.06);
+        }
+        .sesh-month-pill.active .sesh-pill-count {
+          background: rgba(255,255,255,0.25);
+          color: white;
+        }
+        .sesh-active-dot-pill {
+          width: 5px;
+          height: 5px;
+          border-radius: 50%;
+          background: #10b981;
+          display: inline-block;
+        }
+
+        .sesh-toolbar-actions {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-shrink: 0;
+          flex-wrap: wrap;
+        }
+        .sesh-search-wrap {
+          position: relative;
+          min-width: 150px;
+        }
+        .sesh-search-inp {
+          width: 100%;
+          height: 28px;
+          padding: 0 8px 0 26px;
+          font-size: 11.5px;
+          border: 1px solid var(--line);
+          border-radius: 6px;
+          background: var(--white);
+          color: var(--text-1);
+          outline: none;
+          transition: border-color 0.15s;
+        }
+        .sesh-search-inp:focus {
+          border-color: var(--accent);
+        }
+        .sesh-search-ico {
+          position: absolute;
+          left: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: var(--text-3);
+          pointer-events: none;
+        }
+
+        /* Session Cards Grid */
+        .sesh-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+          gap: 10px;
+          padding: 12px 14px;
+          max-height: 310px;
+          overflow-y: auto;
+          scrollbar-width: thin;
+        }
+        .sesh-grid::-webkit-scrollbar {
+          width: 6px;
+        }
+        .sesh-grid::-webkit-scrollbar-thumb {
+          background: var(--line-2);
+          border-radius: 3px;
+        }
+
+        /* Modern Card Item */
+        .sesh-card {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          padding: 9px 11px;
+          border: 1px solid var(--line);
+          border-radius: 9px;
+          background: var(--white);
+          cursor: pointer;
+          transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
+          box-shadow: 0 1px 2px rgba(15,23,42,0.02);
+        }
+        .sesh-card:hover {
+          border-color: var(--line-2);
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(15,23,42,0.04);
+        }
+        .sesh-card.active {
+          border-color: var(--accent);
+          background: linear-gradient(135deg, rgba(99,102,241,0.05) 0%, var(--white) 100%);
+          box-shadow: 0 0 0 1.5px var(--accent), 0 4px 10px rgba(99,102,241,0.08);
+        }
+
+        /* Calendar Date Badge */
+        .sesh-cal-badge {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          width: 44px;
+          height: 48px;
+          border-radius: 8px;
+          background: var(--surface-2);
+          border: 1px solid var(--line);
+          flex-shrink: 0;
+          transition: all 0.15s ease;
+        }
+        .sesh-cal-month {
+          font-size: 8.5px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+          color: var(--text-3);
+          line-height: 1;
+        }
+        .sesh-cal-day {
+          font-size: 16px;
+          font-weight: 800;
+          color: var(--text-1);
+          line-height: 1.15;
+        }
+        .sesh-cal-year {
+          font-size: 8px;
+          font-weight: 600;
+          color: var(--text-4);
+          line-height: 1;
+        }
+        .sesh-card.active .sesh-cal-badge {
+          background: var(--accent-soft);
+          border-color: var(--accent-border);
+        }
+        .sesh-card.active .sesh-cal-month {
+          color: var(--accent);
+        }
+        .sesh-card.active .sesh-cal-day {
+          color: var(--accent-text);
+        }
+        .sesh-card.active .sesh-cal-year {
+          color: var(--accent);
+        }
+
+        /* Card Content */
+        .sesh-card-content {
+          flex: 1;
+          min-width: 0;
+          display: flex;
+          flex-direction: column;
+          gap: 3px;
+        }
+        .sesh-card-header {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .sesh-card-date-txt {
+          font-size: 12px;
+          font-weight: 600;
+          color: var(--text-1);
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        .sesh-active-badge {
+          font-size: 9px;
+          font-weight: 700;
+          text-transform: uppercase;
+          letter-spacing: 0.04em;
+          color: var(--accent-text);
+          background: var(--accent-soft);
+          padding: 1px 5px;
+          border-radius: 4px;
+          flex-shrink: 0;
+        }
+        .sesh-card-details {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          flex-wrap: wrap;
+        }
+        .sesh-chip-co {
+          font-size: 10.5px;
+          color: var(--text-3);
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+        }
+        .sesh-chip-plats {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 10.5px;
+          color: var(--text-3);
+          font-weight: 500;
+        }
+        .sesh-plat-dots {
+          display: inline-flex;
+          align-items: center;
+          gap: 2.5px;
+        }
+
+        /* Card Controls Right */
+        .sesh-card-side {
+          display: flex;
+          flex-direction: column;
+          align-items: flex-end;
+          justify-content: space-between;
+          height: 100%;
+          gap: 6px;
+          flex-shrink: 0;
+        }
+        .sesh-checkbox-wrap {
+          display: flex;
+          align-items: center;
+          cursor: pointer;
+        }
+        .sesh-checkbox-wrap input[type="checkbox"] {
+          accent-color: var(--accent);
+          cursor: pointer;
+          width: 14px;
+          height: 14px;
+        }
+        .sesh-card-actions {
+          display: flex;
+          gap: 2px;
+          opacity: 0;
+          transition: opacity 0.12s;
+        }
+        .sesh-card:hover .sesh-card-actions {
+          opacity: 1;
+        }
+        .sesh-btn-act {
+          width: 22px;
+          height: 22px;
+          padding: 0;
+          border-radius: 4px;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          border: none;
+          background: transparent;
+          cursor: pointer;
+          transition: background 0.12s;
+        }
+        .sesh-btn-act.edit { color: var(--accent); }
+        .sesh-btn-act.edit:hover { background: var(--accent-soft); }
+        .sesh-btn-act.archive { color: var(--text-3); }
+        .sesh-btn-act.archive:hover { background: var(--surface-2); color: var(--text-1); }
+        .sesh-btn-act.delete { color: var(--red); }
+        .sesh-btn-act.delete:hover { background: var(--red-soft); }
+
+        @media (max-width: 768px) {
+          .sesh-toolbar {
+            flex-direction: column;
+            align-items: stretch;
+          }
+          .sesh-toolbar-actions {
+            justify-content: space-between;
+          }
+          .sesh-grid {
+            grid-template-columns: 1fr;
+          }
+        }
 
         /* Right area */
         .engage-area { min-width: 0; }
@@ -718,12 +1219,12 @@ export default function MonitoringPage() {
         .engage-card-sub { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
         .stats-row { display: flex; gap: 7px; align-items: center; }
         .stat-chip { display: flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 6px; font-size: 11px; font-weight: 600; border: 1px solid; }
-        .chip-g { background: rgba(16,185,129,0.08); color: #16a34a; border-color: rgba(16,185,129,0.2); }
-        .chip-r { background: rgba(239,68,68,0.08); color: #dc2626; border-color: rgba(239,68,68,0.2); }
+        .chip-g { background: rgba(16,185,129,0.08); color: var(--green-text); border-color: rgba(16,185,129,0.2); }
+        .chip-r { background: rgba(239,68,68,0.08); color: var(--red-text); border-color: rgba(239,68,68,0.2); }
         .chip-b { background: rgba(99,102,241,0.08); color: var(--accent); border-color: rgba(99,102,241,0.2); }
 
         /* Filter bar */
-        .filter-bar { display: flex; gap: 7px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); background: #fafbfc; flex-wrap: wrap; }
+        .filter-bar { display: flex; gap: 7px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--line); background: var(--panel-soft); flex-wrap: wrap; }
         .fi-wrap { position: relative; flex: 1; min-width: 130px; }
         .fi-icon { position: absolute; left: 9px; top: 50%; transform: translateY(-50%); pointer-events: none; opacity: 0.3; }
         .fi-inp { width: 100%; height: 32px; padding: 0 9px 0 30px; border: 1px solid var(--line); border-radius: 6px; font-size: 12px; background: var(--white); color: var(--text-1); outline: none; transition: border-color 0.15s; font-family: inherit; box-sizing: border-box; }
@@ -732,7 +1233,7 @@ export default function MonitoringPage() {
         .fi-sel:focus { border-color: var(--accent); }
 
         /* Bulk bar */
-        .bulk-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 16px; background: #faf8ff; border-bottom: 1px solid rgba(99,102,241,0.12); flex-wrap: wrap; gap: 8px; }
+        .bulk-bar { display: flex; align-items: center; justify-content: space-between; padding: 7px 16px; background: var(--accent-soft); border-bottom: 1px solid rgba(99,102,241,0.12); flex-wrap: wrap; gap: 8px; }
         .bulk-badge { display: inline-flex; align-items: center; justify-content: center; background: var(--accent); color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 9.5px; font-weight: 700; margin-right: 5px; }
 
         /* ── Simple Engage Table Explicit Borders ── */
@@ -749,7 +1250,7 @@ export default function MonitoringPage() {
           border-bottom: 1px solid var(--line, #e2e8f0);
         }
         .simple-engage-table .co-boundary {
-          border-right: 2px solid #cbd5e1 !important;
+          border-right: 2px solid var(--line-2) !important;
         }
 
         @media (max-width: 700px) { .sesh-item { min-width: 130px; } }
@@ -786,148 +1287,318 @@ export default function MonitoringPage() {
         {/* ── Sessions Strip (Top) ── */}
         <div className="sesh-panel">
           <div className="sesh-panel-hd">
-            <div className="sesh-panel-label">All Sessions</div>
-            <div className="sesh-panel-count">{sessions.length}</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <CalendarDays size={14} style={{ color: "var(--accent)" }} />
+              <div className="sesh-panel-label">Sessions</div>
+              <div className="sesh-panel-count">{sessions.length}</div>
+            </div>
+
+            {selectedSession && (
+              <div className="sesh-active-indicator-tag" title={selectedSession.sessionDate}>
+                <span className="sesh-active-dot" />
+                <span>
+                  Active: <strong>{parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}</strong>
+                </span>
+              </div>
+            )}
+
             <div style={{ flex: 1 }} />
+
             <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-              {selectedForReport.size > 0 && (
-                <>
-                  <span style={{ fontSize: 11, color: "var(--text-3)", fontWeight: 600 }}>
-                    {selectedForReport.size} selected
-                  </span>
-                  <button
-                    onClick={() => setSelectedForReport(new Set())}
-                    className="btn btn-ghost btn-sm"
-                    style={{ fontSize: 11, color: "var(--text-3)", height: 26 }}
-                  >
-                    Clear
-                  </button>
-                </>
-              )}
               <button
-                onClick={() => {
-                  const now = new Date();
-                  const thisMonth = sessions.filter(s => {
-                    const d = parseDateOnly(s.sessionDate);
-                    return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-                  });
-                  const allSelected = thisMonth.every(s => selectedForReport.has(s.sessionID));
-                  if (allSelected) {
-                    setSelectedForReport(new Set());
-                  } else {
-                    setSelectedForReport(new Set(thisMonth.map(s => s.sessionID)));
-                  }
-                }}
-                className="btn btn-ghost btn-sm"
-                style={{ fontSize: 11, height: 26 }}
+                type="button"
+                onClick={() => setIsSessionPanelCollapsed(!isSessionPanelCollapsed)}
+                className="btn btn-ghost btn-sm sesh-toggle-btn"
+                title={isSessionPanelCollapsed ? "Expand selector" : "Minimize selector"}
               >
-                {sessions.filter(s => {
-                  const d = parseDateOnly(s.sessionDate);
-                  const now = new Date();
-                  return d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-                }).every(s => selectedForReport.has(s.sessionID)) ? "Deselect Month" : "Select Month"}
+                {isSessionPanelCollapsed ? (
+                  <>
+                    <span>Show Sessions</span>
+                    <ChevronDown size={13} />
+                  </>
+                ) : (
+                  <>
+                    <span>Minimize</span>
+                    <ChevronUp size={13} />
+                  </>
+                )}
               </button>
-              {selectedForReport.size > 0 && (
-                <>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await downloadMultiSessionReportPdf(Array.from(selectedForReport));
-                      } catch (err) {
-                        alert(err instanceof Error ? err.message : "Failed to download PDF.");
-                      }
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, height: 28 }}
-                  >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                    PDF ({selectedForReport.size})
-                  </button>
-                  <button
-                    onClick={async () => {
-                      try {
-                        await downloadMultiSessionReportExcel(Array.from(selectedForReport));
-                      } catch (err) {
-                        alert(err instanceof Error ? err.message : "Failed to download Excel.");
-                      }
-                    }}
-                    className="btn btn-secondary btn-sm"
-                    style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 11, height: 28 }}
-                  >
-                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>
-                    Excel ({selectedForReport.size})
-                  </button>
-                </>
-              )}
             </div>
           </div>
-          <div className="sesh-panel-list">
-            {loading ? (
-              <div className="loader" style={{ padding: 16 }}><div className="spin" /></div>
-            ) : sessions.length === 0 ? (
-              <div style={{ padding: "12px 4px", color: "var(--text-3)", fontSize: 12, fontStyle: "italic" }}>No sessions yet</div>
-            ) : (
-              sessions.map(s => {
-                const isActive = selectedSession?.sessionID === s.sessionID;
-                const uniquePlats = Array.from(new Set(s.posts.map(p => p.platformName)));
-                const coNames = s.companies?.map(c => c.companyName) ?? [];
-                const coCount = coNames.length;
-                return (
-                  <div key={s.sessionID} className={`sesh-item ${isActive ? "active" : ""}`} onClick={() => handleSelectSession(s)}>
-                    <div style={{ display: "flex", alignItems: "flex-start", gap: 6 }}>
-                      <div onClick={e => e.stopPropagation()} style={{ paddingTop: 1 }}>
-                        <input
-                          type="checkbox"
-                          checked={selectedForReport.has(s.sessionID)}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            setSelectedForReport(prev => {
-                              const next = new Set(prev);
-                              if (next.has(s.sessionID)) next.delete(s.sessionID);
-                              else next.add(s.sessionID);
-                              return next;
-                            });
-                          }}
-                          style={{ accentColor: "var(--accent)", cursor: "pointer", width: 13, height: 13 }}
-                        />
+
+          {isSessionPanelCollapsed ? (
+            <div className="sesh-collapsed-bar" onClick={() => setIsSessionPanelCollapsed(false)}>
+              <div className="sesh-collapsed-info">
+                {selectedSession ? (
+                  <>
+                    <div className="sesh-cal-badge-mini">
+                      <span className="sesh-cal-day-mini">{parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { day: "2-digit" })}</span>
+                      <span className="sesh-cal-month-mini">{parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { month: "short" })}</span>
+                    </div>
+                    <div>
+                      <div className="sesh-collapsed-title">
+                        {parseDateOnly(selectedSession.sessionDate).toLocaleDateString("en-MY", { weekday: "long", day: "2-digit", month: "long", year: "numeric" })}
                       </div>
-                      <div className="sesh-item-body" style={{ flex: 1, minWidth: 0 }}>
-                        <div className="sesh-item-date">
-                          {parseDateOnly(s.sessionDate).toLocaleDateString("en-MY", { day: "2-digit", month: "short", year: "numeric" })}
-                        </div>
-                        {coCount > 0 && (
-                          <div className="sesh-item-co" title={coNames.join(", ")}>
-                            {coCount} {coCount === 1 ? "company" : "companies"}
-                          </div>
-                        )}
-                        <div className="sesh-item-plats">
-                          {uniquePlats.map(pl => (
-                            <span key={pl} className="plat-pip" style={{ background: PLATFORM_COLORS[pl] || "var(--accent)" }} title={pl} />
-                          ))}
-                          {uniquePlats.length > 0 && (
-                            <span style={{ fontSize: 10.5, color: "var(--text-3)", fontWeight: 600 }} title={uniquePlats.join(", ")}>
-                              {uniquePlats.length} platform{uniquePlats.length === 1 ? "" : "s"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="sesh-item-acts" onClick={e => e.stopPropagation()}>
-                        <button onClick={(e) => openEditModal(s, e)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--accent)", width: 22, height: 22, padding: 0 }} title="Edit Session">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                        </button>
-                        <button onClick={() => handleArchiveSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--text-3)", width: 22, height: 22, padding: 0 }} title="Archive">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
-                        </button>
-                        <button onClick={() => handleDeleteSession(s.sessionID)} className="btn btn-ghost btn-icon btn-sm" style={{ color: "var(--red)", width: 22, height: 22, padding: 0 }} title="Delete">
-                          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
-                        </button>
+                      <div className="sesh-collapsed-meta">
+                        {selectedSession.companies?.length || 0} companies • {new Set(selectedSession.posts.map(p => p.platformName)).size} platforms
                       </div>
                     </div>
+                  </>
+                ) : (
+                  <span style={{ fontSize: 12, color: "var(--text-3)", fontStyle: "italic" }}>No session selected</span>
+                )}
+              </div>
+              <div className="sesh-collapsed-action">
+                <button
+                  type="button"
+                  onClick={(e) => { e.stopPropagation(); setIsSessionPanelCollapsed(false); }}
+                  className="btn btn-secondary btn-sm"
+                  style={{ fontSize: 11, height: 26, display: "flex", alignItems: "center", gap: 5 }}
+                >
+                  <CalendarDays size={12} />
+                  <span>Change Session</span>
+                  <ChevronDown size={12} />
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Toolbar with Month Navigation and Search */}
+              <div className="sesh-toolbar">
+                <div className="sesh-months-bar">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedMonthFilter("all")}
+                    className={`sesh-month-pill ${activeMonthFilter === "all" ? "active" : ""}`}
+                  >
+                    All
+                    <span className="sesh-pill-count">{sessions.length}</span>
+                  </button>
+
+                  {monthGroups.map((mg) => {
+                    const isPillActive = activeMonthFilter === mg.key;
+                    const hasActiveSession = activeSessionMonthKey === mg.key;
+                    return (
+                      <button
+                        key={mg.key}
+                        type="button"
+                        onClick={() => setSelectedMonthFilter(mg.key)}
+                        className={`sesh-month-pill ${isPillActive ? "active" : ""}`}
+                        title={`${mg.label} (${mg.count} sessions)`}
+                      >
+                        {hasActiveSession && !isPillActive && <span className="sesh-active-dot-pill" title="Active session in this month" />}
+                        {mg.label}
+                        <span className="sesh-pill-count">{mg.count}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <div className="sesh-toolbar-actions">
+                  <div className="sesh-search-wrap">
+                    <Search size={12} className="sesh-search-ico" />
+                    <input
+                      type="text"
+                      className="sesh-search-inp"
+                      placeholder="Filter date / co..."
+                      value={sessionSearch}
+                      onChange={(e) => setSessionSearch(e.target.value)}
+                    />
+                    {sessionSearch && (
+                      <button
+                        type="button"
+                        onClick={() => setSessionSearch("")}
+                        style={{ position: "absolute", right: 6, top: "50%", transform: "translateY(-50%)", border: "none", background: "transparent", color: "var(--text-3)", cursor: "pointer", padding: 0 }}
+                      >
+                        <X size={11} />
+                      </button>
+                    )}
                   </div>
-                );
-              })
-            )}
-          </div>
+
+                  {filteredSessions.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={toggleSelectAllInView}
+                      className="btn btn-ghost btn-sm"
+                      style={{ fontSize: 11, height: 28, whiteSpace: "nowrap" }}
+                      title="Select or deselect all sessions in this view"
+                    >
+                      {allInViewSelected ? "Deselect All" : (activeMonthFilter === "all" ? "Select All" : "Select Month")}
+                    </button>
+                  )}
+
+                  {selectedForReport.size > 0 && (
+                    <>
+                      <span style={{ fontSize: 11, color: "var(--accent)", fontWeight: 700, whiteSpace: "nowrap" }}>
+                        {selectedForReport.size} selected
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedForReport(new Set())}
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontSize: 11, color: "var(--text-3)", height: 28, padding: "0 6px" }}
+                        title="Clear selections"
+                      >
+                        Clear
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await downloadMultiSessionReportPdf(Array.from(selectedForReport));
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : "Failed to download PDF.");
+                          }
+                        }}
+                        className="btn btn-primary btn-sm"
+                        style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, height: 28 }}
+                      >
+                        <FileText size={11} />
+                        PDF ({selectedForReport.size})
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            await downloadMultiSessionReportExcel(Array.from(selectedForReport));
+                          } catch (err) {
+                            alert(err instanceof Error ? err.message : "Failed to download Excel.");
+                          }
+                        }}
+                        className="btn btn-secondary btn-sm"
+                        style={{ display: "flex", alignItems: "center", gap: 5, fontSize: 11, height: 28 }}
+                      >
+                        <FileSpreadsheet size={11} />
+                        Excel ({selectedForReport.size})
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* Sessions Grid */}
+              <div className="sesh-grid">
+                {loading ? (
+                  <div className="loader" style={{ padding: 24, gridColumn: "1 / -1" }}><div className="spin" /></div>
+                ) : filteredSessions.length === 0 ? (
+                  <div style={{ padding: "24px 10px", color: "var(--text-3)", fontSize: 12, textAlign: "center", gridColumn: "1 / -1" }}>
+                    {sessionSearch ? `No sessions match "${sessionSearch}".` : "No sessions found for this period."}
+                    {sessionSearch && (
+                      <button type="button" onClick={() => setSessionSearch("")} className="btn btn-ghost btn-sm" style={{ marginLeft: 8, fontSize: 11 }}>
+                        Clear Search
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  filteredSessions.map((s) => {
+                    const isActive = selectedSession?.sessionID === s.sessionID;
+                    const d = parseDateOnly(s.sessionDate);
+                    const dayNum = d.toLocaleDateString("en-MY", { day: "2-digit" });
+                    const monthShort = d.toLocaleDateString("en-MY", { month: "short" });
+                    const yearNum = d.getFullYear();
+                    const weekdayStr = d.toLocaleDateString("en-MY", { weekday: "short" });
+                    const uniquePlats = Array.from(new Set(s.posts.map(p => p.platformName)));
+                    const coNames = s.companies?.map(c => c.companyName) ?? [];
+                    const coCount = coNames.length;
+
+                    return (
+                      <div
+                        key={s.sessionID}
+                        className={`sesh-card ${isActive ? "active" : ""}`}
+                        onClick={() => handleSelectSession(s)}
+                        title={`Session: ${dayNum} ${monthShort} ${yearNum}`}
+                      >
+                        {/* Mini Calendar Badge */}
+                        <div className="sesh-cal-badge">
+                          <span className="sesh-cal-month">{monthShort}</span>
+                          <span className="sesh-cal-day">{dayNum}</span>
+                          <span className="sesh-cal-year">{weekdayStr}</span>
+                        </div>
+
+                        {/* Card Content */}
+                        <div className="sesh-card-content">
+                          <div className="sesh-card-header">
+                            <span className="sesh-card-date-txt">
+                              {dayNum} {monthShort} {yearNum}
+                            </span>
+                            {isActive && <span className="sesh-active-badge">Active</span>}
+                          </div>
+
+                          <div className="sesh-card-details">
+                            {coCount > 0 && (
+                              <span className="sesh-chip-co" title={coNames.join(", ")}>
+                                <Building2 size={10.5} style={{ opacity: 0.7 }} />
+                                {coCount} {coCount === 1 ? "co." : "cos."}
+                              </span>
+                            )}
+                            <span className="sesh-chip-plats" title={uniquePlats.join(", ")}>
+                              <span className="sesh-plat-dots">
+                                {uniquePlats.map(pl => (
+                                  <span
+                                    key={pl}
+                                    className="plat-pip"
+                                    style={{ background: PLATFORM_COLORS[pl] || "var(--accent)" }}
+                                    title={pl}
+                                  />
+                                ))}
+                              </span>
+                              {uniquePlats.length} {uniquePlats.length === 1 ? "plat." : "plats."}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Side Actions: Checkbox & Quick Action Buttons */}
+                        <div className="sesh-card-side" onClick={(e) => e.stopPropagation()}>
+                          <label className="sesh-checkbox-wrap" title="Select for multi-session report export">
+                            <input
+                              type="checkbox"
+                              checked={selectedForReport.has(s.sessionID)}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                setSelectedForReport(prev => {
+                                  const next = new Set(prev);
+                                  if (next.has(s.sessionID)) next.delete(s.sessionID);
+                                  else next.add(s.sessionID);
+                                  return next;
+                                });
+                              }}
+                            />
+                          </label>
+
+                          <div className="sesh-card-actions">
+                            <button
+                              type="button"
+                              onClick={(e) => openEditModal(s, e)}
+                              className="sesh-btn-act edit"
+                              title="Edit Session"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleArchiveSession(s.sessionID)}
+                              className="sesh-btn-act archive"
+                              title="Archive"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M21 8v13H3V8" /><path d="M1 3h22v5H1z" /><path d="M10 12h4" /></svg>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteSession(s.sessionID)}
+                              className="sesh-btn-act delete"
+                              title="Delete"
+                            >
+                              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6M14 11v6" /><path d="M9 6V4h6v2" /></svg>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* ── Main Content (Full Width) ── */}
@@ -983,7 +1654,7 @@ export default function MonitoringPage() {
                     <button
                       onClick={() => { setSelectedStaffForRemove(new Set()); setRemoveSearch(""); setShowRemoveStaffModal(true); }}
                       className="btn btn-secondary btn-sm"
-                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "#dc2626", borderColor: "rgba(239, 68, 68, 0.35)" }}
+                      style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12, color: "var(--red-text)", borderColor: "rgba(239, 68, 68, 0.35)" }}
                       title="Remove Staff from Session"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><path d="M20 11h-6"/></svg>
@@ -1101,16 +1772,16 @@ export default function MonitoringPage() {
                         }}>
                           <thead>
                             {/* Row 1 — Company */}
-                            <tr style={{ background: "#f8fafc" }}>
+                            <tr style={{ background: "var(--panel-soft)" }}>
                               <th rowSpan={3} style={{ ...thStyle, width: 34, fontSize: 11, color: "var(--text-4)" }}>#</th>
                               <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 140, fontSize: 11.5, paddingLeft: 12 }}>Staff Name</th>
-                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 90, fontSize: 11, paddingLeft: 10, borderRight: "2px solid #cbd5e1" }}>Department</th>
+                              <th rowSpan={3} style={{ ...thStyle, textAlign: "left", minWidth: 90, fontSize: 11, paddingLeft: 10, borderRight: "2px solid var(--line-2)" }}>Department</th>
                               {coGroups.map((cg) => (
                                 <th key={cg.companyID} colSpan={cg.span} style={{
                                   padding: "6px 8px", textAlign: "center", fontWeight: 700,
                                   fontSize: 11, letterSpacing: "0.04em", textTransform: "uppercase",
                                   color: cg.color, background: `${cg.color}10`,
-                                  borderRight: "2px solid #cbd5e1"
+                                  borderRight: "2px solid var(--line-2)"
                                 }}>
                                   {cg.name}
                                 </th>
@@ -1118,7 +1789,7 @@ export default function MonitoringPage() {
                               <th rowSpan={3} style={{ ...thStyle, width: 140 }}>Actions</th>
                             </tr>
                             {/* Row 2 — Platform */}
-                            <tr style={{ background: "#fafbfc" }}>
+                            <tr style={{ background: "var(--panel-soft)" }}>
                               {(() => {
                                 let platColIdx = 0;
                                 return platGroups.map((pg, pi) => {
@@ -1129,7 +1800,7 @@ export default function MonitoringPage() {
                                     <th key={pi} colSpan={pg.span} style={{
                                       padding: "6px 6px", textAlign: "center", fontWeight: 600,
                                       fontSize: 11, color: pg.color, background: `${pg.color}08`,
-                                      borderRight: isCoEnd ? "2px solid #cbd5e1" : undefined,
+                                      borderRight: isCoEnd ? "2px solid var(--line-2)" : undefined,
                                     }}>
                                       <div style={{ display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 5 }}>
                                         {pg.postLink ? (
@@ -1162,7 +1833,7 @@ export default function MonitoringPage() {
                               })()}
                             </tr>
                             {/* Row 3 — Action */}
-                            <tr style={{ background: "#f8fafc" }}>
+                            <tr style={{ background: "var(--panel-soft)" }}>
                               {actionCols.map((col, ci) => {
                                 const platColor = PLATFORM_COLORS[col.platformName] || "var(--accent)";
                                 const isLastInCo = coEndIndices.has(ci);
@@ -1171,7 +1842,7 @@ export default function MonitoringPage() {
                                     ...thStyle, fontSize: 10, fontWeight: 600, width: 60, minWidth: 60,
                                     color: col.disabled ? "var(--text-4)" : platColor,
                                     opacity: col.disabled ? 0.35 : 1,
-                                    borderRight: isLastInCo ? "2px solid #cbd5e1" : undefined,
+                                    borderRight: isLastInCo ? "2px solid var(--line-2)" : undefined,
                                     padding: "5px 4px"
                                   }}>
                                     {col.label}
@@ -1190,7 +1861,7 @@ export default function MonitoringPage() {
                                   key={row.staffID}
                                   onClick={() => setSelectedStaffID(row.staffID)}
                                   style={{
-                                    background: isRowSel ? "rgba(99, 102, 241, 0.06)" : idx % 2 === 0 ? "var(--white)" : "#f8fafc",
+                                    background: isRowSel ? "rgba(99, 102, 241, 0.06)" : idx % 2 === 0 ? "var(--white)" : "var(--panel-soft)",
                                     cursor: "pointer",
                                     transition: "background 0.1s"
                                   }}
@@ -1207,9 +1878,9 @@ export default function MonitoringPage() {
                                           fontWeight: 700,
                                           padding: "1px 6px",
                                           borderRadius: 9999,
-                                          background: "#fef3c7",
-                                          color: "#92400e",
-                                          border: "1px solid #fde68a",
+                                          background: "var(--amber-soft)",
+                                          color: "var(--amber-text)",
+                                          border: "1px solid var(--amber-line)",
                                           lineHeight: 1.4,
                                         }}>
                                           🎓 Intern
@@ -1217,7 +1888,7 @@ export default function MonitoringPage() {
                                       )}
                                     </span>
                                   </td>
-                                  <td style={{ ...tdStyle, textAlign: "left", color: "var(--text-3)", fontSize: 12, whiteSpace: "nowrap", paddingLeft: 10, borderRight: "2px solid #cbd5e1" }}>
+                                  <td style={{ ...tdStyle, textAlign: "left", color: "var(--text-3)", fontSize: 12, whiteSpace: "nowrap", paddingLeft: 10, borderRight: "2px solid var(--line-2)" }}>
                                     {row.department || "—"}
                                   </td>
                                   {actionCols.map((col, ci) => {
@@ -1232,11 +1903,11 @@ export default function MonitoringPage() {
                                     return (
                                       <td key={ci} style={{
                                         ...tdStyle,
-                                        borderRight: isLastInGroup ? "2px solid #cbd5e1" : undefined
+                                        borderRight: isLastInGroup ? "2px solid var(--line-2)" : undefined
                                       }}>
                                         {eng ? (
                                           col.disabled ? (
-                                            <span style={{ fontSize: 11, color: "#cbd5e1" }} title="Disabled">—</span>
+                                            <span style={{ fontSize: 11, color: "var(--line-2)" }} title="Disabled">—</span>
                                           ) : (
                                             <input
                                               type="checkbox"
@@ -1263,7 +1934,7 @@ export default function MonitoringPage() {
                                           border: "1px solid rgba(16, 185, 129, 0.3)",
                                           cursor: "pointer", fontWeight: 600,
                                           background: "rgba(16, 185, 129, 0.08)",
-                                          color: "#16a34a",
+                                          color: "var(--green-text)",
                                           whiteSpace: "nowrap",
                                           display: "inline-flex",
                                           alignItems: "center",
@@ -1855,9 +2526,9 @@ export default function MonitoringPage() {
                                   fontWeight: 700,
                                   padding: "1px 6px",
                                   borderRadius: 9999,
-                                  background: "#fef3c7",
-                                  color: "#92400e",
-                                  border: "1px solid #fde68a",
+                                  background: "var(--amber-soft)",
+                                  color: "var(--amber-text)",
+                                  border: "1px solid var(--amber-line)",
                                   lineHeight: 1.4,
                                 }}>
                                   🎓 Intern
@@ -1957,7 +2628,7 @@ export default function MonitoringPage() {
                                 return next;
                               });
                             }}
-                            style={{ accentColor: "#dc2626", width: 15, height: 15 }}
+                            style={{ accentColor: "var(--red)", width: 15, height: 15 }}
                           />
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontWeight: 600, fontSize: 13, color: "var(--text-1)", display: "flex", alignItems: "center", gap: 6 }}>
@@ -1968,9 +2639,9 @@ export default function MonitoringPage() {
                                   fontWeight: 700,
                                   padding: "1px 6px",
                                   borderRadius: 9999,
-                                  background: "#fef3c7",
-                                  color: "#92400e",
-                                  border: "1px solid #fde68a",
+                                  background: "var(--amber-soft)",
+                                  color: "var(--amber-text)",
+                                  border: "1px solid var(--amber-line)",
                                   lineHeight: 1.4,
                                 }}>
                                   🎓 Intern
@@ -1996,7 +2667,7 @@ export default function MonitoringPage() {
                 onClick={handleRemoveStaffClick}
                 disabled={selectedStaffForRemove.size === 0}
                 className="btn btn-primary"
-                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "#dc2626", borderColor: "#dc2626" }}
+                style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 6, background: "var(--red)", borderColor: "var(--red)" }}
               >
                 {`Remove ${selectedStaffForRemove.size} Staff`}
               </button>

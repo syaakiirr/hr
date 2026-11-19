@@ -670,7 +670,7 @@ export default function ReportsPage() {
           display: "flex", alignItems: "center", justifyContent: "center"
         }} onClick={() => !generatingCustom && setShowCustomModal(false)}>
           <div style={{
-            background: "#fff", borderRadius: 10, padding: 24, minWidth: 400, maxWidth: 480,
+            background: "var(--panel)", borderRadius: 10, padding: 24, minWidth: 400, maxWidth: 480,
             maxHeight: "90vh", overflow: "auto", boxShadow: "0 8px 32px rgba(0,0,0,0.2)"
           }} onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: "0 0 16px", fontSize: 16, fontWeight: 700 }}>Customize Report</h3>
@@ -684,7 +684,7 @@ export default function ReportsPage() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                style={{ fontSize: 11, padding: "3px 8px", background: "var(--bg-2)", border: "1px solid var(--border-color, #e2e8f0)" }}
+                style={{ fontSize: 11, padding: "3px 8px", background: "var(--bg-2)", border: "1px solid var(--line)" }}
                 onClick={() => {
                   setCustomShowCards(true);
                   setCustomShowRanking(true);
@@ -699,7 +699,7 @@ export default function ReportsPage() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                style={{ fontSize: 11, padding: "3px 8px", background: "#eef2ff", color: "#4f46e5", border: "1px solid #c7d2fe", fontWeight: 600 }}
+                style={{ fontSize: 11, padding: "3px 8px", background: "var(--accent-soft)", color: "var(--accent-text)", border: "1px solid var(--accent-border)", fontWeight: 600 }}
                 onClick={() => {
                   setCustomShowCards(false);
                   setCustomShowRanking(false);
@@ -714,7 +714,7 @@ export default function ReportsPage() {
               <button
                 type="button"
                 className="btn btn-ghost"
-                style={{ fontSize: 11, padding: "3px 8px", background: "var(--bg-2)", border: "1px solid var(--border-color, #e2e8f0)" }}
+                style={{ fontSize: 11, padding: "3px 8px", background: "var(--bg-2)", border: "1px solid var(--line)" }}
                 onClick={() => {
                   setCustomShowCards(false);
                   setCustomShowRanking(false);

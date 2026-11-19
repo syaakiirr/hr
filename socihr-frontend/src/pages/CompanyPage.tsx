@@ -21,6 +21,7 @@ import {
 } from "../services/api";
 import { queryClient } from "../lib/queryClient";
 import { queryKeys } from "../lib/queryKeys";
+import { useChartPalette } from "../lib/chartTheme";
 
 const treeShakenECharts = { use, graphic, init, getInstanceByDom, dispose };
 use([BarChart, GridComponent, TooltipComponent, CanvasRenderer]);
@@ -55,21 +56,9 @@ function toTitleCase(str: string): string {
 
 const COMPANY_COLORS = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899", "#14b8a6", "#f43f5e"];
 
-const lightChartTheme = {
-  backgroundColor: "transparent",
-  textStyle: { color: "#64748b", fontFamily: "Geist, sans-serif", fontSize: 11 },
-};
-
-const customTooltip = {
-  backgroundColor: "rgba(255, 255, 255, 0.98)",
-  borderColor: "#e2e8f0",
-  borderWidth: 1,
-  textStyle: { color: "#0f172a", fontFamily: "Geist, sans-serif", fontSize: 12 },
-  extraCssText: "box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1); border-radius: 10px; padding: 10px 14px;",
-};
-
 export default function CompanyPage() {
   const navigate = useNavigate();
+  const palette = useChartPalette();
   const { filter, setFilter } = useDateFilter();
   const { from, to } = getDateRange(filter);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -203,13 +192,14 @@ export default function CompanyPage() {
     const sortedPerf = [...performance].sort((a, b) => a.rate - b.rate); // Ascending for horizontal bar
 
     return {
-      ...lightChartTheme,
+      backgroundColor: "transparent",
+      textStyle: { color: palette.text, fontFamily: "Geist, sans-serif", fontSize: 11 },
       animation: true,
       animationDuration: 500,
       animationEasing: "cubicOut",
       tooltip: {
         trigger: "axis" as const,
-        ...customTooltip,
+        ...palette.tooltip,
         formatter: (params: any) => {
           const item = params[0];
           return `<strong>${item.name}</strong><br/>Compliance Rate: <strong>${item.value}%</strong>`;
@@ -219,14 +209,14 @@ export default function CompanyPage() {
       xAxis: {
         type: "value" as const,
         max: 100,
-        axisLabel: { color: "#94a3b8", formatter: "{value}%", fontSize: 11 },
-        splitLine: { lineStyle: { color: "#f1f5f9" } },
+        axisLabel: { color: palette.text, formatter: "{value}%", fontSize: 11 },
+        splitLine: { lineStyle: { color: palette.split } },
       },
       yAxis: {
         type: "category" as const,
         data: sortedPerf.map((c) => toTitleCase(c.company)),
-        axisLabel: { color: "#334155", fontWeight: 600, fontSize: 11.5 },
-        axisLine: { lineStyle: { color: "#e2e8f0" } },
+        axisLabel: { color: palette.textStrong, fontWeight: 600, fontSize: 11.5 },
+        axisLine: { lineStyle: { color: palette.axis } },
       },
       series: [
         {
@@ -234,7 +224,7 @@ export default function CompanyPage() {
           type: "bar" as const,
           barMaxWidth: 20,
           showBackground: true,
-          backgroundStyle: { color: "rgba(241, 245, 249, 0.6)", borderRadius: [0, 6, 6, 0] },
+          backgroundStyle: { color: palette.track, borderRadius: [0, 6, 6, 0] },
           data: sortedPerf.map((c, i) => {
             const originalIdx = performance.findIndex((orig) => orig.companyID === c.companyID);
             const color = COMPANY_COLORS[originalIdx >= 0 ? originalIdx % COMPANY_COLORS.length : i % COMPANY_COLORS.length];
@@ -252,7 +242,7 @@ export default function CompanyPage() {
           label: {
             show: true,
             position: "right" as const,
-            color: "#1e293b",
+            color: palette.textStrong,
             fontSize: 11.5,
             formatter: (p: { value: number }) => `${Math.round(p.value)}%`,
             fontWeight: 700,
@@ -260,7 +250,7 @@ export default function CompanyPage() {
         },
       ],
     };
-  }, [performance]);
+  }, [performance, palette]);
 
   return (
     <Layout>

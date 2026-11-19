@@ -230,7 +230,7 @@ export default function StaffProfilePage() {
                 </span>
               )}
               {staff?.staffType && (
-                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: staff.staffType === "Intern" ? "#92400e" : "var(--text-2)", background: staff.staffType === "Intern" ? "#fef3c7" : "var(--surface)", border: `1px solid ${staff.staffType === "Intern" ? "#fde68a" : "var(--line)"}`, borderRadius: 999, padding: "2px 10px" }}>
+                <span style={{ fontSize: "0.75rem", fontWeight: 700, color: staff.staffType === "Intern" ? "var(--amber-text)" : "var(--text-2)", background: staff.staffType === "Intern" ? "var(--amber-soft)" : "var(--surface)", border: `1px solid ${staff.staffType === "Intern" ? "var(--amber-line)" : "var(--line)"}`, borderRadius: 999, padding: "2px 10px" }}>
                   {staff.staffType}
                 </span>
               )}

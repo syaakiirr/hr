@@ -8,6 +8,59 @@ function authHeaders(): Record<string, string> {
   };
 }
 
+// ─── Network layer ──────────────────────────────────
+// GET responses are memoised so the ink-spill theme switch — which re-mounts
+// the whole page tree in its top layer — does not re-issue every page fetch.
+type CacheEntry = { data: unknown; at: number };
+const getCache = new Map<string, CacheEntry>();
+const CACHE_TTL = 5 * 60 * 1000;
+let quiet = false;
+
+/** Suppress real GET traffic while a theme-spill replica is mounted. */
+export function setApiQuiet(value: boolean) {
+  quiet = value;
+}
+
+function keyOf(input: RequestInfo | URL, init?: RequestInit) {
+  const method = (init?.method ?? "GET").toUpperCase();
+  const url =
+    typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+  return { method, key: `${method} ${url}` };
+}
+
+export async function apiFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+  const { method, key } = keyOf(input, init);
+  const isGet = method === "GET";
+
+  if (isGet && quiet) {
+    const hit = getCache.get(key);
+    if (hit && Date.now() - hit.at < CACHE_TTL) {
+      return new Response(JSON.stringify(hit.data), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    }
+  }
+
+  // Real request — `fetch` stays uncached so apiFetch can never recurse.
+  const res = await fetch(input, init);
+
+  if (isGet && res.ok) {
+    const type = res.headers.get("content-type") ?? "";
+    if (type.includes("application/json")) {
+      try {
+        const data = await res.clone().json();
+        if (getCache.size > 300) getCache.clear();
+        getCache.set(key, { data, at: Date.now() });
+      } catch {
+        // non-JSON or unreadable body — skip caching
+      }
+    }
+  }
+
+  return res;
+}
+
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     // 401 = token expired atau tidak sah — clear session dan redirect ke login
@@ -54,7 +107,7 @@ export interface LoginResult {
 }
 
 export async function login(username: string, password: string): Promise<LoginResult> {
-  const res = await fetch(`${BASE_URL}/auth/login`, {
+  const res = await apiFetch(`${BASE_URL}/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ Username: username, Password: password }),
@@ -65,7 +118,7 @@ export async function login(username: string, password: string): Promise<LoginRe
 // ─── TOTP 2FA ─────────────────────────────────────────
 // Langkah 2 selepas login() pulangkan { requires2FA: true, pendingToken }
 export async function verifyTotp(pendingToken: string, code: string): Promise<LoginResult> {
-  const res = await fetch(`${BASE_URL}/auth/2fa/verify`, {
+  const res = await apiFetch(`${BASE_URL}/auth/2fa/verify`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ PendingToken: pendingToken, Code: code }),
@@ -83,22 +136,22 @@ export interface AppUser {
 }
 
 export async function getUsers(): Promise<AppUser[]> {
-  const res = await fetch(`${BASE_URL}/users`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/users`, { headers: authHeaders() });
   return handleResponse<AppUser[]>(res);
 }
 
 export async function createUser(data: { username: string; password: string; role: string; departmentID?: string }): Promise<AppUser> {
-  const res = await fetch(`${BASE_URL}/users`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
+  const res = await apiFetch(`${BASE_URL}/users`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<AppUser>(res);
 }
 
 export async function updateUser(id: string, data: { username?: string; password?: string; departmentID?: string }): Promise<AppUser> {
-  const res = await fetch(`${BASE_URL}/users/${id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
+  const res = await apiFetch(`${BASE_URL}/users/${id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<AppUser>(res);
 }
 
 export async function deleteUser(id: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/users/${id}`, { method: "DELETE", headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/users/${id}`, { method: "DELETE", headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     let message = "An error occurred.";
@@ -125,22 +178,22 @@ export async function getStaffList(params?: { search?: string; department?: stri
   if (params?.status) q.set("status", params.status);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/staff?${queryString}` : `${BASE_URL}/staff`;
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await apiFetch(url, { headers: authHeaders() });
   return handleResponse<Staff[]>(res);
 }
 
 export async function createStaff(data: { fullName: string; department?: string; position?: string; staffType?: string }): Promise<Staff> {
-  const res = await fetch(`${BASE_URL}/staff`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
+  const res = await apiFetch(`${BASE_URL}/staff`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<Staff>(res);
 }
 
 export async function updateStaff(id: string, data: { fullName: string; department?: string; position?: string; staffType?: string }): Promise<Staff> {
-  const res = await fetch(`${BASE_URL}/staff/${id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
+  const res = await apiFetch(`${BASE_URL}/staff/${id}`, { method: "PUT", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<Staff>(res);
 }
 
 export async function toggleStaffStatus(id: string): Promise<Staff> {
-  const res = await fetch(`${BASE_URL}/staff/${id}/toggle-status`, { method: "PATCH", headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/staff/${id}/toggle-status`, { method: "PATCH", headers: authHeaders() });
   return handleResponse<Staff>(res);
 }
 
@@ -166,7 +219,7 @@ export async function getStaffEngagementStats(params?: { search?: string; depart
   if (params?.to) q.set("to", params.to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/staff/engagement-stats?${queryString}` : `${BASE_URL}/staff/engagement-stats`;
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await apiFetch(url, { headers: authHeaders() });
   return handleResponse<StaffEngagementStats[]>(res);
 }
 
@@ -177,7 +230,7 @@ export interface Platform {
 }
 
 export async function getPlatforms(): Promise<Platform[]> {
-  const res = await fetch(`${BASE_URL}/platform`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/platform`, { headers: authHeaders() });
   return handleResponse<Platform[]>(res);
 }
 
@@ -188,12 +241,12 @@ export interface Company {
 }
 
 export async function getCompanies(): Promise<Company[]> {
-  const res = await fetch(`${BASE_URL}/company`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/company`, { headers: authHeaders() });
   return handleResponse<Company[]>(res);
 }
 
 export async function createCompany(name: string): Promise<Company> {
-  const res = await fetch(`${BASE_URL}/company`, {
+  const res = await apiFetch(`${BASE_URL}/company`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ CompanyName: name })
@@ -202,7 +255,7 @@ export async function createCompany(name: string): Promise<Company> {
 }
 
 export async function deleteCompany(id: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/company/${id}`, { method: "DELETE", headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/company/${id}`, { method: "DELETE", headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     try { const err = JSON.parse(text); throw new Error(err.message || "Failed to delete company."); } catch { throw new Error(text || "Failed to delete company."); }
@@ -215,12 +268,12 @@ export interface Department {
 }
 
 export async function getDepartments(): Promise<Department[]> {
-  const res = await fetch(`${BASE_URL}/department`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/department`, { headers: authHeaders() });
   return handleResponse<Department[]>(res);
 }
 
 export async function createDepartment(name: string): Promise<Department> {
-  const res = await fetch(`${BASE_URL}/department`, {
+  const res = await apiFetch(`${BASE_URL}/department`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ DepartmentName: name })
@@ -229,7 +282,7 @@ export async function createDepartment(name: string): Promise<Department> {
 }
 
 export async function deleteDepartment(id: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/department/${id}`, { method: "DELETE", headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/department/${id}`, { method: "DELETE", headers: authHeaders() });
   if (!res.ok) {
     const text = await res.text();
     try { const err = JSON.parse(text); throw new Error(err.message || "Failed to delete department."); } catch { throw new Error(text || "Failed to delete department."); }
@@ -257,17 +310,17 @@ export interface MonitoringSession {
 }
 
 export async function getSessions(): Promise<MonitoringSession[]> {
-  const res = await fetch(`${BASE_URL}/monitoringsession`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/monitoringsession`, { headers: authHeaders() });
   return handleResponse<MonitoringSession[]>(res);
 }
 
 export async function createSession(data: { sessionDate: string; posts: { platformID: string; postLink: string }[]; companyIDs?: string[] }): Promise<{ sessionID: string }> {
-  const res = await fetch(`${BASE_URL}/monitoringsession`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
+  const res = await apiFetch(`${BASE_URL}/monitoringsession`, { method: "POST", headers: authHeaders(), body: JSON.stringify(data) });
   return handleResponse<{ sessionID: string }>(res);
 }
 
 export async function updateSession(id: string, data: { sessionDate: string; companyIDs: string[]; platformIDs: string[] }): Promise<MonitoringSession> {
-  const res = await fetch(`${BASE_URL}/monitoringsession/${id}`, {
+  const res = await apiFetch(`${BASE_URL}/monitoringsession/${id}`, {
     method: "PUT",
     headers: authHeaders(),
     body: JSON.stringify({ SessionDate: data.sessionDate, CompanyIDs: data.companyIDs, PlatformIDs: data.platformIDs }),
@@ -276,12 +329,12 @@ export async function updateSession(id: string, data: { sessionDate: string; com
 }
 
 export async function deleteSession(id: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/monitoringsession/${id}`, { method: "DELETE", headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/monitoringsession/${id}`, { method: "DELETE", headers: authHeaders() });
   if (!res.ok) throw new Error("Failed to delete session.");
 }
 
 export async function updatePostLink(postId: string, postLink: string): Promise<{ postID: string; postLink: string }> {
-  const res = await fetch(`${BASE_URL}/monitoringsession/posts/${postId}/link`, {
+  const res = await apiFetch(`${BASE_URL}/monitoringsession/posts/${postId}/link`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify({ PostLink: postLink }),
@@ -313,12 +366,12 @@ export interface Engagement {
 }
 
 export async function getEngagements(sessionId: string): Promise<Engagement[]> {
-  const res = await fetch(`${BASE_URL}/engagement?sessionId=${sessionId}`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/engagement?sessionId=${sessionId}`, { headers: authHeaders() });
   return handleResponse<Engagement[]>(res);
 }
 
 export async function updateEngagementStatus(id: string, status: string): Promise<{ engagementID: string; status: string }> {
-  const res = await fetch(`${BASE_URL}/engagement/${id}/status`, {
+  const res = await apiFetch(`${BASE_URL}/engagement/${id}/status`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify({ Status: status }),
@@ -331,7 +384,7 @@ export async function updateEngagementAction(
   action: "like" | "comment" | "share",
   value: boolean
 ): Promise<{ engagementID: string; status: string; isLiked: boolean; isCommented: boolean; isShared: boolean }> {
-  const res = await fetch(`${BASE_URL}/engagement/${id}/action`, {
+  const res = await apiFetch(`${BASE_URL}/engagement/${id}/action`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify({ Action: action, Value: value }),
@@ -340,7 +393,7 @@ export async function updateEngagementAction(
 }
 
 export async function updateEngagementReason(id: string, reason: string): Promise<{ engagementID: string; reason: string | null }> {
-  const res = await fetch(`${BASE_URL}/engagement/${id}/reason`, {
+  const res = await apiFetch(`${BASE_URL}/engagement/${id}/reason`, {
     method: "PATCH",
     headers: authHeaders(),
     body: JSON.stringify({ Reason: reason }),
@@ -349,7 +402,7 @@ export async function updateEngagementReason(id: string, reason: string): Promis
 }
 
 export async function bulkUpdateEngagementStatus(engagementIDs: string[], status: string): Promise<{ message: string; updatedCount: number; status: string }> {
-  const res = await fetch(`${BASE_URL}/engagement/bulk-update`, {
+  const res = await apiFetch(`${BASE_URL}/engagement/bulk-update`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ EngagementIDs: engagementIDs, Status: status }),
@@ -358,7 +411,7 @@ export async function bulkUpdateEngagementStatus(engagementIDs: string[], status
 }
 
 export async function addStaffToSession(sessionID: string, staffIDs: string[]): Promise<{ message: string; addedStaffCount: number }> {
-  const res = await fetch(`${BASE_URL}/monitoringsession/${sessionID}/add-staff`, {
+  const res = await apiFetch(`${BASE_URL}/monitoringsession/${sessionID}/add-staff`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ StaffIds: staffIDs }),
@@ -367,7 +420,7 @@ export async function addStaffToSession(sessionID: string, staffIDs: string[]): 
 }
 
 export async function removeStaffFromSession(sessionID: string, staffID: string): Promise<{ message: string; removedEngagements: number }> {
-  const res = await fetch(`${BASE_URL}/monitoringsession/${sessionID}/staff/${staffID}`, {
+  const res = await apiFetch(`${BASE_URL}/monitoringsession/${sessionID}/staff/${staffID}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
@@ -391,13 +444,13 @@ export async function getDashboardKpi(from?: string, to?: string, signal?: Abort
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/kpi?${queryString}` : `${BASE_URL}/dashboard/kpi`;
-  const res = await fetch(url, { headers: authHeaders(), signal });
+  const res = await apiFetch(url, { headers: authHeaders(), signal });
   return handleResponse<KpiData>(res);
 }
 
 export async function getMonthlyTrend(year?: number, signal?: AbortSignal) {
   const q = year ? `?year=${year}` : "";
-  const res = await fetch(`${BASE_URL}/dashboard/monthly${q}`, { headers: authHeaders(), signal });
+  const res = await apiFetch(`${BASE_URL}/dashboard/monthly${q}`, { headers: authHeaders(), signal });
   return handleResponse<{ month: number; completed: number; missed: number; total: number }[]>(res);
 }
 
@@ -407,7 +460,7 @@ export async function getWeeklyTrend(from?: string, to?: string, signal?: AbortS
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/weekly?${queryString}` : `${BASE_URL}/dashboard/weekly`;
-  const res = await fetch(url, { headers: authHeaders(), signal });
+  const res = await apiFetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ week: string; completed: number; missed: number; total: number }[]>(res);
 }
 
@@ -417,7 +470,7 @@ export async function getPlatformComparison(from?: string, to?: string, signal?:
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/platform-comparison?${queryString}` : `${BASE_URL}/dashboard/platform-comparison`;
-  const res = await fetch(url, { headers: authHeaders(), signal });
+  const res = await apiFetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ platform: string; completed: number; missed: number; total: number }[]>(res);
 }
 
@@ -427,7 +480,7 @@ export async function getCompanyPerformance(from?: string, to?: string, signal?:
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/company-performance?${queryString}` : `${BASE_URL}/dashboard/company-performance`;
-  const res = await fetch(url, { headers: authHeaders(), signal });
+  const res = await apiFetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ companyID: string; company: string; completed: number; missed: number; total: number; rate: number }[]>(res);
 }
 
@@ -460,7 +513,7 @@ export async function getCompanySessionPerformance(
   const url = queryString
     ? `${BASE_URL}/company/${companyId}/performance?${queryString}`
     : `${BASE_URL}/company/${companyId}/performance`;
-  const res = await fetch(url, { headers: authHeaders(), signal });
+  const res = await apiFetch(url, { headers: authHeaders(), signal });
   return handleResponse<CompanyPerformanceDetail>(res);
 }
 
@@ -487,7 +540,7 @@ export async function getStaffSessionPerformance(
   const url = queryString
     ? `${BASE_URL}/staff/${staffId}/performance?${queryString}`
     : `${BASE_URL}/staff/${staffId}/performance`;
-  const res = await fetch(url, { headers: authHeaders(), signal });
+  const res = await apiFetch(url, { headers: authHeaders(), signal });
   return handleResponse<StaffPerformanceDetail>(res);
 }
 
@@ -499,13 +552,13 @@ export async function getStaffRanking(order: "top" | "bottom" = "top", limit = 1
   if (to) q.set("to", to);
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/dashboard/staff-ranking?${queryString}` : `${BASE_URL}/dashboard/staff-ranking`;
-  const res = await fetch(url, { headers: authHeaders(), signal });
+  const res = await apiFetch(url, { headers: authHeaders(), signal });
   return handleResponse<{ staffID: string; fullName: string; department: string; completed: number; total: number; completionRate: number }[]>(res);
 }
 
 export async function getHeatmap(year?: number, signal?: AbortSignal) {
   const q = year ? `?year=${year}` : "";
-  const res = await fetch(`${BASE_URL}/dashboard/heatmap${q}`, { headers: authHeaders(), signal });
+  const res = await apiFetch(`${BASE_URL}/dashboard/heatmap${q}`, { headers: authHeaders(), signal });
   return handleResponse<{ date: string; completed: number; total: number }[]>(res);
 }
 
@@ -520,7 +573,7 @@ export interface DashboardSnapshot {
 }
 
 export async function createSnapshot(name: string, notes?: string, fromDate?: string, toDate?: string, signal?: AbortSignal): Promise<{ snapshotID: string; message: string }> {
-  const res = await fetch(`${BASE_URL}/dashboard/snapshot/create`, {
+  const res = await apiFetch(`${BASE_URL}/dashboard/snapshot/create`, {
     method: "POST",
     headers: authHeaders(),
     signal,
@@ -530,17 +583,17 @@ export async function createSnapshot(name: string, notes?: string, fromDate?: st
 }
 
 export async function getSnapshots(): Promise<DashboardSnapshot[]> {
-  const res = await fetch(`${BASE_URL}/dashboard/snapshot/list`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/dashboard/snapshot/list`, { headers: authHeaders() });
   return handleResponse<DashboardSnapshot[]>(res);
 }
 
 export async function getSnapshot(id: string) {
-  const res = await fetch(`${BASE_URL}/dashboard/snapshot/${id}`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/dashboard/snapshot/${id}`, { headers: authHeaders() });
   return handleResponse<any>(res);
 }
 
 export async function deleteSnapshot(id: string): Promise<{ message: string }> {
-  const res = await fetch(`${BASE_URL}/dashboard/snapshot/${id}`, {
+  const res = await apiFetch(`${BASE_URL}/dashboard/snapshot/${id}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
@@ -548,7 +601,7 @@ export async function deleteSnapshot(id: string): Promise<{ message: string }> {
 }
 
 export async function deleteStaff(staffId: string): Promise<void> {
-  const res = await fetch(`${BASE_URL}/staff/${staffId}`, {
+  const res = await apiFetch(`${BASE_URL}/staff/${staffId}`, {
     method: "DELETE",
     headers: authHeaders(),
   });
@@ -557,7 +610,7 @@ export async function deleteStaff(staffId: string): Promise<void> {
 
 // ─── Archive ────────────────────────────────────────
 export async function archiveStaff(staffId: string): Promise<{ message: string }> {
-  const res = await fetch(`${BASE_URL}/staff/${staffId}/archive`, {
+  const res = await apiFetch(`${BASE_URL}/staff/${staffId}/archive`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -565,7 +618,7 @@ export async function archiveStaff(staffId: string): Promise<{ message: string }
 }
 
 export async function restoreStaff(staffId: string): Promise<{ message: string }> {
-  const res = await fetch(`${BASE_URL}/staff/${staffId}/restore`, {
+  const res = await apiFetch(`${BASE_URL}/staff/${staffId}/restore`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -573,12 +626,12 @@ export async function restoreStaff(staffId: string): Promise<{ message: string }
 }
 
 export async function getArchivedStaff(): Promise<Staff[]> {
-  const res = await fetch(`${BASE_URL}/staff/archived`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/staff/archived`, { headers: authHeaders() });
   return handleResponse<Staff[]>(res);
 }
 
 export async function archiveSession(sessionId: string): Promise<{ message: string }> {
-  const res = await fetch(`${BASE_URL}/monitoringsession/${sessionId}/archive`, {
+  const res = await apiFetch(`${BASE_URL}/monitoringsession/${sessionId}/archive`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -586,7 +639,7 @@ export async function archiveSession(sessionId: string): Promise<{ message: stri
 }
 
 export async function restoreSession(sessionId: string): Promise<{ message: string }> {
-  const res = await fetch(`${BASE_URL}/monitoringsession/${sessionId}/restore`, {
+  const res = await apiFetch(`${BASE_URL}/monitoringsession/${sessionId}/restore`, {
     method: "POST",
     headers: authHeaders(),
   });
@@ -594,7 +647,7 @@ export async function restoreSession(sessionId: string): Promise<{ message: stri
 }
 
 export async function getArchivedSessions(): Promise<MonitoringSession[]> {
-  const res = await fetch(`${BASE_URL}/monitoringsession/archived`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/monitoringsession/archived`, { headers: authHeaders() });
   return handleResponse<MonitoringSession[]>(res);
 }
 
@@ -603,7 +656,7 @@ export async function downloadSessionReportPdf(sessionId: string, sessionDate: s
     const token = localStorage.getItem("token");
     if (!token) throw new Error("Not authenticated. Please login again.");
     
-    const res = await fetch(`${BASE_URL}/monitoringsession/${sessionId}/report`, {
+    const res = await apiFetch(`${BASE_URL}/monitoringsession/${sessionId}/report`, {
       headers: {
         Authorization: `Bearer ${token}`
       },
@@ -639,7 +692,7 @@ export async function downloadSessionReportExcel(sessionId: string, sessionDate:
     const token = localStorage.getItem("token");
     if (!token) throw new Error("Not authenticated. Please login again.");
 
-    const res = await fetch(`${BASE_URL}/monitoringsession/${sessionId}/report-excel`, {
+    const res = await apiFetch(`${BASE_URL}/monitoringsession/${sessionId}/report-excel`, {
       headers: {
         Authorization: `Bearer ${token}`
       },
@@ -675,7 +728,7 @@ export async function downloadMultiSessionReportExcel(sessionIds: string[]): Pro
     const token = localStorage.getItem("token");
     if (!token) throw new Error("Not authenticated. Please login again.");
 
-    const res = await fetch(`${BASE_URL}/monitoringsession/multi-report-excel`, {
+    const res = await apiFetch(`${BASE_URL}/monitoringsession/multi-report-excel`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -714,7 +767,7 @@ export async function downloadMultiSessionReportPdf(sessionIds: string[]): Promi
     const token = localStorage.getItem("token");
     if (!token) throw new Error("Not authenticated. Please login again.");
 
-    const res = await fetch(`${BASE_URL}/monitoringsession/multi-report`, {
+    const res = await apiFetch(`${BASE_URL}/monitoringsession/multi-report`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -776,7 +829,7 @@ export async function downloadCustomReportPdf(
     params.append("showStaffTable", (options.showStaffTable ?? true).toString());
     if (departments && departments.length > 0) params.append("departments", departments.join(","));
 
-    const res = await fetch(`${BASE_URL}/reports/pdf?${params}`, {
+    const res = await apiFetch(`${BASE_URL}/reports/pdf?${params}`, {
       method: "GET",
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -813,14 +866,14 @@ export async function getDashboardInsights(fromDate?: string, toDate?: string): 
   if (toDate) params.append('toDate', toDate);
   const queryString = params.toString();
   const url = queryString ? `${BASE_URL}/aiinsights/dashboard-insights?${queryString}` : `${BASE_URL}/aiinsights/dashboard-insights`;
-  const res = await fetch(url, {
+  const res = await apiFetch(url, {
     headers: authHeaders()
   });
   return handleResponse<{ insights: string; generatedAt: string }>(res);
 }
 
 export async function askAIQuestion(question: string, fromDate?: string, toDate?: string): Promise<{ question: string; answer: string; answeredAt: string }> {
-  const res = await fetch(`${BASE_URL}/aiinsights/ask`, {
+  const res = await apiFetch(`${BASE_URL}/aiinsights/ask`, {
     method: "POST",
     headers: authHeaders(),
     body: JSON.stringify({ Question: question, FromDate: fromDate, ToDate: toDate })
@@ -829,14 +882,14 @@ export async function askAIQuestion(question: string, fromDate?: string, toDate?
 }
 
 export async function getAIAnomalies(): Promise<{ anomalies: string[]; checkedAt: string }> {
-  const res = await fetch(`${BASE_URL}/aiinsights/anomalies`, {
+  const res = await apiFetch(`${BASE_URL}/aiinsights/anomalies`, {
     headers: authHeaders()
   });
   return handleResponse<{ anomalies: string[]; checkedAt: string }>(res);
 }
 
 export async function getAIRecommendations(): Promise<{ recommendations: string }> {
-  const res = await fetch(`${BASE_URL}/aiinsights/recommendations`, {
+  const res = await apiFetch(`${BASE_URL}/aiinsights/recommendations`, {
     headers: authHeaders()
   });
   return handleResponse<{ recommendations: string }>(res);
@@ -859,7 +912,7 @@ export async function downloadCustomReportExcel(
     const token = localStorage.getItem("token");
     if (!token) throw new Error("Not authenticated. Please login again.");
 
-    const res = await fetch(`${BASE_URL}/reports/custom-excel`, {
+    const res = await apiFetch(`${BASE_URL}/reports/custom-excel`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -928,7 +981,7 @@ export interface AuditItem {
 }
 
 export async function getAuditTrail(page = 1, pageSize = 50): Promise<{ total: number; page: number; pageSize: number; items: AuditItem[] }> {
-  const res = await fetch(`${BASE_URL}/audit?page=${page}&pageSize=${pageSize}`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/audit?page=${page}&pageSize=${pageSize}`, { headers: authHeaders() });
   return handleResponse<{ total: number; page: number; pageSize: number; items: AuditItem[] }>(res);
 }
 
@@ -956,7 +1009,7 @@ export async function getStaffPaged(params?: {
   if (params?.pageSize) q.set("pageSize", params.pageSize.toString());
   const queryString = q.toString();
   const url = queryString ? `${BASE_URL}/staff/paged?${queryString}` : `${BASE_URL}/staff/paged`;
-  const res = await fetch(url, { headers: authHeaders() });
+  const res = await apiFetch(url, { headers: authHeaders() });
   return handleResponse<StaffPagedResult>(res);
 }
 
@@ -979,7 +1032,7 @@ export async function getDashboardTrend(from?: string, to?: string): Promise<Tre
   if (from) q.set("from", from);
   if (to) q.set("to", to);
   const qs = q.toString();
-  const res = await fetch(`${BASE_URL}/dashboard/trend${qs ? `?${qs}` : ""}`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/dashboard/trend${qs ? `?${qs}` : ""}`, { headers: authHeaders() });
   return handleResponse<TrendPoint[]>(res);
 }
 
@@ -1008,7 +1061,7 @@ export async function getLeaderboard(params?: { from?: string; to?: string; depa
   if (params?.to) q.set("to", params.to);
   if (params?.department) q.set("department", params.department);
   const qs = q.toString();
-  const res = await fetch(`${BASE_URL}/dashboard/leaderboard${qs ? `?${qs}` : ""}`, { headers: authHeaders() });
+  const res = await apiFetch(`${BASE_URL}/dashboard/leaderboard${qs ? `?${qs}` : ""}`, { headers: authHeaders() });
   return handleResponse<LeaderboardEntry[]>(res);
 }
 
@@ -1045,7 +1098,7 @@ export interface SessionComparisonResult {
 }
 
 export async function compareSessions(sessionA: string, sessionB: string): Promise<SessionComparisonResult> {
-  const res = await fetch(`${BASE_URL}/dashboard/session-comparison?sessionA=${sessionA}&sessionB=${sessionB}`, {
+  const res = await apiFetch(`${BASE_URL}/dashboard/session-comparison?sessionA=${sessionA}&sessionB=${sessionB}`, {
     headers: authHeaders(),
   });
   return handleResponse<SessionComparisonResult>(res);

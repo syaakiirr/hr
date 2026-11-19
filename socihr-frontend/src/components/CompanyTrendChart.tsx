@@ -5,6 +5,7 @@ import { use, graphic, init, getInstanceByDom, dispose } from "echarts/core";
 import { LineChart } from "echarts/charts";
 import { GridComponent, TooltipComponent, LegendComponent } from "echarts/components";
 import { CanvasRenderer } from "echarts/renderers";
+import { getChartPalette, useChartPalette, type ChartPalette } from "../lib/chartTheme";
 
 use([LineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
@@ -19,56 +20,44 @@ export interface TrendDatum {
   rate: number;
 }
 
-const lightChartTheme = {
-  backgroundColor: "transparent",
-  textStyle: { color: "#7b7b96", fontFamily: "Geist, sans-serif", fontSize: 11 },
-};
-
-const customTooltip = {
-  backgroundColor: "rgba(255, 255, 255, 0.96)",
-  borderColor: "#e5e5f0",
-  borderWidth: 1,
-  textStyle: { color: "#111118", fontFamily: "Geist, sans-serif", fontSize: 11 },
-  extraCssText: "box-shadow: 0 4px 16px rgba(17, 17, 24, 0.08); border-radius: 8px; padding: 8px 12px;",
-};
-
-export function buildTrendOption(points: TrendDatum[]) {
+export function buildTrendOption(points: TrendDatum[], palette: ChartPalette = getChartPalette("light")) {
   if (points.length === 0) return null;
   const sparse = points.length <= 2;
   return {
-    ...lightChartTheme,
+    backgroundColor: "transparent",
+    textStyle: { color: palette.text, fontFamily: "Geist, sans-serif", fontSize: 11 },
     animation: true,
     animationDuration: 400,
     animationEasing: "cubicOut" as const,
-    tooltip: { trigger: "axis" as const, ...customTooltip },
+    tooltip: { trigger: "axis" as const, ...palette.tooltip },
     legend: {
       data: ["Completed", "Rate %", "Likes", "Comments", "Shares"],
       selected: { Likes: false, Comments: false, Shares: false },
       top: 0,
-      textStyle: { color: "#64748b", fontSize: 11 },
+      textStyle: { color: palette.text, fontSize: 11 },
     },
     grid: { left: 15, right: 35, bottom: 10, top: 38, containLabel: true },
     xAxis: {
       type: "category" as const,
       data: points.map((p) => p.label),
-      axisLabel: { color: "#64748b", fontSize: 10.5, hideOverlap: true },
-      axisLine: { lineStyle: { color: "#cbd5e1" } },
+      axisLabel: { color: palette.text, fontSize: 10.5, hideOverlap: true },
+      axisLine: { lineStyle: { color: palette.line } },
     },
     yAxis: [
       {
         type: "value" as const,
         name: "Actions",
-        nameTextStyle: { color: "#64748b", fontSize: 10 },
-        axisLabel: { color: "#64748b", fontSize: 10 },
-        splitLine: { lineStyle: { color: "#f1f5f9" } },
+        nameTextStyle: { color: palette.text, fontSize: 10 },
+        axisLabel: { color: palette.text, fontSize: 10 },
+        splitLine: { lineStyle: { color: palette.split } },
       },
       {
         type: "value" as const,
         name: "Rate",
         min: 0,
         max: 100,
-        nameTextStyle: { color: "#64748b", fontSize: 10 },
-        axisLabel: { color: "#64748b", formatter: "{value}%", fontSize: 10 },
+        nameTextStyle: { color: palette.text, fontSize: 10 },
+        axisLabel: { color: palette.text, formatter: "{value}%", fontSize: 10 },
         splitLine: { show: false },
       },
     ],
@@ -110,7 +99,8 @@ export default function CompanyTrendChart({
   height?: number;
   ariaLabel: string;
 }) {
-  const option = useMemo(() => buildTrendOption(points), [points]);
+  const palette = useChartPalette();
+  const option = useMemo(() => buildTrendOption(points, palette), [points, palette]);
   if (!option) return null;
   return (
     <div role="img" aria-label={ariaLabel}>
@@ -133,9 +123,9 @@ export function rateLabel(rate: number): string {
 }
 
 function rateStyle(rate: number): { bg: string; fg: string; Icon: typeof Check } {
-  if (rate >= 75) return { bg: "#f0fdf4", fg: "#15803d", Icon: Check };
-  if (rate >= 50) return { bg: "#fffbeb", fg: "#b45309", Icon: TriangleAlert };
-  return { bg: "#fef2f2", fg: "#b91c1c", Icon: X };
+  if (rate >= 75) return { bg: "var(--green-soft)", fg: "var(--green-text)", Icon: Check };
+  if (rate >= 50) return { bg: "var(--amber-soft)", fg: "var(--amber-text)", Icon: TriangleAlert };
+  return { bg: "var(--red-soft)", fg: "var(--red-text)", Icon: X };
 }
 
 export function RatePill({ rate }: { rate: number }) {

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -171,6 +172,23 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// ── Reverse-proxy / load-balancer awareness (opt-in) ──
+// The docker-compose gateway terminates the client connection and forwards
+// X-Forwarded-For / X-Forwarded-Proto. Enable with SOCIHR_BEHIND_PROXY=true so
+// rate limiting, audit logs and absolute URLs see the real client IP.
+if (string.Equals(Environment.GetEnvironmentVariable("SOCIHR_BEHIND_PROXY"), "true", StringComparison.OrdinalIgnoreCase))
+{
+    var forwarded = new ForwardedHeadersOptions
+    {
+        ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    };
+    // Behind the compose network the API is `expose`d, not published, so only the
+    // gateway can reach it — the private proxy chain can be trusted.
+    forwarded.KnownNetworks.Clear();
+    forwarded.KnownProxies.Clear();
+    app.UseForwardedHeaders(forwarded);
+}
 
 // ── Startup DB connectivity check ──
 try

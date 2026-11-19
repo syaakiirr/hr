@@ -66,7 +66,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const location = useLocation();
   const { isSuperAdmin, isDeptAdmin, user } = useAuth();
-  const { theme, toggleTheme } = useTheme();
+  const { theme, toggleTheme, spilling } = useTheme();
   const username = user?.username || localStorage.getItem("username") || "HR";
   const role     = user?.role || localStorage.getItem("role") || "";
   const deptName = user?.departmentName || localStorage.getItem("departmentName") || "";
@@ -180,7 +180,8 @@ export default function Layout({ children }: { children: ReactNode }) {
           <div style={{ padding: "10px 8px", borderTop: "1px solid var(--line)", flexShrink: 0 }}>
             {/* Theme Toggle */}
             <button
-              onClick={toggleTheme}
+              onClick={(event) => toggleTheme(event.currentTarget)}
+              disabled={spilling}
               className="btn btn-ghost"
               style={{
                 width: "100%",

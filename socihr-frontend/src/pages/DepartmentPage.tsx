@@ -511,7 +511,7 @@ export default function DepartmentPage() {
                           width: 36,
                           height: 36,
                           borderRadius: 8,
-                          background: "var(--bg-tag, #f1f5f9)",
+                          background: "var(--surface-2)",
                           border: "1px solid var(--line, #e2e8f0)",
                           color: "var(--text-2)",
                           display: "flex",

@@ -17,6 +17,7 @@ import { useDateFilter, getDateRange, DATE_FILTERS } from "../contexts/DateFilte
 import { useAuth } from "../contexts/AuthContext";
 import { queryClient } from "../lib/queryClient";
 import { queryKeys } from "../lib/queryKeys";
+import { useChartPalette, type ChartPalette } from "../lib/chartTheme";
 import {
   getDashboardKpi,
   getMonthlyTrend,
@@ -68,38 +69,26 @@ function getRateColor(rate: number) {
 }
 
 // Crisp clean light theme ECharts config
-const lightChartTheme = {
-  backgroundColor: "transparent",
-  textStyle: { color: "#7b7b96", fontFamily: "Geist, sans-serif", fontSize: 11 },
-};
-
-const customTooltip = {
-  backgroundColor: "rgba(255, 255, 255, 0.96)",
-  borderColor: "#e5e5f0",
-  borderWidth: 1,
-  textStyle: { color: "#111118", fontFamily: "Geist, sans-serif", fontSize: 11 },
-  extraCssText: "box-shadow: 0 4px 16px rgba(17, 17, 24, 0.08); border-radius: 8px; padding: 8px 12px;"
-};
-
 type BarGradient = { offset: number; color: string }[];
 
-function makeStaffBarOption(data: number[], labels: string[], gradient: BarGradient, opts?: { barMaxWidth?: number; labelFontSize?: number }) {
+function makeStaffBarOption(data: number[], labels: string[], gradient: BarGradient, palette: ChartPalette, opts?: { barMaxWidth?: number; labelFontSize?: number }) {
   return {
-    ...lightChartTheme,
+    backgroundColor: "transparent",
+    textStyle: { color: palette.text, fontFamily: "Geist, sans-serif", fontSize: 11 },
     animation: true,
     animationDuration: 400,
     animationEasing: "cubicOut",
-    tooltip: { trigger: "axis" as const, ...customTooltip },
+    tooltip: { trigger: "axis" as const, ...palette.tooltip },
     grid: { left: 10, right: 25, bottom: 0, top: 10, containLabel: true },
-    xAxis: { type: "value" as const, max: 100, axisLabel: { color: "#7b7b96", formatter: "{value}%" }, splitLine: { lineStyle: { color: "#f1f1f6" } } },
-    yAxis: { type: "category" as const, data: labels, axisLabel: { color: "#3d3d50" }, axisLine: { lineStyle: { color: "#e4e4ed" } } },
+    xAxis: { type: "value" as const, max: 100, axisLabel: { color: palette.text, formatter: "{value}%" }, splitLine: { lineStyle: { color: palette.split } } },
+    yAxis: { type: "category" as const, data: labels, axisLabel: { color: palette.textStrong }, axisLine: { lineStyle: { color: palette.axis } } },
     series: [{
       type: "bar" as const, barMaxWidth: opts?.barMaxWidth ?? 12,
       showBackground: true,
-      backgroundStyle: { color: "rgba(15, 23, 42, 0.02)", borderRadius: [0, 4, 4, 0] },
+      backgroundStyle: { color: palette.track, borderRadius: [0, 4, 4, 0] },
       data,
       itemStyle: { color: new graphic.LinearGradient(0, 0, 1, 0, gradient), borderRadius: [0, 4, 4, 0] },
-      label: { show: true, position: "right" as const, color: "#3d3d50", fontSize: opts?.labelFontSize ?? 10, formatter: (p: { value: number }) => `${Math.round(p.value)}%`, fontWeight: "bold" },
+      label: { show: true, position: "right" as const, color: palette.textStrong, fontSize: opts?.labelFontSize ?? 10, formatter: (p: { value: number }) => `${Math.round(p.value)}%`, fontWeight: "bold" },
     }],
   };
 }
@@ -108,6 +97,12 @@ export default function DashboardPage() {
   const navigate = useNavigate();
   const { filter, setFilter, customFrom, setCustomFrom, customTo, setCustomTo } = useDateFilter();
   const { isDeptAdmin, user } = useAuth();
+  const palette = useChartPalette();
+  const chartBase = {
+    backgroundColor: "transparent",
+    textStyle: { color: palette.text, fontFamily: "Geist, sans-serif", fontSize: 11 },
+  };
+  const chartTooltip = palette.tooltip;
   const deptName = user?.departmentName ?? localStorage.getItem("departmentName") ?? "";
   const [kpi, setKpi] = useState<KpiData | null>(null);
   const [monthly, setMonthly] = useState<{ month: number; completed: number; missed: number; total: number }[]>([]);
@@ -280,15 +275,15 @@ export default function DashboardPage() {
 
   // Monthly trend option - memoized for performance
   const monthlyOption = useMemo(() => ({
-    ...lightChartTheme,
+    ...chartBase,
     animation: true,
     animationDuration: 400,
     animationEasing: "cubicOut",
-    tooltip: { trigger: "axis" as const, ...customTooltip },
-    legend: { data: ["Completed", "Missed"], textStyle: { color: "#7b7b96" }, right: 10, top: 0 },
+    tooltip: { trigger: "axis" as const, ...chartTooltip },
+    legend: { data: ["Completed", "Missed"], textStyle: { color: palette.text }, right: 10, top: 0 },
     grid: { left: 10, right: 10, bottom: 0, top: 32, containLabel: true },
-    xAxis: { type: "category" as const, data: MONTHS, axisLine: { lineStyle: { color: "#e4e4ed" } }, axisLabel: { color: "#7b7b96" }, splitLine: { show: false } },
-    yAxis: { type: "value" as const, axisLine: { show: false }, axisLabel: { color: "#7b7b96" }, splitLine: { lineStyle: { color: "#f1f1f6" } } },
+    xAxis: { type: "category" as const, data: MONTHS, axisLine: { lineStyle: { color: palette.axis } }, axisLabel: { color: palette.text }, splitLine: { show: false } },
+    yAxis: { type: "value" as const, axisLine: { show: false }, axisLabel: { color: palette.text }, splitLine: { lineStyle: { color: palette.split } } },
     series: [
       {
         name: "Completed", type: "bar" as const, stack: "total", barMaxWidth: 20,
@@ -313,24 +308,24 @@ export default function DashboardPage() {
         },
       },
     ],
-  }), [monthly]);
+  }), [monthly, palette]);
 
   // Weekly trend option - memoized for performance
   const weeklyOption = useMemo(() => ({
-    ...lightChartTheme,
+    ...chartBase,
     animation: true,
     animationDuration: 400,
     animationEasing: "cubicOut",
-    tooltip: { trigger: "axis" as const, ...customTooltip },
-    legend: { data: ["Completed", "Missed"], textStyle: { color: "#7b7b96" }, right: 10, top: 0 },
+    tooltip: { trigger: "axis" as const, ...chartTooltip },
+    legend: { data: ["Completed", "Missed"], textStyle: { color: palette.text }, right: 10, top: 0 },
     grid: { left: 10, right: 10, bottom: 0, top: 32, containLabel: true },
     xAxis: {
       type: "category" as const,
       data: weekly.map((w) => (w?.week && w.week.includes("-W")) ? `W${w.week.split("-W")[1]}` : (w?.week || "")),
-      axisLine: { lineStyle: { color: "#e4e4ed" } }, axisLabel: { color: "#7b7b96" },
+      axisLine: { lineStyle: { color: palette.axis } }, axisLabel: { color: palette.text },
       boundaryGap: false
     },
-    yAxis: { type: "value" as const, axisLine: { show: false }, axisLabel: { color: "#7b7b96" }, splitLine: { lineStyle: { color: "#f1f1f6" } } },
+    yAxis: { type: "value" as const, axisLine: { show: false }, axisLabel: { color: palette.text }, splitLine: { lineStyle: { color: palette.split } } },
     series: [
       {
         name: "Completed", type: "line" as const, smooth: true,
@@ -359,7 +354,7 @@ export default function DashboardPage() {
         }
       },
     ],
-  }), [weekly]);
+  }), [weekly, palette]);
 
   // Platform comparison - memoized for performance
   const platformOption = useMemo(() => {
@@ -372,29 +367,26 @@ export default function DashboardPage() {
     const defaultGrad = new graphic.LinearGradient(0, 0, 0, 1, [{ offset: 0, color: "#a78bfa" }, { offset: 1, color: "#7c3aed" }]);
 
     return {
-      ...lightChartTheme,
+      ...chartBase,
       animation: true,
       animationDuration: 400,
       animationEasing: "cubicOut",
-      tooltip: { trigger: "axis" as const, ...customTooltip },
+      tooltip: { trigger: "axis" as const, ...chartTooltip },
       grid: { left: 10, right: 10, bottom: 0, top: 20, containLabel: true },
-      xAxis: { type: "category" as const, data: platforms.map((p) => p?.platform || "Unknown"), axisLabel: { color: "#7b7b96" }, axisLine: { lineStyle: { color: "#e4e4ed" } } },
-      yAxis: { type: "value" as const, max: 100, axisLabel: { color: "#7b7b96", formatter: "{value}%" }, splitLine: { lineStyle: { color: "#f1f1f6" } } },
+      xAxis: { type: "category" as const, data: platforms.map((p) => p?.platform || "Unknown"), axisLabel: { color: palette.text }, axisLine: { lineStyle: { color: palette.axis } } },
+      yAxis: { type: "value" as const, max: 100, axisLabel: { color: palette.text, formatter: "{value}%" }, splitLine: { lineStyle: { color: palette.split } } },
       series: [{
         type: "bar" as const, barMaxWidth: 30,
         showBackground: true,
-        backgroundStyle: {
-          color: "rgba(15, 23, 42, 0.03)",
-          borderRadius: [5, 5, 0, 0]
-        },
+        backgroundStyle: { color: palette.track, borderRadius: [5, 5, 0, 0] },
         data: platforms.map((p) => ({
           value: p.total > 0 ? Math.round(p.completed / p.total * 100) : 0,
           itemStyle: { color: platformGradients[p.platform] || defaultGrad, borderRadius: [5, 5, 0, 0] }
         })),
-        label: { show: true, position: "top" as const, color: "#3d3d50", fontSize: 11, formatter: "{c}%", fontWeight: "bold" },
+        label: { show: true, position: "top" as const, color: palette.textStrong, fontSize: 11, formatter: "{c}%", fontWeight: "bold" },
       }],
     };
-  }, [platforms]);
+  }, [platforms, palette]);
 
   // Distribution - memoized for performance
   const distributionOption = useMemo(() => {
@@ -402,17 +394,17 @@ export default function DashboardPage() {
       Facebook: "#1877f2", Instagram: "#e1306c", TikTok: "#374151", LinkedIn: "#0a66c2"
     };
     return {
-      ...lightChartTheme,
+      ...chartBase,
       animation: true,
       animationDuration: 400,
       animationEasing: "cubicOut",
-      tooltip: { trigger: "item" as const, ...customTooltip },
+      tooltip: { trigger: "item" as const, ...chartTooltip },
       series: [{
         type: "pie" as const, radius: ["62%", "82%"], center: ["50%", "50%"],
         avoidLabelOverlap: false,
         itemStyle: {
           borderRadius: 6,
-          borderColor: '#ffffff',
+          borderColor: palette.pieBorder,
           borderWidth: 2
         },
         label: { show: false },
@@ -425,7 +417,7 @@ export default function DashboardPage() {
         })),
       }],
     };
-  }, [platforms]);
+  }, [platforms, palette]);
 
   // Multi-metric Trend Area/Line option
   const trendOption = useMemo(() => {
@@ -440,41 +432,41 @@ export default function DashboardPage() {
     const rates = trends.map((t) => t.rate);
 
     return {
-      ...lightChartTheme,
+      ...chartBase,
       animation: true,
       animationDuration: 500,
       tooltip: {
         trigger: "axis" as const,
-        ...customTooltip,
+        ...chartTooltip,
       },
       legend: {
         data: ["Likes", "Comments", "Shares", "Rate %"],
         top: 0,
-        textStyle: { color: "#64748b", fontSize: 11 },
+        textStyle: { color: palette.text, fontSize: 11 },
         itemGap: 14,
       },
       grid: { left: 15, right: 35, bottom: 10, top: 35, containLabel: true },
       xAxis: {
         type: "category" as const,
         data: labels,
-        axisLabel: { color: "#64748b", fontSize: 10.5 },
-        axisLine: { lineStyle: { color: "#cbd5e1" } },
+        axisLabel: { color: palette.text, fontSize: 10.5 },
+        axisLine: { lineStyle: { color: palette.line } },
       },
       yAxis: [
         {
           type: "value" as const,
           name: "Actions",
-          nameTextStyle: { color: "#64748b", fontSize: 10 },
-          axisLabel: { color: "#64748b", fontSize: 10 },
-          splitLine: { lineStyle: { color: "#f1f5f9" } },
+          nameTextStyle: { color: palette.text, fontSize: 10 },
+          axisLabel: { color: palette.text, fontSize: 10 },
+          splitLine: { lineStyle: { color: palette.split } },
         },
         {
           type: "value" as const,
           name: "Rate",
           min: 0,
           max: 100,
-          nameTextStyle: { color: "#64748b", fontSize: 10 },
-          axisLabel: { color: "#64748b", formatter: "{value}%", fontSize: 10 },
+          nameTextStyle: { color: palette.text, fontSize: 10 },
+          axisLabel: { color: palette.text, formatter: "{value}%", fontSize: 10 },
           splitLine: { show: false },
         },
       ],
@@ -537,7 +529,7 @@ export default function DashboardPage() {
         },
       ],
     };
-  }, [trends]);
+  }, [trends, palette]);
 
 
   // Staff ranking top - memoized for performance
@@ -546,7 +538,7 @@ export default function DashboardPage() {
   const topOption = useMemo(() => makeStaffBarOption(topData, topLabels, [
     { offset: 0, color: "#86efac" },
     { offset: 1, color: "#16a34a" }
-  ]), [topData, topLabels]);
+  ], palette), [topData, topLabels, palette]);
 
   // Staff ranking bottom - memoized for performance
   const bottomLabels = useMemo(() => bottomStaff.map((s) => s.fullName ? s.fullName.split(" ")[0] : "Staff"), [bottomStaff]);
@@ -554,34 +546,34 @@ export default function DashboardPage() {
   const bottomOption = useMemo(() => makeStaffBarOption(bottomData, bottomLabels, [
     { offset: 0, color: "#fca5a5" },
     { offset: 1, color: "#dc2626" }
-  ]), [bottomData, bottomLabels]);
+  ], palette), [bottomData, bottomLabels, palette]);
 
   // Company performance chart - memoized
   const companyColors = ["#6366f1", "#0ea5e9", "#10b981", "#f59e0b"];
   const companyOption = useMemo(() => ({
-    ...lightChartTheme,
+    ...chartBase,
     animation: true,
     animationDuration: 400,
     animationEasing: "cubicOut",
-    tooltip: { trigger: "axis" as const, ...customTooltip },
+    tooltip: { trigger: "axis" as const, ...chartTooltip },
     grid: { left: 16, right: 40, bottom: 0, top: 10, containLabel: true },
     xAxis: {
       type: "value" as const,
       max: 100,
-      axisLabel: { color: "#7b7b96", formatter: "{value}%" },
-      splitLine: { lineStyle: { color: "#f1f1f6" } }
+      axisLabel: { color: palette.text, formatter: "{value}%" },
+      splitLine: { lineStyle: { color: palette.split } }
     },
     yAxis: {
       type: "category" as const,
       data: companyPerf.map((c) => c.company),
-      axisLabel: { color: "#3d3d50", fontWeight: "bold" },
-      axisLine: { lineStyle: { color: "#e4e4ed" } }
+      axisLabel: { color: palette.textStrong, fontWeight: "bold" },
+      axisLine: { lineStyle: { color: palette.axis } }
     },
     series: [{
       type: "bar" as const,
       barMaxWidth: 20,
       showBackground: true,
-      backgroundStyle: { color: "rgba(15, 23, 42, 0.03)", borderRadius: [0, 4, 4, 0] },
+      backgroundStyle: { color: palette.track, borderRadius: [0, 4, 4, 0] },
       data: companyPerf.map((c, i) => ({
         value: c.rate,
         itemStyle: {
@@ -594,12 +586,12 @@ export default function DashboardPage() {
       })),
       label: {
         show: true, position: "right" as const,
-        color: "#3d3d50", fontSize: 11,
+        color: palette.textStrong, fontSize: 11,
         formatter: (p: { value: number }) => `${Math.round(p.value)}%`,
         fontWeight: "bold"
       },
     }],
-  }), [companyPerf]);
+  }), [companyPerf, palette]);
 
   // Daily engagement heatmap — calendar grid auto-scoped to the actual data range
   // (instead of a full empty year) so activity is dense and easy to read at a glance.
@@ -615,9 +607,9 @@ export default function DashboardPage() {
   }, [heatmapData]);
 
   const heatmapOption = useMemo(() => ({
-    ...lightChartTheme,
+    ...chartBase,
     tooltip: {
-      ...customTooltip,
+      ...chartTooltip,
       formatter: (p: { data: [string, number] }) => {
         if (!p.data) return "No session";
         const [dateStr, rate] = p.data;
@@ -627,17 +619,17 @@ export default function DashboardPage() {
     visualMap: {
       show: false,
       min: 0, max: 100,
-      inRange: { color: ['#eef2ff', '#a5b4fc', '#6366f1'] },
+      inRange: { color: palette.heatmap },
     },
     calendar: {
       top: 30, left: 40, right: 20, bottom: 10,
       range: heatmapRange ? [heatmapRange.from, heatmapRange.to] : `${currentYear}`,
       cellSize: ['auto', 18],
-      splitLine: { lineStyle: { color: '#e5e5f0', width: 1 } },
+      splitLine: { lineStyle: { color: palette.axis, width: 1 } },
       yearLabel: { show: false },
-      dayLabel: { nameMap: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], color: '#9ca3af', fontSize: 9.5 },
-      monthLabel: { color: '#6b6b85', fontSize: 10.5, fontWeight: 600 },
-      itemStyle: { borderWidth: 3, borderColor: '#fff', color: '#f8f8fc' }
+      dayLabel: { nameMap: ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], color: palette.text, fontSize: 9.5 },
+      monthLabel: { color: palette.text, fontSize: 10.5, fontWeight: 600 },
+      itemStyle: { borderWidth: 3, borderColor: palette.calendarBorder, color: palette.calendarEmpty }
     },
     series: [{
       type: 'heatmap',
@@ -648,7 +640,7 @@ export default function DashboardPage() {
       ]),
       itemStyle: { borderRadius: 4 }
     }]
-  }), [heatmapData, heatmapRange, currentYear]);
+  }), [heatmapData, heatmapRange, currentYear, palette]);
 
   // Keyboard shortcuts for power users (Alex persona)
   useEffect(() => {
@@ -685,8 +677,8 @@ export default function DashboardPage() {
                 <div style={{
                   display: "inline-flex", alignItems: "center", gap: 6, marginTop: 6,
                   padding: "4px 10px", borderRadius: 20,
-                  background: "#eff6ff", border: "1px solid #bfdbfe",
-                  fontSize: 12, fontWeight: 700, color: "#1d4ed8",
+                  background: "var(--blue-soft)", border: "1px solid var(--blue-line)",
+                  fontSize: 12, fontWeight: 700, color: "var(--blue)",
                 }}>
                   <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
                   Viewing: {deptName} only
@@ -1046,7 +1038,7 @@ export default function DashboardPage() {
                     <span>0%</span>
                     <span style={{
                       width: 80, height: 8, borderRadius: 4,
-                      background: "linear-gradient(90deg, #eef2ff, #a5b4fc, #6366f1)"
+                      background: "linear-gradient(90deg, var(--accent-soft), var(--accent-border), var(--accent))"
                     }} />
                     <span>100%</span>
                   </div>
